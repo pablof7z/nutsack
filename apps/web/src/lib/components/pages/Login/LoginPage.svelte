@@ -14,9 +14,8 @@
 
     async function create() {
         const signer = NDKPrivateKeySigner.generate();
-        $user = await signer.user();
-        $user.ndk = $ndk;
-        if (!$user) return;
+        const user = await signer.user();
+        if (!user) return;
         setSigner(signer);
 
         $loginMethod = "pk";

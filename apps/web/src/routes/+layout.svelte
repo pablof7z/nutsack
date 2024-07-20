@@ -2,18 +2,18 @@
 	import { loginMethod, privateKey } from '$stores/user.js';
 	import '../app.css';
 	import {ndk} from '$lib/stores/ndk';
-	import { activeWallet, user, wallet } from '$stores/user';
+	import { user } from '$stores/user';
 	import LoginPage from '$components/pages/Login/LoginPage.svelte';
 	import { onMount } from 'svelte';
-	import type { NDKEventStore } from '@nostr-dev-kit/ndk-svelte';
 	import { NDKNip07Signer, NDKPrivateKeySigner, NDKRelay, type NDKEvent, type NDKSigner } from '@nostr-dev-kit/ndk';
-	import { derived, type Readable } from 'svelte/store';
 	import SetupWalletPage from '$components/pages/Wallet/SetupWalletPage.svelte';
 	import { Toaster } from "$lib/components/ui/sonner";
 	import { Nut, NutIcon } from 'lucide-svelte';
 	import Avatar from '$components/User/Avatar.svelte';
 	import { setSigner } from '$utils/login/setSigner.js';
 	import { pwaInfo } from 'virtual:pwa-info'; 
+	import { walletInit, wallet } from '$stores/wallet';
+	import { toast } from 'svelte-sonner';
 
 	$: webManifestLink = pwaInfo ? pwaInfo.webManifest.linkTag : '' 
 
@@ -36,44 +36,16 @@
 				}
 			}
 	});
-
-	function loadWallets() {
-		if ($wallet && !walletStarted && $ndk.pool.connectedRelays().length >= 3) {
-			walletStarted = true;
-			console.log('starting wallet with', $ndk.pool.connectedRelays().length + 1, 'relays');
-			$wallet.fetchUserWallets().then((w) => {
-				const wallets = w;
-				console.log('wallets', wallets);
-				const firstWallet = wallets[0];
-				if (!firstWallet) return;
-				firstWallet.start();
-				activeWallet.set(firstWallet);
-			});
-		}
-	}
-
-	$: if ($wallet && !walletStarted) {
-		console.log('here')
-		loadWallets();
-	}
-
+	
 	let walletStarted = false;
-	$ndk.pool.on("relay:connect", (r: NDKRelay) => {
-		console.log("relay connected", r.url, $ndk.pool.connectedRelays().length, {walletStarted, wallet: !!$wallet});
-		loadWallets();
-	});
-
-	let cashuRelaySub: NDKEventStore<NDKEvent>;
-	let cashuRelayEvent: Readable<NDKEvent | undefined>;
-
-	$: if ($user && !cashuRelaySub) {
-		cashuRelaySub = $ndk.storeSubscribe(
-			{ kinds: [10019], authors: [$user.pubkey]}
-		)
-
-		cashuRelayEvent = derived(cashuRelaySub, $sub => {
-			return $sub[0];
-		});
+	$: if (!walletStarted && $user) {
+		walletStarted = true;
+		try {
+			walletInit($ndk, $user);
+		} catch (e) {
+			console.error(e);
+			toast.error(e.message);
+		}
 	}
 </script>
 
@@ -110,9 +82,9 @@
 
 
 		<div class="flex flex-col gap-6 p-4 h-full">
-			{#if !$cashuRelayEvent}
+			{#if !$wallet}
 				<SetupWalletPage />
-			{:else if $activeWallet}
+			{:else if $wallet}
 				<slot />
 			{:else}
 				<!-- full screen spiner -->

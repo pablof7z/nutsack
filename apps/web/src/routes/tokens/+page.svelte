@@ -1,17 +1,15 @@
 <script lang="ts">
-	import { activeWallet } from "$stores/user";
+	import Token from "$components/Token.svelte";
+import { wallet } from "$stores/wallet";
 
-    const mintTokens = $activeWallet.mintTokens;
-    console.log(mintTokens)
+    const mintTokens = $wallet.mintTokens;
 </script>
 
 {#if mintTokens}
     {#each Object.entries(mintTokens) as [mint, tokens]}
         <h1>{mint}</h1>
         {#each tokens as token}
-            {token.amount}
-            {$activeWallet.unit}
-            in {token.proofs.length} unspent proofs
+            <Token {token} />
         {/each}
     {/each}
 {/if}

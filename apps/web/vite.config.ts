@@ -33,7 +33,12 @@ export default defineConfig({
 			  }
 			]
 		}),
-		nodePolyfills(),
+		nodePolyfills({
+			include: ["buffer"],
+			globals: {
+				Buffer: true,
+			},
+		}),
 	],
 	optimizeDeps: {
 		exclude: [

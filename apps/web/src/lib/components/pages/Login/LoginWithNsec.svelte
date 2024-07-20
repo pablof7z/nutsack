@@ -22,12 +22,10 @@
 
             setSigner(signer);
         } catch (e) {
+            console.error(e);
             toast.error(e.message);
         }
     }
-
-    
-    
 </script>
 
 <div class="flex flex-col gap-2">

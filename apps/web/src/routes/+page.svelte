@@ -1,8 +1,8 @@
 <script lang="ts">
 	import Button from '$components/ui/button/button.svelte';
 	import { ndk } from '$stores/ndk';
-	import { activeWallet, user, wallet } from '$stores/user';
-	import { NDKKind } from '@nostr-dev-kit/ndk';
+	import { user } from '$stores/user';
+	import { NDKEvent, NDKKind } from '@nostr-dev-kit/ndk';
     import Badge from '$components/ui/badge/badge.svelte';
 	import { onDestroy } from 'svelte';
 	import { Dot, DotSquare, TicketSlash, Nut, Edit } from 'lucide-svelte';
@@ -10,19 +10,15 @@
 	import { derived } from 'svelte/store';
 	import Avatar from '$components/User/Avatar.svelte';
 	import { Name } from '@nostr-dev-kit/ndk-svelte-components';
+	import { wallet, walletMintBalance, walletsBalance, walletService } from '$stores/wallet';
 
     let updatedAt = 0;
     
-    const sub = $activeWallet!.start();
-    $activeWallet.on("update", () => {
-        updatedAt = new Date();
-    })
-
-    $activeWallet?.on("nutzap:redeemed", (event: NDKEvent) => {
+    $wallet?.on("nutzap:redeemed", (event: NDKEvent) => {
         toast("redeemed a nutzap from "+ event.pubkey)
     })
 
-    $activeWallet?.on("nutzap:seen", (event: NDKEvent) => {
+    $wallet?.on("nutzap:seen", (event: NDKEvent) => {
         toast("seen a nutzap from "+ event.pubkey)
     })
 
@@ -31,60 +27,64 @@
         {kinds: [NDKKind.Nutzap], "#p": [ $user!.pubkey ]},
     ])
 
-    const tokens = derived(walletActivity, ($walletActivity) => {
-        const deletedEvents = new Set();
-        $walletActivity.filter(e => e.kind === NDKKind.EventDeletion)
-            .forEach(e => {
-                for (const deletedId of e.getMatchingTags("e")) {
-                    deletedEvents.add(deletedId);
-                }
-            });
-        
-        return $walletActivity.filter(e => e.kind === NDKKind.CashuToken)
-            .filter(e => !deletedEvents.has(e.id))
-    })
-
     const nutzaps = derived(walletActivity, ($walletActivity) => {
         const zaps = $walletActivity.filter(e => e.kind === NDKKind.Nutzap)
         return zaps;
     });
 
-    onDestroy(() => {
-        sub.stop();
-    })
+    let selectedBalance: string | undefined;
+    function selectBalance(mint: string, balance: number) {
+        if (balance < 3) return;
+        if (selectedBalance === mint)
+            selectedBalance = undefined;
+        else
+            selectedBalance = mint;
+    }
+
+    function transferBalance(targetMint: string) {
+        $walletService.transfer($wallet, selectedBalance, targetMint);
+    }
 </script>
 
-{#key updatedAt}
+{#if $wallet}
     <div class="flex flex-col gap-6 w-full">
         <div class="flex-grow flex items-center justify-center gap-6 flex-col min-h-[30vh]">
             <div class="text-7xl font-black items-center text-center focus:outline-none w-full">
-                {$activeWallet?.balance}
-                <div class="text-3xl text-muted-foreground font-light">{$activeWallet.unit}</div>
+                {$walletsBalance.get($wallet.walletId)??"0"}
+                <div class="text-3xl text-muted-foreground font-light">{$wallet.unit}</div>
             </div>
         </div>
 
         <div class="flex flex-col w-full">
-            {#each Object.entries($activeWallet.mintBalances) as [mint, balance]}
+            {#each Object.entries($walletMintBalance.get($wallet.walletId)||{}) as [mint, balance]}
                 <div class="flex flex-row items-center justify-between gap-6 w-full">
-                    <div class="grow w-full text-muted-foreground font-light">{mint}</div>
+
+                    {#if selectedBalance && selectedBalance !== mint}
+                        <button on:click={() => transferBalance(mint)} class="grow w-full text-muted-foreground font-light bg-secondary text-left">{mint}</button>
+                    {:else}
+                        <div class="grow w-full text-muted-foreground font-light">{mint}</div>
+                    {/if}
+                    
                     <div class="">
-                        <Badge class="flex flex-row items-center gap-1 flex-nowrap whitespace-nowrap">
-                            {balance}
-                            {$activeWallet.unit}
-                        </Badge>
+                        <button on:click={() => selectBalance(mint, balance)}>
+                            <Badge class="flex flex-row items-center gap-1 flex-nowrap whitespace-nowrap">
+                                {balance}
+                                {$wallet.unit}
+                            </Badge>
+                        </button>
                     </div>
                 </div>
             {/each}
         </div>
     </div>
-{/key}
+{/if}
 
 <div class="flex flex-col items-center justify-center gap-2">
     <div class="flex flex-row items-center w-full gap-4 max-sm:p-2">
         <Button class="grow" href="/deposit">
             Deposit
         </Button>
-        <Button class="grow">
+        <Button class="grow" href="/withdraw">
             Withdraw
         </Button>
         <Button variant="secondary" href="/tokens" class="shrink">
@@ -99,7 +99,9 @@
 <div class="flex flex-col items-start divide-y divide-border border-y">
     {#each $nutzaps as nutzap (nutzap.id)}
         <div class="flex flex-row items-center gap-2 w-full">
-            <Avatar pubkey={nutzap.pubkey} size="small" />
+            <a href="/send?pubkey={nutzap.pubkey}">
+                <Avatar pubkey={nutzap.pubkey} size="small" />
+            </a>
 
             <div class="flex flex-col items-start grow">
                 <Name pubkey={nutzap.pubkey} class="text-sm font-bold" ndk={$ndk} />
@@ -112,7 +114,7 @@
                 <Nut class="h-6 w-6 inline mr-2" />
                 {parseInt(nutzap.tagValue("amount"))/1000}
                 <span class="text-muted-foreground text-sm font-light">
-                    {$activeWallet.unit}
+                    {$wallet.unit}
                 </span>
             </div>
         </div>

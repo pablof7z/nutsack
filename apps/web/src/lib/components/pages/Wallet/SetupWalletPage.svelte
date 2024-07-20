@@ -8,7 +8,8 @@
     import { NDKCashuMintList, NDKPrivateKeySigner, NDKRelay, type NostrEvent } from "@nostr-dev-kit/ndk";
     import Explore from "$components/Mints/Explore.svelte";
 	import { goto } from "$app/navigation";
-	import { activeWallet } from "$stores/user";
+	import { wallet } from "$stores/wallet";
+	import Separator from "$components/ui/separator/separator.svelte";
 
     let relayUrls: string = "";
     let mintUrls: string[] = [];
@@ -17,23 +18,23 @@
 
     $ndk.pool.on("relay:connect", (r: NDKRelay) => {
         let d = relayUrls;
-        console.log("adding relay", {url: r.url, prev: d});
         if (d.length > 0) d = d + "\n";
         d = d + r.url;
         relayUrls = d;
-        console.log('result relay', d);
     });
 
     onMount(() => {
-        console.log('pool', $ndk.pool.relays)
         relayUrls = Array.from($ndk.pool.relays.keys()).join("\n")
 
-        if ($activeWallet) {
-            mintUrls = $activeWallet.mints;
-            if ($activeWallet.relays.length > 10) relayUrls = $activeWallet.relays.join("\n");
-            console.log($activeWallet);
-            if ($activeWallet.privkey) {
-                signer = new NDKPrivateKeySigner($activeWallet.privkey);
+        if ($wallet) {
+            mintUrls = $wallet.mints;
+            if ($wallet.relays.length > 10) relayUrls = $wallet.relays.join("\n");
+            if ($wallet.privkey) {
+                signer = new NDKPrivateKeySigner($wallet.privkey);
+                console.log('using existing private key in wallet event', $wallet.privkey);
+                signer.user().then(u => {
+                    console.log('pubkey of user', u.pubkey);
+                });
             }
         }
     })
@@ -42,7 +43,8 @@
     let cashuWallet: NDKCashuWallet;
 
     async function create() {
-        signer = NDKPrivateKeySigner.generate();
+        if (signer) console.log('not creating a new signer')
+        signer ??= NDKPrivateKeySigner.generate();
 
         if (mintUrls.length < 1) {
             return false;
@@ -54,13 +56,10 @@
 
         // if we don't have access to the private key, we need to
         // signal that p2pk need to go to a specific pubkey we control
-        if (!($ndk.signer instanceof NDKPrivateKeySigner) && !signer) {
-            signer = NDKPrivateKeySigner.generate();
-            const user = await signer.user();
-            cashuMintList.p2pkPubkey = user.pubkey;
-        }
+        const user = await signer.user();
+        cashuMintList.p2pkPubkey = user.pubkey;
         
-        cashuWallet = $activeWallet ?? new NDKCashuWallet($ndk);
+        cashuWallet = $wallet ?? new NDKCashuWallet($ndk);
         cashuWallet.name ??= "My wallet";
         cashuWallet.relays = cashuMintList.relays;
         cashuWallet.mints = cashuMintList.mints;
@@ -69,6 +68,7 @@
 
         if (signer?.privateKey) {
             cashuWallet.privkey = signer.privateKey;
+            console.log('setting private key', cashuWallet.privkey);
         }
         
         console.log("cashuMintList", cashuMintList.rawEvent());
@@ -98,23 +98,24 @@
 <div class="flex flex-col gap-6">
     <div class="grid grid-cols-1 gap-10">
           <div class="grid gap-2">
-            <Label for="relays">Relays</Label>
-            <Textarea id="relays" required bind:value={relayUrls} />
-            <div class="text-base text-muted-foreground">These are the relays where your balance is going to be stored.</div>
-          </div>
-
-          <div class="grid gap-2">
             <Label for="relays">Mints</Label>
+            <div class="text-base text-muted-foreground">These are the mints you are comfortable using.</div>
 
             {#each mintUrls as mintUrl}
                 <div>{mintUrl}</div>
             {/each}
             
-            <div class="text-base text-muted-foreground">These are the mints you are comfortable using.</div>
-            
             <Explore bind:mintUrls />
           </div>
-        </div>
+
+          <Separator />
+
+          <div class="grid gap-2">
+            <Label for="relays">Relays</Label>
+            <div class="text-base text-muted-foreground">These are the relays where your ecash will be stored.</div>
+            <Textarea id="relays" required bind:value={relayUrls} />
+          </div>
+    </div>
         
 
         <!-- <hr>

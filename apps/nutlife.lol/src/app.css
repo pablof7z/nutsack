@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@font-face {
+	font-family: 'Press Start 2P';
+	src: url(/fonts/PressStart2P-Regular.ttf) format('truetype');
+}
+
+h1 {
+	font-family: 'Press Start 2P';
+}
+
+.note-content h1 {
+	margin-top: 1.5rem;
+	font-family: Inter var !important;
+	font-weight: bold;
+	font-size: 1.5rem;
+}
+
+.note-content p {
+	margin-bottom: 1rem;
+}
+
+.note-content a {
+	font-weight: 500;
+	color: rgb(126 34 206 / var(--tw-text-opacity));
+	text-decoration: underline;
+}
+
+/* h3 {
+    font-family: Inter var !important;
+    font-smooth: always;
+    font-smooth: 2em !important;
+} */
+
+:root {
+	font-family: monospace, 'Inter', sans-serif;
+}
+@supports (font-variation-settings: normal) {
+	:root {
+		font-family: 'Inter var', sans-serif;
+	}
+}
+
+
+body {
+	@apply bg-black;
+}

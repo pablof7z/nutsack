@@ -2,12 +2,14 @@
     import { NDKCashuDeposit } from "@nostr-dev-kit/ndk-wallet";
 	import { Button } from "$components/ui/button";
     import QRCode from "@bonosoft/sveltekit-qrcode"
-	import { activeWallet } from "$stores/user";
 	import { goto } from "$app/navigation";
     import { toast } from "svelte-sonner";
 	import Input from "$components/ui/input/input.svelte";
     import * as Select from "$lib/components/ui/select/index.js";
 	import { Textarea } from "$components/ui/textarea";
+	import { wallet } from "$stores/wallet";
+	import { CashuMint, type GetInfoResponse } from "@cashu/cashu-ts";
+	import { fetchMintUnits, mintUnits } from "$stores/mint";
 
     let amount: number = 10;
     let pr: string | undefined;
@@ -21,7 +23,11 @@
     }
 
     async function startDeposit() {
-        deposit = $activeWallet.deposit(amount, selectedMint);
+        if (selectedUnit === "usd") {
+            amount = amount * 100;
+        }
+        
+        deposit = $wallet.deposit(amount, selectedMint?.value, selectedUnit);
         pr = await deposit.start();
         deposit.on("success", () => {
             toast("Deposit successful");
@@ -32,34 +38,60 @@
         });
     }
 
-    let selectedMint: string | undefined;
+    let selectedMint: { value: string, label: string } | undefined;
+    let mintInfo: Record<string, GetInfoResponse> = {};
+
+    let selectedUnit: string | undefined;
+    let selectedMintUrl: string | undefined;
+
+    $: {
+        selectedMintUrl = selectedMint ? selectedMint.value : undefined;
+        selectedUnit = undefined;
+    }
+
+    // $: if (selectedMintUrl) {
+    //     if (!$mintUnits[selectedMintUrl]) {
+    //         fetchMintUnits(selectedMintUrl);
+    //     }
+    // }
 </script>
 
 <div class="flex flex-col gap-6 items-center h-full">
     {#if !pr}
-        
-        
         <div class="flex items-center justify-center gap-6 flex-col">
             <h1>Choose amount</h1>
 
             <div class="text-7xl font-black items-center text-center focus:outline-none">
                 <Input bind:value={amount} type="number" class="!py-10 border-none text-5xl font-bold items-center text-center" />
-                <div class="text-3xl text-muted-foreground font-light">{$activeWallet.unit}</div>
+                <!-- {#if selectedMintUrl}
+                    <div class="flex flex-row gap-2">
+                        {#each $mintUnits[selectedMintUrl]??[] as unit}
+                            <Button
+                                variant={unit === selectedUnit ? "default" : "ghost"} class="font-light"
+                                on:click={() => selectedUnit = unit}
+                            >
+                                {unit}
+                            </Button>
+                        {/each}
+                    </div>
+                {:else} -->
+                    <div class="text-3xl text-muted-foreground font-light">{$wallet.unit}</div>
+                <!-- {/if} -->
             </div>
 
-            {#if $activeWallet.mints.length > 1}
-                <Select.Root portal={null}>
+            {#if $wallet.mints.length > 1}
+                <Select.Root bind:selected={selectedMint} portal={null}>
                     <Select.Trigger>
                         <Select.Value placeholder="Optionally choose a mint" />
                     </Select.Trigger>
                     <Select.Content>
-                    <Select.Group>
-                        <Select.Label>Mints</Select.Label>
-                        {#each $activeWallet.mints as mint}
-                            <Select.Item value={mint} label={mint}
-                                >{mint}</Select.Item>
-                        {/each}
-                    </Select.Group>
+                        <Select.Group>
+                            <Select.Label>Mints</Select.Label>
+                            {#each $wallet.mints as mint}
+                                <Select.Item value={mint} label={mint}
+                                    >{mint}</Select.Item>
+                            {/each}
+                        </Select.Group>
                     </Select.Content>
                     <Select.Input name="favoriteFruit" />
                 </Select.Root>

@@ -5,11 +5,11 @@
 	import { Textarea } from "$components/ui/textarea";
 	import Avatar from "$components/User/Avatar.svelte";
 	import { ndk } from "$stores/ndk";
-	import { activeWallet } from "$stores/user";
+	import { wallet } from "$stores/wallet";
     import { NDKKind, NDKSubscriptionCacheUsage, NDKZapper } from "@nostr-dev-kit/ndk";
 	import type { NDKZapPaymentDetails, NDKEvent, NDKTag, NDKUser, NDKZapMethodInfo, NutPaymentInfo } from "@nostr-dev-kit/ndk";
 	import { Name } from "@nostr-dev-kit/ndk-svelte-components";
-	import { Cherry, Nut } from "lucide-svelte";
+	import { Nut } from "lucide-svelte";
 
     let npub: string;
     let pubkey: string;
@@ -57,11 +57,12 @@
         let target = event ?? user;
         target.ndk = $ndk;
         zapping = true;
-        await $activeWallet.zap(target, amount*1000, "msats", comment);
+        const res = await $wallet.zap(target, amount*1000, "msats", comment);
+        console.log('zap result', res);
         zapping = false;
 
         // const pr = await user.zap(amount*1000, "zapping from my nutsack wallet", extraTags);
-        // await $activeWallet.lnPay(pr);
+        // await $wallet.lnPay(pr);
     }
 </script>
 
@@ -83,7 +84,7 @@
             <div class="flex-grow flex items-center justify-center gap-6 flex-col">
                 <div class="px-6 flex flex-col items-center">
                     <Input bind:value={amount} type="number" class="!p-6 !pt-10 border-none m-2 text-5xl font-bold items-center text-center w-full" />
-                    <div class="text-3xl text-muted-foreground font-light">{$activeWallet.unit}</div>
+                    <div class="text-3xl text-muted-foreground font-light">{$wallet.unit}</div>
                 </div>
             </div>
 
@@ -93,6 +94,7 @@
                 <Button class="w-2/3 py-3 text-2xl h-auto" size="lg" on:click={zap}>
                     <Nut class="h-6 w-6 mr-2" />
                     Nutzap
+                    
                 </Button>
             </div>
         </div>
