@@ -1,8 +1,8 @@
 <script lang="ts">
 	import Token from "$components/Token.svelte";
-import { wallet } from "$stores/wallet";
+    import { wallet } from "$stores/wallet";
 
-    const mintTokens = $wallet.mintTokens;
+    const mintTokens = $wallet!.mintTokens;
 </script>
 
 {#if mintTokens}

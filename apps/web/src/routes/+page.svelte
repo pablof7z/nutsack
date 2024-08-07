@@ -2,7 +2,7 @@
 	import Button from '$components/ui/button/button.svelte';
 	import { ndk } from '$stores/ndk';
 	import { user } from '$stores/user';
-	import { NDKEvent, NDKKind } from '@nostr-dev-kit/ndk';
+	import { NDKEvent, NDKKind, NDKPublishError, NDKRelaySet } from '@nostr-dev-kit/ndk';
     import Badge from '$components/ui/badge/badge.svelte';
 	import { onDestroy } from 'svelte';
 	import { Dot, DotSquare, TicketSlash, Nut, Edit } from 'lucide-svelte';
@@ -43,6 +43,20 @@
 
     function transferBalance(targetMint: string) {
         $walletService.transfer($wallet, selectedBalance, targetMint);
+    }
+
+    async function republish(url: string) {
+        if (!$wallet) return;
+        const set = NDKRelaySet.fromRelayUrls([url], $ndk);
+        try {
+            const ret = await $wallet.publish(set);
+            console.log("published to", url, ret);
+            toast.success("Published to " + url);
+        } catch (e: NDKPublishError) {
+            console.error(e);
+            toast.error(e.relayErrors);
+        }
+
     }
 </script>
 
@@ -93,6 +107,25 @@
         <Button variant="secondary" href="/wallet" class="shrink">
             <Edit class="h-6 w-6 opacity-80" strokeWidth={1} />
         </Button>
+    </div>
+
+    <div class="flex flex-row items-center w-full flex-wrap gap-4 max-sm:p-2">
+        {#each $wallet?.relays as url}
+            <Button size="sm" variant="secondary" class="flex flex-row items-center gap-1 flex-nowrap whitespace-nowrap"
+                on:click={() => republish(url)}
+            >
+                <span
+                    class="
+                        w-2 h-2 rounded-full
+                        {
+                            $wallet?.onRelays.map(r => r.url).includes(url) ?
+                            "bg-green-500" : "bg-red-500"
+                        }
+                    "
+                ></span>
+                {url}
+            </Button>
+        {/each}
     </div>
 </div>
 

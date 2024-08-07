@@ -36,9 +36,7 @@
         const nostr = info.contact?.find((c: any) => c[0] === 'nostr');
         if (nostr) {
             try {
-                console.log(nostr);
                 const u = $ndk.getUser({npub: nostr[1]});
-                console.log('user', user.pubkey);
                 u.pubkey
                 user = u;
             } catch { }

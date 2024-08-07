@@ -18,6 +18,38 @@
 	$: webManifestLink = pwaInfo ? pwaInfo.webManifest.linkTag : '' 
 
 	onMount(async () => {
+		$ndk.connect();
+
+		$ndk.walletConfig = {
+			onLnPay: async (lnPay) => {
+				toast.error("Received a request to pay " + lnPay.amount/1000 + " satoshis");
+				throw new Error("Not implemented");
+			},
+			onNutPay: async (details) => {
+				const { mints, p2pkPubkey } = details.info;
+				const { amount, unit } = details;
+
+				if (!$wallet) {
+					toast.error("Wallet not initialized");
+					throw new Error("Wallet not initialized");
+				}
+
+				try {
+					const res = await $wallet.nutPay(amount, unit, mints, p2pkPubkey);
+					if (!res) throw new Error("failed to pay");
+
+					const nutzap = await $wallet.publishNutzap(res.proofs, res.mint, details);
+					toast.success("Nutzapped " + amount + " " + unit);
+					return nutzap;
+				} catch (e) {
+					console.error(e);
+					toast.error(e.message);
+				}
+
+				throw new Error("Failed to pay");
+			},
+		}
+		
 		switch ($loginMethod) {
 			case "pk": {
 				if ($privateKey) {

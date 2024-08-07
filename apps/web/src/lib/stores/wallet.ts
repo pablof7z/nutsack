@@ -23,17 +23,24 @@ export function walletInit(
 ) {
     const w = new NDKWallet(ndk);
     w.on("wallet", () => { wallets.set(w.wallets); });
-    w.on("wallet:default", (w: NDKCashuWallet) => { wallet.set(w); });
+    w.on("wallet:default", (w: NDKCashuWallet) => {
+        wallet.set(w);
+
+        ndk.walletConfig = {
+            onCashuPay: w.cashuPay.bind(w),
+            onLnPay: w.lnPay.bind(w),
+        };
+    });
     w.on("wallet:balance", (w: NDKCashuWallet) => {
         walletsBalance.update((b) => {
             b.set(w.walletId, w.balance || 0);
-            // d("setting balance of wallet %s to %d", w.walletId, w.balance);
+            d("setting balance of wallet %s to %d", w.walletId, w.balance);
             return b;
         });
 
         walletMintBalance.update((b) => {
             b.set(w.walletId, w.mintBalances);
-            // d("setting mint balance of wallet %s to %o", w.walletId, w.mintBalances);
+            d("setting mint balance of wallet %s to %o", w.walletId, w.mintBalances);
             return b;
         });
     });

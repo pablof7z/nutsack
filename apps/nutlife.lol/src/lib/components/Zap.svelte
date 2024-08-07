@@ -11,12 +11,19 @@
     export let zap: NDKEvent;
     export let opened = false;
 
-    const amount = parseInt(zap.tagValue("amount")??"0") / 1000;
+    let amount = parseInt(zap.tagValue("amount")??"0");
+    let unit = zap.tagValue("unit") ?? zap.getMatchingTags("amount")[0]?.[2] ?? "msat";
     const recipientPubkey = zap.tagValue("p");
     const recipient = recipientPubkey ? $ndk.getUser({pubkey: recipientPubkey}) : null;
     const sender = zap.author;
     const comment = zap.tagValue("comment");
 
+ 
+    if (unit.startsWith('msat')) {
+        unit = 'sats';
+        amount = amount / 1000;
+    }
+    
     let zappedNote;
 
     function open() {
@@ -71,8 +78,16 @@
                 <div class="text-5xl font-black text-center justify-center flex flex-row items-center">
                     ⚡️
                     <span class="flex flex-col items-center">
-                        <span class="text-purple-900 dark:text-purple-500">{formatSatoshis(amount, { tryGrouping: true, justNumber: true })}</span>
-                        <span class="text-lg text-gray-600 dark:text-gray-300 font-black uppercase">{formatSatoshis(amount, { tryGrouping: true, justUnit: true })}</span>
+                        <span class="text-purple-900 dark:text-purple-500">
+                            {#if unit.startsWith("msat")}
+                                {formatSatoshis(amount, { tryGrouping: true, justNumber: true })}
+                            {:else }
+                                {amount}
+                            {/if}
+                        </span>
+                        <span class="text-lg text-gray-600 dark:text-gray-300 font-black uppercase">
+                            {unit}
+                        </span>
                     </span>
                 </div>
 

@@ -6,10 +6,11 @@
 	import Avatar from "$components/User/Avatar.svelte";
 	import { ndk } from "$stores/ndk";
 	import { wallet } from "$stores/wallet";
-    import { NDKKind, NDKSubscriptionCacheUsage, NDKZapper } from "@nostr-dev-kit/ndk";
-	import type { NDKZapPaymentDetails, NDKEvent, NDKTag, NDKUser, NDKZapMethodInfo, NutPaymentInfo } from "@nostr-dev-kit/ndk";
+    import { NDKKind, NDKSubscriptionCacheUsage, NDKNutzap } from "@nostr-dev-kit/ndk";
+	import type { NDKEvent, NDKUser, NDKZapMethodInfo, NDKZapSplit } from "@nostr-dev-kit/ndk";
 	import { Name } from "@nostr-dev-kit/ndk-svelte-components";
 	import { Nut } from "lucide-svelte";
+	import { toast } from "svelte-sonner";
 
     let npub: string;
     let pubkey: string;
@@ -57,9 +58,40 @@
         let target = event ?? user;
         target.ndk = $ndk;
         zapping = true;
-        const res = await $wallet.zap(target, amount*1000, "msats", comment);
-        console.log('zap result', res);
-        zapping = false;
+        const zapper = await $ndk.zap(target, amount*1000, { comment });
+        zapper.on("complete", (results: Map<NDKZapSplit, NDKPaymentConfirmation | Error | undefined>) => {
+            results.forEach((res, split) => {
+                if (res instanceof Error) {
+                    toast.error(res.message);
+                    console.error(res);
+                    return;
+                }
+                
+                if (res instanceof NDKNutzap) {
+                    toast.info("Nutzapped", {
+                        action: {
+                            label: "View",
+                            onClick: () => {
+                                window.open("https://njump.me/" + res.encode(), "_blank");
+                            }
+                        }
+                    })
+                } else if (typeof res === "string") {
+                    toast.success(res);
+                }
+                console.log('zap result', res);
+            });
+            zapping = false;
+        });
+
+        zapper.zap();
+        
+        // const res = await $wallet.zap(target, amount*1000, "msats", comment);
+        // if (res) {
+        //     toast("👍🌰");
+        // }
+        // console.log('zap result', res);
+        // zapping = false;
 
         // const pr = await user.zap(amount*1000, "zapping from my nutsack wallet", extraTags);
         // await $wallet.lnPay(pr);
@@ -91,7 +123,7 @@
             <Textarea bind:value={comment} />
             
             <div class="flex flex-row justify-center items-center w-full gap-4 max-sm:fixed bottom-0 left-0 max-sm:p-2">
-                <Button class="w-2/3 py-3 text-2xl h-auto" size="lg" on:click={zap}>
+                <Button class="w-2/3 py-3 text-2xl h-auto" size="lg" on:click={zap} disabled={zapping}>
                     <Nut class="h-6 w-6 mr-2" />
                     Nutzap
                     

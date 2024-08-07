@@ -10,13 +10,15 @@
 	import { goto } from "$app/navigation";
 	import { wallet } from "$stores/wallet";
 	import Separator from "$components/ui/separator/separator.svelte";
+	import { toast } from "svelte-sonner";
 
     let relayUrls: string = "";
     let mintUrls: string[] = [];
-    let exploreMints = false;
     let signer: NDKPrivateKeySigner;
 
     $ndk.pool.on("relay:connect", (r: NDKRelay) => {
+        if ($wallet && relayUrls.length > 0) return;
+
         let d = relayUrls;
         if (d.length > 0) d = d + "\n";
         d = d + r.url;
@@ -28,7 +30,8 @@
 
         if ($wallet) {
             mintUrls = $wallet.mints;
-            if ($wallet.relays.length > 10) relayUrls = $wallet.relays.join("\n");
+            relayUrls = $wallet.relays.join("\n");
+            console.log('setting wallet relays', relayUrls, $wallet.rawEvent())
             if ($wallet.privkey) {
                 signer = new NDKPrivateKeySigner($wallet.privkey);
                 console.log('using existing private key in wallet event', $wallet.privkey);
@@ -47,6 +50,7 @@
         signer ??= NDKPrivateKeySigner.generate();
 
         if (mintUrls.length < 1) {
+            toast.error("Please add at least one mint");
             return false;
         }
 
@@ -82,7 +86,7 @@
         if (await create()) {
             await Promise.all([
                 cashuMintList.publishReplaceable(),
-                cashuWallet.publishReplaceable(),
+                cashuWallet.publishReplaceable(cashuWallet.relaySet),
             ]);
             goto("/");
         }

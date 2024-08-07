@@ -38,15 +38,6 @@
 </div> -->
 
 
-{#if ['nostriches', 'notes'].includes(mode)}
-    <div class="flex flex-row items-center my-5 text-sm font-semibold">
-        <RadioButton pos="left" bind:activeValue={sortMode} value="count" text="by zap count" on:click={() => changeSortMode('count')} />
-        <RadioButton pos="right" bind:activeValue={sortMode} value="amount" text="by total sats" on:click={() => changeSortMode('amount')} />
-    </div>
-{/if}
-
 <div class="my-4 w-full rounded">
-    {#if mode === 'zap-feed'}
-        <ZapFeed nutzaps={mainSub} />
-    {/if}
+    <ZapFeed nutzaps={mainSub} />
 </div>
