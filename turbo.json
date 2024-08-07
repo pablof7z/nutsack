@@ -1,0 +1,24 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build", "^build:ndk-svelte-components"],
+      "outputs": [".svelte-kit/**", ".vercel/**"]
+    },
+    "build:ndk": {
+      "dependsOn": [],
+      "inputs": ["packages/ndk/ndk/**"],
+      "outputs": ["packages/ndk/ndk/dist/**"]
+    },
+    "build:ndk-svelte-components": {
+      "dependsOn": ["^build:ndk"],
+      "inputs": ["packages/ndk/ndk-svelte-components/**"],
+      "outputs": ["packages/ndk/ndk-svelte-components/dist/**"]
+    },
+    "lint": {},
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}
