@@ -39,7 +39,6 @@
             tags: [
                 [ "r", "wss://relay.primal.net" ],
                 [ "r", "wss://relay.damus.io" ],
-                [ "r", "wss://relay.f7z.io" ]
             ]
         } as NostrEvent)
         relays.publish();

@@ -6,10 +6,13 @@ const _ndk = new NDKSvelte({
     explicitRelayUrls: [
         "wss://relay.primal.net",
         "wss://relay.damus.io",
-        "wss://relay.f7z.io",
     ],
-    cacheAdapter: new NDKDexieCache({ dbName: 'nutsack' })
+    enableOutboxModel: true,
+    cacheAdapter: new NDKDexieCache({ dbName: 'nutsack' }),
+    clientName: "nutsack",
 });
-_ndk.connect();
+_ndk.pool.on("connect", () => {
+    console.log("POOL CONNECTED");
+});
 
 export const ndk = writable(_ndk);

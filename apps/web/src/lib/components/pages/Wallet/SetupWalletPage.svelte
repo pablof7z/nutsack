@@ -31,7 +31,7 @@
         if ($wallet) {
             mintUrls = $wallet.mints;
             relayUrls = $wallet.relays.join("\n");
-            console.log('setting wallet relays', relayUrls, $wallet.rawEvent())
+            console.log('setting wallet relays', relayUrls, $wallet.event.rawEvent())
             if ($wallet.privkey) {
                 signer = new NDKPrivateKeySigner($wallet.privkey);
                 console.log('using existing private key in wallet event', $wallet.privkey);
@@ -61,9 +61,9 @@
         // if we don't have access to the private key, we need to
         // signal that p2pk need to go to a specific pubkey we control
         const user = await signer.user();
-        cashuMintList.p2pkPubkey = user.pubkey;
+        cashuMintList.p2pk = user.pubkey;
         
-        cashuWallet = $wallet ?? new NDKCashuWallet($ndk);
+        cashuWallet = $wallet ?? new NDKCashuWallet(undefined, $ndk);
         cashuWallet.name ??= "My wallet";
         cashuWallet.relays = cashuMintList.relays;
         cashuWallet.mints = cashuMintList.mints;
@@ -74,9 +74,11 @@
             cashuWallet.privkey = signer.privateKey;
             console.log('setting private key', cashuWallet.privkey);
         }
+
+        await cashuWallet.publish();
         
         console.log("cashuMintList", cashuMintList.rawEvent());
-        console.log("cashuWallet", cashuWallet.rawEvent());
+        console.log("cashuWallet", cashuWallet.event.rawEvent());
         
         return true;
     }
@@ -86,7 +88,6 @@
         if (await create()) {
             await Promise.all([
                 cashuMintList.publishReplaceable(),
-                cashuWallet.publishReplaceable(cashuWallet.relaySet),
             ]);
             goto("/");
         }

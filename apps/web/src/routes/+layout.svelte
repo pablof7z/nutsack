@@ -5,7 +5,7 @@
 	import { user } from '$stores/user';
 	import LoginPage from '$components/pages/Login/LoginPage.svelte';
 	import { onMount } from 'svelte';
-	import { NDKNip07Signer, NDKPrivateKeySigner, NDKRelay, type NDKEvent, type NDKSigner } from '@nostr-dev-kit/ndk';
+	import { NDKNip07Signer, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk';
 	import SetupWalletPage from '$components/pages/Wallet/SetupWalletPage.svelte';
 	import { Toaster } from "$lib/components/ui/sonner";
 	import { Nut, NutIcon } from 'lucide-svelte';
@@ -17,38 +17,43 @@
 
 	$: webManifestLink = pwaInfo ? pwaInfo.webManifest.linkTag : '' 
 
+	$ndk.pool.name = 'nutsack-pool-main';
+	$ndk.connect();
+	$ndk.pool.on("connect", () => {
+		console.log("POOL CONNECTED LAYOUT");
+	});
+
 	onMount(async () => {
-		$ndk.connect();
 
-		$ndk.walletConfig = {
-			onLnPay: async (lnPay) => {
-				toast.error("Received a request to pay " + lnPay.amount/1000 + " satoshis");
-				throw new Error("Not implemented");
-			},
-			onNutPay: async (details) => {
-				const { mints, p2pkPubkey } = details.info;
-				const { amount, unit } = details;
+		// $ndk.walletConfig = {
+		// 	onLnPay: async (lnPay) => {
+		// 		toast.error("Received a request to pay " + lnPay.amount/1000 + " satoshis");
+		// 		throw new Error("Not implemented");
+		// 	},
+		// 	onNutPay: async (details) => {
+		// 		const { mints, p2pkPubkey } = details.info;
+		// 		const { amount, unit } = details;
 
-				if (!$wallet) {
-					toast.error("Wallet not initialized");
-					throw new Error("Wallet not initialized");
-				}
+		// 		if (!$wallet) {
+		// 			toast.error("Wallet not initialized");
+		// 			throw new Error("Wallet not initialized");
+		// 		}
 
-				try {
-					const res = await $wallet.nutPay(amount, unit, mints, p2pkPubkey);
-					if (!res) throw new Error("failed to pay");
+		// 		try {
+		// 			const res = await $wallet.nutPay(amount, unit, mints, p2pkPubkey);
+		// 			if (!res) throw new Error("failed to pay");
 
-					const nutzap = await $wallet.publishNutzap(res.proofs, res.mint, details);
-					toast.success("Nutzapped " + amount + " " + unit);
-					return nutzap;
-				} catch (e) {
-					console.error(e);
-					toast.error(e.message);
-				}
+		// 			const nutzap = await $wallet.publishNutzap(res.proofs, res.mint, details);
+		// 			toast.success("Nutzapped " + amount + " " + unit);
+		// 			return nutzap;
+		// 		} catch (e) {
+		// 			console.error(e);
+		// 			toast.error(e.message);
+		// 		}
 
-				throw new Error("Failed to pay");
-			},
-		}
+		// 		throw new Error("Failed to pay");
+		// 	},
+		// }
 		
 		switch ($loginMethod) {
 			case "pk": {
