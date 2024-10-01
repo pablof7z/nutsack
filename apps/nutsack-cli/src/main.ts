@@ -8,6 +8,8 @@ import { createWallet } from './commands/wallet/create';
 import { setNutzapWallet } from './commands/wallet/set-nutzap-wallet.ts';
 import { listWallets } from './commands/wallet/list.ts';
 import { depositToWallet } from './commands/wallet/deposit.ts';
+import { listTokens } from './commands/wallet/tokens';
+import { pay } from './commands/wallet/pay';
 
 const program = new Command();
 let currentNsec: string | null = null;
@@ -32,7 +34,6 @@ program
   .option('--unit <unit>', 'Specify the unit of the deposit')
   .action(async (options) => {
     await ensureNsec();
-    await ensureRelays();
     await initNdk(relays, currentNsec!);
     await initWallet();
     await depositToWallet(options.mint, options.amount, options.unit);
@@ -50,13 +51,54 @@ program
   .option('--unit <unit>', 'Specify the default unit for the wallet')
   .action(async (options) => {
     await ensureNsec();
-    await ensureRelays();
     await initNdk(relays, currentNsec!);
     await initWallet();
     await createWallet(options.name, options.mint, options.unit);
   });
 
+// Update the pay command
+program
+  .command('pay <payload>')
+  .description('Make a payment from your wallet (BOLT11 invoice or NIP-05)')
+  .option('--wallet <wallet-id>', 'Specify the wallet ID to pay from')
+  .action(async (payload, options) => {
+    await ensureNsec();
+    await initNdk(relays, currentNsec!);
+    await initWallet();
+    await pay(payload, options.wallet);
+  });
+
 // Add your commands here
+
+program
+  .command('cli')
+  .description('Start the interactive CLI mode')
+  .action(startInteractiveMode);
+
+program
+  .command('ls')
+  .description('List wallets')
+  .option('-l', 'Show all details')
+  .action(async (options) => {
+    await ensureNsec();
+    await initNdk(relays, currentNsec!);
+    await initWallet();
+    await listWallets(options.l);
+    process.exit(0);
+  });
+
+// Add the ls-tokens command
+program
+  .command('ls-tokens')
+  .description('List all tokens in the wallet')
+  .option('-v, --verbose', 'Show verbose output')
+  .action(async (options) => {
+    await ensureNsec();
+    await initNdk(relays, currentNsec!);
+    await initWallet();
+    await listTokens(options.verbose);
+    process.exit(0);
+  });
 
 async function promptForNsec(): Promise<string> {
   const { nsec } = await inquirer.prompt([
@@ -80,28 +122,6 @@ async function ensureNsec() {
   }
 }
 
-async function promptForRelays(): Promise<void> {
-  while (true) {
-    const { relay } = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'relay',
-        message: 'Enter a relay URL (or press enter to finish):',
-      },
-    ]);
-
-    if (!relay) break;
-    relays.push(normalizeRelayUrl(relay));
-  }
-}
-
-async function ensureRelays() {
-  if (relays.length === 0) {
-    console.log('No relays provided. Please enter at least one relay.');
-    await promptForRelays();
-  }
-}
-
 async function promptForCommand() {
   const { command } = await inquirer.prompt([
     {
@@ -120,8 +140,20 @@ async function promptForCommand() {
     console.log('  deposit             - Deposit funds to a wallet');
     console.log('  exit                - Quit the application');
     console.log('  create-wallet       - Create a new wallet with specified options');
+    console.log('  ls-tokens [-v]      - List all tokens in the wallet (use -v for verbose output)');
+    console.log('  pay <payload>       - Make a payment (BOLT11 invoice or NIP-05)');
     // Add more commands here as they are implemented
-  } else if (command.toLowerCase() === 'create') {
+  } else if (command.toLowerCase() === 'deposit') {
+    await depositToWallet();
+  } else if (command.toLowerCase().startsWith('deposit ')) {
+    const args = command.split(' ');
+    if (args.length > 4) {
+      console.log('Usage: deposit [mint-url] [amount] [unit]');
+    } else {
+      const [, mintUrl, amount, unit] = args;
+      await depositToWallet(mintUrl, amount, unit);
+    }
+  } else if (command.toLowerCase().startsWith('create')) {
     const createdWallet = await createWallet();
     if (createdWallet) {
       const { setAsNutzap } = await inquirer.prompt([
@@ -137,36 +169,26 @@ async function promptForCommand() {
       }
     }
   } else if (command.toLowerCase().startsWith('set-nutzap-wallet')) {
-    // ... existing set-nutzap-wallet code ...
-  } else if (command.toLowerCase().startsWith('ls')) {
+    const naddr = command.split(' ')[1];
+    await setNutzapWallet(naddr);
+  } else if (/^ls(\s|$)/.test(command.toLowerCase())) {
     const args = command.split(' ');
-    const showEll = args.includes('-l');
-    await listWallets(showEll);
-  } else if (command.toLowerCase() === 'deposit') {
-    await depositToWallet();
-  } else if (command.toLowerCase() === 'exit') {
-    console.log('Goodbye!');
-    process.exit(0);
-  } else if (command.toLowerCase() === 'create-wallet') {
-    const { name, mints, unit } = await inquirer.prompt([
+    const showAll = args.includes('-l');
+    await listWallets(showAll);
+  } else if (command.toLowerCase().startsWith('ls-tokens')) {
+    const args = command.split(' ');
+    const verbose = args.includes('-v');
+    await listTokens(verbose);
+  } else if (command.toLowerCase().startsWith('pay ')) {
+    const payload = command.split(' ')[1];
+    const { wallet } = await inquirer.prompt([
       {
         type: 'input',
-        name: 'name',
-        message: 'Enter the wallet name:',
-      },
-      {
-        type: 'input',
-        name: 'mints',
-        message: 'Enter mint URLs (comma-separated):',
-      },
-      {
-        type: 'input',
-        name: 'unit',
-        message: 'Enter the default unit:',
+        name: 'wallet',
+        message: 'Enter the wallet ID to pay from (optional):',
       },
     ]);
-    const mintUrls = mints.split(',').map(url => url.trim());
-    await createWalletWithOptions(name, mintUrls, unit);
+    await pay(payload, wallet);
   } else {
     try {
       await program.parseAsync(command.split(' '), { from: 'user' });
@@ -176,6 +198,14 @@ async function promptForCommand() {
   }
 
   // Continue prompting
+  await promptForCommand();
+}
+
+async function startInteractiveMode() {
+  console.log('Welcome to the interactive CLI. Type "help" for available commands or "exit" to quit.');
+  await ensureNsec();
+  await initNdk(relays, currentNsec!);
+  await initWallet();
   await promptForCommand();
 }
 
@@ -190,26 +220,9 @@ async function main() {
 
   if (options.relay) {
     relays = options.relay;
-    console.log('Relays:', relays);
   }
 
-  // Check if a command was provided
   const command = program.args[0];
-
-  if (command) {
-    // A command was provided, execute it directly
-    await program.parseAsync(process.argv);
-  } else if (process.argv.length === 2 || options.nsec || options.relay) {
-    // No command provided, enter interactive mode
-    console.log('Welcome to the interactive CLI. Type "exit" to quit.');
-    await ensureNsec();
-    await ensureRelays();
-
-    await initNdk(relays, currentNsec!);
-    await initWallet();
-
-    await promptForCommand();
-  }
 }
 
 main().catch(console.error);

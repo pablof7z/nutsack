@@ -8,7 +8,11 @@ export async function setNutzapWallet(walletId: string) {
         console.error("Wallet not found");
         return;
     }
-    const wallet = NDKCashuWallet.from(walletEvent);
+    const wallet = await NDKCashuWallet.from(walletEvent);
+    if (!wallet) {
+        console.error("Wallet invalid", walletEvent.rawEvent());
+        return;
+    }
     
     const mintList = new NDKCashuMintList(ndk);
     mintList.mints = wallet.mints;

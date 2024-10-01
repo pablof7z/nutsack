@@ -1,5 +1,6 @@
 import { NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
 import { walletService } from "../../lib/wallet";
+import chalk from "chalk";
 
 export async function listWallets(all: boolean = false) {
     const wallets = walletService.wallets;
@@ -7,7 +8,7 @@ export async function listWallets(all: boolean = false) {
     for (const wallet of wallets) {
         if (wallet instanceof NDKCashuWallet) {
             // Bright cyan color for the wallet name
-            console.log(`Wallet: \x1b[96m${wallet.name ?? "Unnamed"}\x1b[0m`);
+            console.log(chalk.white.bold(wallet.name ?? "Unnamed"));
             
             if (all) {
                 console.log(`Type: \x1b[93m${wallet.type}\x1b[0m`);

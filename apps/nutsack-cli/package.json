@@ -1,15 +1,16 @@
 {
   "name": "nutsack",
-  "version": "1.0.0",
+  "version": "0.0.69.1",
   "description": "A CLI tool for Nostr",
-  "main": "src/main.ts",
+  "main": "dist/nutsack.js",
   "bin": {
-    "nutsack": "src/main.ts"
+    "nutsack": "dist/nutsack.js"
   },
   "type": "module",
   "scripts": {
     "start": "bun src/main.ts",
-    "build": "bun build src/main.ts --outfile dist/nutsack.js",
+    "build": "bun build src/main.ts --outfile dist/nutsack.js --target bun",
+    "prepublishOnly": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -20,6 +21,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@cashu/cashu-ts": "1.0.0-rc.9",
     "@nostr-dev-kit/ndk": "workspace:*",
     "@nostr-dev-kit/ndk-wallet": "workspace:*",
     "chalk": "^5.3.0",

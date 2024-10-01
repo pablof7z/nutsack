@@ -77,6 +77,8 @@ export async function depositToWallet(mintUrl?: string, amount?: string, unit?: 
         unit = unit || answers.unit;
     }
 
+    if (unit === "sats") unit = "sat";
+
     const deposit = await wallet.deposit(amount!, mint, unit!);
     const pr = await deposit.start();
 
