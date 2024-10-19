@@ -3,13 +3,17 @@ import inquirer from 'inquirer';
 import { readNsecFromFile, handleNsecCommand } from './commands/nsec';
 import { normalizeRelayUrl } from './utils/url';
 import { initNdk, ndk } from './lib/ndk';
-import { initWallet } from './lib/wallet';
+import { initWallet, walletService } from './lib/wallet';
 import { createWallet } from './commands/wallet/create';
 import { setNutzapWallet } from './commands/wallet/set-nutzap-wallet.ts';
 import { listWallets } from './commands/wallet/list.ts';
 import { depositToWallet } from './commands/wallet/deposit.ts';
 import { listTokens } from './commands/wallet/tokens';
 import { pay } from './commands/wallet/pay';
+import { condom } from './commands/condom/index.ts';
+import { NDKCashuWallet } from '@nostr-dev-kit/ndk-wallet';
+import { routeMessages } from './commands/route-messages.ts';
+import chalk from 'chalk';
 
 const program = new Command();
 let currentNsec: string | null = null;
@@ -18,7 +22,9 @@ let relays: string[] = [];
 program
   .version('1.0.0')
   .description('Your application description')
-  .option('--nsec <nsec>', 'Provide an NSEC key')
+  .option('--nsec <nsec>', 'Provide an NSEC key', (nsec) => {
+    currentNsec = nsec;
+  })
   .option('-r, --relay <url>', 'Add a relay URL', (url, urls) => {
     urls.push(normalizeRelayUrl(url));
     return urls;
@@ -100,6 +106,80 @@ program
     process.exit(0);
   });
 
+program
+  .command('publish <message>')
+  .description('Publish a message')
+  .action(async (message) => {
+    await ensureNsec();
+    await initNdk(relays, currentNsec!);
+    await initWallet();
+    await condom(message);
+  });
+
+program.command("route")
+  .description("Route messages")
+  .option("--onion-relay <url>", "Relay where to listen for incoming onion-routed messages", (url, urls) => {
+    urls.push(url);
+    return urls;
+  }, [])
+  .option("--fee <amount>", "Fee in sats for the relay to relay the message")
+  .action(async (opts) => {
+    await ensureNsec();
+    await initNdk(relays, currentNsec!);
+    await initWallet();
+    routeMessages(opts)
+  });
+
+program
+  .command('validate')
+  .description('Validate all proofs')
+  .action(async () => {
+    await ensureNsec();
+    await initNdk(relays, currentNsec!);
+    await initWallet();
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    const wallet = walletService.defaultWallet as NDKCashuWallet;
+    if (!wallet) {
+      console.error('No wallet found. Please create a wallet first.');
+      process.exit(1);
+    }
+    const res = await wallet.checkProofs();
+    console.log(res);
+  });
+
+program
+  .command('token <amount> <unit>')
+  .description('Create a new token')
+  .action(async (amount, unit) => {
+    await ensureNsec();
+    await initNdk(relays, currentNsec!);
+    await initWallet();
+
+    const wallet = walletService.defaultWallet as NDKCashuWallet;
+    if (!wallet) {
+      console.error('No wallet found. Please create a wallet first.');
+      process.exit(1);
+    }
+
+    const mintTokens = wallet.mintTokens;
+    for (const [mint, tokens] of Object.entries(mintTokens)) {
+      console.log(mint);
+
+      for (const token of tokens) {
+        console.log(token.proofs.map(p => p.amount));
+      }
+    }
+
+    const proofs = await wallet.mintNuts([1, 1], 'sat');
+    console.log('minted proofs', proofs);
+    
+    // const token = await wallet.mint(amount, unit);
+    
+    // console.log('Token minted:', token);
+  });
+
 async function promptForNsec(): Promise<string> {
   const { nsec } = await inquirer.prompt([
     {
@@ -123,11 +203,12 @@ async function ensureNsec() {
 }
 
 async function promptForCommand() {
+  const user = ndk!.activeUser?.npub;
   const { command } = await inquirer.prompt([
     {
       type: 'input',
       name: 'command',
-      message: 'Enter a command (or "help" for available commands, "exit" to quit):',
+      message: `${chalk.bgGray('['+user?.substring(0,10)+']')} 🥜 >`,
     },
   ]);
 
@@ -135,6 +216,7 @@ async function promptForCommand() {
     console.log('Available commands:');
     console.log('  help                - Show this help message');
     console.log('  create              - Create a new wallet');
+    console.log('  publish [message]   - Publish a new note with an onion-routed message');
     console.log('  set-nutzap-wallet [naddr...]   - Set the NIP-60 wallet that should receive nutzaps');
     console.log('  ls [-l]             - List wallets (use -l to show all details)');
     console.log('  deposit             - Deposit funds to a wallet');
@@ -145,6 +227,26 @@ async function promptForCommand() {
     // Add more commands here as they are implemented
   } else if (command.toLowerCase() === 'deposit') {
     await depositToWallet();
+  } else if (command.toLowerCase().startsWith('publish ')) {
+    const message = command.replace(/^publish /, '').trim();
+    await condom(message);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  } else if (command.toLowerCase().startsWith('route')) {
+    const args = command.split(' ');
+    const opts = {
+      onionRelay: [],
+      fee: 0,
+    } as { onionRelay: string[], fee: number };
+    for (let i = 1; i < args.length; i++) {
+      if (args[i].startsWith('--fee')) {
+        opts.fee = parseInt(args[i + 1]);
+        args.splice(i, 2);
+        break;
+      } else {
+        opts.onionRelay.push(args[i]);
+      }
+    }
+    await routeMessages(opts);
   } else if (command.toLowerCase().startsWith('deposit ')) {
     const args = command.split(' ');
     if (args.length > 4) {
@@ -204,8 +306,11 @@ async function promptForCommand() {
 async function startInteractiveMode() {
   console.log('Welcome to the interactive CLI. Type "help" for available commands or "exit" to quit.');
   await ensureNsec();
+  console.log('1')
   await initNdk(relays, currentNsec!);
+  console.log('2')
   await initWallet();
+  console.log('3')
   await promptForCommand();
 }
 
@@ -215,7 +320,6 @@ async function main() {
 
   if (options.nsec) {
     currentNsec = options.nsec;
-    await handleNsecCommand(currentNsec);
   }
 
   if (options.relay) {

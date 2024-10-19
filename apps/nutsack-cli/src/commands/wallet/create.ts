@@ -1,6 +1,6 @@
 import inquirer from "inquirer";
 import { ndk } from "../../lib/ndk";
-import { NDKEvent } from "@nostr-dev-kit/ndk";
+import { NDKEvent, NDKPrivateKeySigner } from "@nostr-dev-kit/ndk";
 import { NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
 
 async function fetchMintList() {
@@ -70,13 +70,15 @@ export async function createWallet(name?: string, mints?: string[], unit?: strin
         walletUnit = inputUnit;
     }
 
-    console.log("Selected mint URLs:", selectedMints);
+    const key = NDKPrivateKeySigner.generate();
 
-    const wallet = new NDKCashuWallet(undefined, ndk);
+    const wallet = new NDKCashuWallet(ndk);
     wallet.name = walletName;
     wallet.mints = selectedMints;
     wallet.relays = ndk.pool.connectedRelays().map(relay => relay.url);
     wallet.unit = walletUnit;
+    wallet.privkey = key.privateKey;
+    await wallet.getP2pk()
     await wallet.publish();
 
     console.log("Wallet created:", wallet.event.encode());

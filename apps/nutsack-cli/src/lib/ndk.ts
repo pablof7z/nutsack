@@ -11,9 +11,9 @@ export async function initNdk(
     const relaysProvided = relays.length > 0;
 
     if (relays.length === 0) {
-        relays = ['wss://relay.damus.io', 'wss://relay.primal.net'];
+        relays = ['wss://relay.damus.io', 'wss://relay.primal.net', 'wss://f7z.io'];
     }
-    
+
     ndk = new NDK({
         explicitRelayUrls: relays,
         signer,
