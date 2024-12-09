@@ -19,9 +19,6 @@
 
 	$ndk.pool.name = 'nutsack-pool-main';
 	$ndk.connect();
-	$ndk.pool.on("connect", () => {
-		console.log("POOL CONNECTED LAYOUT");
-	});
 
 	onMount(async () => {
 

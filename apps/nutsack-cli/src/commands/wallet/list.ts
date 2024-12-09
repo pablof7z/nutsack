@@ -1,32 +1,29 @@
 import { NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
-import { walletService } from "../../lib/wallet";
+import { allWallets } from "../../lib/wallet";
 import chalk from "chalk";
 
 export async function listWallets(all: boolean = false) {
-    const wallets = walletService.wallets;
-
-    for (const wallet of wallets) {
+    for (const wallet of allWallets) {
         if (wallet instanceof NDKCashuWallet) {
-            // Bright cyan color for the wallet name
             console.log(chalk.white.bold(wallet.name ?? "Unnamed"));
             
             if (all) {
-                console.log(`Type: \x1b[93m${wallet.type}\x1b[0m`);
-                console.log(`Wallet ID: \x1b[96m${wallet.event.encode()}\x1b[0m`);
-                // mints
+                console.log(`Type: ${chalk.yellow(wallet.type)}`);
+                if (wallet.event) console.log(`Wallet ID: ${chalk.cyan(wallet.event?.encode())}`);
+                if (wallet.p2pk) console.log(`P2PK: ${chalk.cyan(wallet.p2pk)}`);
                 console.log(`Mints:`);
                 for (const mint of wallet.mints) {
-                    console.log(`  Mint: \x1b[96m${mint}\x1b[0m`);
+                    console.log(`  Mint: ${chalk.cyan(mint)}`);
                 }
             }
 
             const balance = await wallet.balance();
             if (balance) {
                 for (const b of balance) {
-                    console.log(`  Balance: \x1b[96m${b.amount} ${b.unit}\x1b[0m`);
+                    console.log(`  Balance: ${chalk.cyan(`${b.amount} ${b.unit}`)}`);
                 }
             }
-            console.log(); // Add an empty line between wallet entries
+            console.log();
         }
     }
 }

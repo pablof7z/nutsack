@@ -21,15 +21,17 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@cashu/cashu-ts": "1.0.0-rc.9",
+    "@cashu/cashu-ts": "2.0.0",
     "@nostr-dev-kit/ndk": "workspace:*",
     "@nostr-dev-kit/ndk-wallet": "workspace:*",
     "chalk": "^5.3.0",
     "commander": "^11.1.0",
+    "expo-server-sdk": "^3.11.0",
     "inquirer": "^9.2.12",
     "node-fetch": "^3.3.2",
     "ora": "^7.0.1",
-    "qrcode-terminal": "^0.12.0"
+    "qrcode-terminal": "^0.12.0",
+    "tsup": "^8.3.5"
   },
   "devDependencies": {
     "@types/inquirer": "^9.0.7",

@@ -1,6 +1,7 @@
 import { NDKCashuMintList } from "@nostr-dev-kit/ndk";
 import { NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
 import { ndk } from "../../lib/ndk";
+import { monitor } from "../../lib/wallet";
 
 export async function setNutzapWallet(walletId: string) {
     const walletEvent = await ndk.fetchEvent(walletId);
@@ -20,5 +21,8 @@ export async function setNutzapWallet(walletId: string) {
     if (wallet.p2pk) mintList.p2pk = wallet.p2pk;
     await mintList.publishReplaceable();
 
-    console.log("Nutzap wallet set: https://njump.me/", mintList.encode());
+    // start the monitor
+    monitor.start(mintList);
+
+    console.log("Nutzap wallet set: https://njump.me/" + mintList.encode());
 }

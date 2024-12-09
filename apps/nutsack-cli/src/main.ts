@@ -3,7 +3,7 @@ import inquirer from 'inquirer';
 import { readNsecFromFile, handleNsecCommand } from './commands/nsec';
 import { normalizeRelayUrl } from './utils/url';
 import { initNdk, ndk } from './lib/ndk';
-import { initWallet, walletService } from './lib/wallet';
+import { activeWallet, initWallet } from './lib/wallet';
 import { createWallet } from './commands/wallet/create';
 import { setNutzapWallet } from './commands/wallet/set-nutzap-wallet.ts';
 import { listWallets } from './commands/wallet/list.ts';
@@ -14,16 +14,22 @@ import { condom } from './commands/condom/index.ts';
 import { NDKCashuWallet } from '@nostr-dev-kit/ndk-wallet';
 import { routeMessages } from './commands/route-messages.ts';
 import chalk from 'chalk';
+import { NDKEvent, NDKSubscription, NostrEvent } from '@nostr-dev-kit/ndk';
+import { sweepNutzaps } from './commands/sweep-nutzaps.ts';
+import { destroyAllProofs } from './commands/destroy-all.ts';
 
 const program = new Command();
-let currentNsec: string | null = null;
+let loginPayload: string | null = null;
 let relays: string[] = [];
 
 program
   .version('1.0.0')
   .description('Your application description')
+  .option('--bunker <bunker-uri>', 'Provide a bunker URI', (uri) => {
+    loginPayload = uri;
+  })
   .option('--nsec <nsec>', 'Provide an NSEC key', (nsec) => {
-    currentNsec = nsec;
+    loginPayload = nsec;
   })
   .option('-r, --relay <url>', 'Add a relay URL', (url, urls) => {
     urls.push(normalizeRelayUrl(url));
@@ -40,7 +46,7 @@ program
   .option('--unit <unit>', 'Specify the unit of the deposit')
   .action(async (options) => {
     await ensureNsec();
-    await initNdk(relays, currentNsec!);
+    await initNdk(relays, loginPayload!);
     await initWallet();
     await depositToWallet(options.mint, options.amount, options.unit);
   });
@@ -57,21 +63,31 @@ program
   .option('--unit <unit>', 'Specify the default unit for the wallet')
   .action(async (options) => {
     await ensureNsec();
-    await initNdk(relays, currentNsec!);
+    await initNdk(relays, loginPayload!);
     await initWallet();
     await createWallet(options.name, options.mint, options.unit);
+  });
+
+program
+  .command('sweep-nutzaps')
+  .description('Sweep all nutzaps')
+  .action(async () => {
+    await ensureNsec();
+    await initNdk(relays, loginPayload!);
+    await initWallet();
+    await sweepNutzaps();
   });
 
 // Update the pay command
 program
   .command('pay <payload>')
   .description('Make a payment from your wallet (BOLT11 invoice or NIP-05)')
-  .option('--wallet <wallet-id>', 'Specify the wallet ID to pay from')
+  .option('--amount <amount>', 'Specify the amount to pay')
   .action(async (payload, options) => {
     await ensureNsec();
-    await initNdk(relays, currentNsec!);
+    await initNdk(relays, loginPayload!);
     await initWallet();
-    await pay(payload, options.wallet);
+    await pay(payload, options.amount);
   });
 
 // Add your commands here
@@ -87,10 +103,24 @@ program
   .option('-l', 'Show all details')
   .action(async (options) => {
     await ensureNsec();
-    await initNdk(relays, currentNsec!);
+    await initNdk(relays, loginPayload!);
     await initWallet();
     await listWallets(options.l);
-    process.exit(0);
+
+    let events = new Set();
+    let events2 = new Set();
+
+    let sub2: NDKSubscription;
+    let countAfterEose = -1;
+
+    ndk.debug.enabled = true;
+    
+    for (let i = 0; i < 50; i++) {
+        console.log(i);
+        ndk.subscribe([ { kinds: [999], limit: i+1 }, ], { groupable: true }, undefined, true)
+    }
+    
+    // process.exit(0);
   });
 
 // Add the ls-tokens command
@@ -100,7 +130,7 @@ program
   .option('-v, --verbose', 'Show verbose output')
   .action(async (options) => {
     await ensureNsec();
-    await initNdk(relays, currentNsec!);
+    await initNdk(relays, loginPayload!);
     await initWallet();
     await listTokens(options.verbose);
     process.exit(0);
@@ -111,9 +141,19 @@ program
   .description('Publish a message')
   .action(async (message) => {
     await ensureNsec();
-    await initNdk(relays, currentNsec!);
+    await initNdk(relays, loginPayload!);
     await initWallet();
-    await condom(message);
+
+    const event = new NDKEvent(ndk, {
+      kind: 1,
+      content: message,
+    } as NostrEvent);
+    await event.sign();
+    await event.publish();
+
+    console.log('published https://njump.me/' + event.encode());
+    
+    // await condom(message);
   });
 
 program.command("route")
@@ -125,7 +165,7 @@ program.command("route")
   .option("--fee <amount>", "Fee in sats for the relay to relay the message")
   .action(async (opts) => {
     await ensureNsec();
-    await initNdk(relays, currentNsec!);
+    await initNdk(relays, loginPayload!);
     await initWallet();
     routeMessages(opts)
   });
@@ -135,17 +175,16 @@ program
   .description('Validate all proofs')
   .action(async () => {
     await ensureNsec();
-    await initNdk(relays, currentNsec!);
+    await initNdk(relays, loginPayload!);
     await initWallet();
 
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    const wallet = walletService.defaultWallet as NDKCashuWallet;
-    if (!wallet) {
+    if (!activeWallet) {
       console.error('No wallet found. Please create a wallet first.');
       process.exit(1);
     }
-    const res = await wallet.checkProofs();
+    const res = await activeWallet.checkProofs();
     console.log(res);
   });
 
@@ -154,16 +193,15 @@ program
   .description('Create a new token')
   .action(async (amount, unit) => {
     await ensureNsec();
-    await initNdk(relays, currentNsec!);
+    await initNdk(relays, loginPayload!);
     await initWallet();
 
-    const wallet = walletService.defaultWallet as NDKCashuWallet;
-    if (!wallet) {
+    if (!activeWallet) {
       console.error('No wallet found. Please create a wallet first.');
       process.exit(1);
     }
 
-    const mintTokens = wallet.mintTokens;
+    const mintTokens = activeWallet.mintTokens;
     for (const [mint, tokens] of Object.entries(mintTokens)) {
       console.log(mint);
 
@@ -172,7 +210,7 @@ program
       }
     }
 
-    const proofs = await wallet.mintNuts([1, 1], 'sat');
+    const proofs = await activeWallet.mintNuts([1, 1], 'sat');
     console.log('minted proofs', proofs);
     
     // const token = await wallet.mint(amount, unit);
@@ -193,11 +231,11 @@ async function promptForNsec(): Promise<string> {
 }
 
 async function ensureNsec() {
-  if (!currentNsec) {
-    currentNsec = await readNsecFromFile();
-    if (!currentNsec) {
-      currentNsec = await promptForNsec();
-      await handleNsecCommand(currentNsec);
+  if (!loginPayload) {
+    loginPayload = await readNsecFromFile();
+    if (!loginPayload) {
+      loginPayload = await promptForNsec();
+      await handleNsecCommand(loginPayload);
     }
   }
 }
@@ -220,6 +258,8 @@ async function promptForCommand() {
     console.log('  set-nutzap-wallet [naddr...]   - Set the NIP-60 wallet that should receive nutzaps');
     console.log('  ls [-l]             - List wallets (use -l to show all details)');
     console.log('  deposit             - Deposit funds to a wallet');
+    console.log('  destroy-all-proofs  - Destroy all tokens in the wallet');
+    console.log('  sweep-nutzaps       - Sweep all nutzaps');
     console.log('  exit                - Quit the application');
     console.log('  create-wallet       - Create a new wallet with specified options');
     console.log('  ls-tokens [-v]      - List all tokens in the wallet (use -v for verbose output)');
@@ -231,6 +271,10 @@ async function promptForCommand() {
     const message = command.replace(/^publish /, '').trim();
     await condom(message);
     await new Promise(resolve => setTimeout(resolve, 1000));
+  } else if (command.toLowerCase() === 'destroy-all-proofs') {
+    await destroyAllProofs();
+  } else if (command.toLowerCase() === 'sweep-nutzaps') {
+    await sweepNutzaps();
   } else if (command.toLowerCase().startsWith('route')) {
     const args = command.split(' ');
     const opts = {
@@ -283,14 +327,14 @@ async function promptForCommand() {
     await listTokens(verbose);
   } else if (command.toLowerCase().startsWith('pay ')) {
     const payload = command.split(' ')[1];
-    const { wallet } = await inquirer.prompt([
+    const { amount } = await inquirer.prompt([
       {
         type: 'input',
-        name: 'wallet',
-        message: 'Enter the wallet ID to pay from (optional):',
+        name: 'amount',
+        message: 'Enter the amount to pay (optional):',
       },
     ]);
-    await pay(payload, wallet);
+    await pay(payload, parseInt(amount));
   } else {
     try {
       await program.parseAsync(command.split(' '), { from: 'user' });
@@ -306,11 +350,8 @@ async function promptForCommand() {
 async function startInteractiveMode() {
   console.log('Welcome to the interactive CLI. Type "help" for available commands or "exit" to quit.');
   await ensureNsec();
-  console.log('1')
-  await initNdk(relays, currentNsec!);
-  console.log('2')
+  await initNdk(relays, loginPayload!);
   await initWallet();
-  console.log('3')
   await promptForCommand();
 }
 
@@ -318,10 +359,9 @@ async function main() {
   program.parse(process.argv);
   const options = program.opts();
 
-  if (options.nsec) {
-    currentNsec = options.nsec;
-  }
-
+  if (options.nsec) loginPayload = options.nsec;
+  if (options.bunker) loginPayload = options.bunker;
+  
   if (options.relay) {
     relays = options.relay;
   }

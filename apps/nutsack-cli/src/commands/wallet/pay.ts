@@ -1,26 +1,21 @@
-import { NDKCashuWallet } from '@nostr-dev-kit/ndk-wallet';
 import { ndk } from '../../lib/ndk';
-import { getWallet, walletService } from '../../lib/wallet';
-import { NDKUser } from '@nostr-dev-kit/ndk';
+import { NDKEvent, NDKUser, NDKZapper } from '@nostr-dev-kit/ndk';
 import chalk from 'chalk';
+import { activeWallet } from '../../lib/wallet';
 
-export async function pay(payload: string, walletId?: string) {
+export async function pay(payload: string, amount?: number) {
   try {
     // Validate the payload
     if (!isValidPayload(payload)) {
       throw new Error('Invalid payload. Please provide a valid BOLT11 invoice or NIP-05 identifier.');
     }
 
-    // Select the correct wallet (if walletId is provided)
-    const selectedWallet = walletId ? getWallet(walletId) : walletService.defaultWallet;
-    if (!selectedWallet || !(selectedWallet instanceof NDKCashuWallet)) {
-      throw new Error('Wallet not found.');
-    }
-
     if (isBolt11(payload)) {
-      await handleBolt11Payment(selectedWallet, payload);
-    } else {
-      await handleNip05Payment(selectedWallet, payload);
+      await handleBolt11Payment(payload);
+    } else if (isNip05(payload)) {
+      await handleNip05Payment(payload, amount);
+    } else if (isNpub(payload)) {
+      await handleNpubPayment(payload, amount);
     }
   } catch (error) {
     console.error('Error making payment:', error.message);
@@ -29,7 +24,7 @@ export async function pay(payload: string, walletId?: string) {
 
 function isValidPayload(payload: string): boolean {
   // Implement validation logic for BOLT11 and NIP-05
-  return isBolt11(payload) || isNip05(payload);
+  return isBolt11(payload) || isNip05(payload) || isNpub(payload)
 }
 
 function isBolt11(payload: string): boolean {
@@ -42,12 +37,20 @@ function isNip05(payload: string): boolean {
   return payload.includes('@');
 }
 
-async function handleBolt11Payment(wallet: NDKCashuWallet, bolt11: string) {
-    const res = await wallet.lnPay({ pr: bolt11 })
+function isNpub(payload: string): boolean {
+  return payload.startsWith('npub1');
+}
+
+async function handleBolt11Payment(bolt11: string) {
+    if (!activeWallet) {
+      console.log(chalk.red("No active wallet found"));
+      return;
+    }
+    const res = await activeWallet.lnPay({ pr: bolt11 })
     console.log(res);
 }
 
-async function handleNip05Payment(wallet: NDKCashuWallet, nip05: string) {
+async function handleNip05Payment(nip05: string, amount: number) {
     const user = await  NDKUser.fromNip05(nip05, ndk);
     if (!user) {
         console.log(
@@ -56,13 +59,32 @@ async function handleNip05Payment(wallet: NDKCashuWallet, nip05: string) {
         return;
     }
 
-    const zap = await ndk.zap(user, 1, { comment: "zap from nutsack-cli", unit: "sats"});
-    const res = await zap.zap()
-    console.log(res);
+    return payUser(user, amount);
 }
 
-async function promptForAmountAndUnit() {
-  // Implement prompt for amount and unit
-  // You can use inquirer or any other method to get user input
-  return { amount: '0', unit: 'sats' }; // Replace with actual implementation
+async function handleNpubPayment(npub: string, amount: number) {
+  const user = ndk.getUser({npub});
+  return payUser(user, amount);
+}
+
+async function payUser(user: NDKUser, amount: number) {
+  if (!activeWallet) {
+    console.log(chalk.red("No active wallet found"));
+    return;
+  }
+  const zapper = new NDKZapper(user, amount * 1000, 'msat', {
+    comment: "zap from nutsack-cli",
+    lnPay: activeWallet.lnPay.bind(activeWallet),
+    cashuPay: activeWallet.cashuPay.bind(activeWallet),
+  });
+  const res = await zapper.zap()
+  res.forEach(r => {
+    if (r instanceof NDKEvent) {
+      console.log(r.encode());
+    } else {
+      console.log(r);
+    }
+  });
+  
+  return res;
 }

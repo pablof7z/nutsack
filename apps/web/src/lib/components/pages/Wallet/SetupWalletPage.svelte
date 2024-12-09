@@ -63,7 +63,7 @@
         const user = await signer.user();
         cashuMintList.p2pk = user.pubkey;
         
-        cashuWallet = $wallet ?? new NDKCashuWallet(undefined, $ndk);
+        cashuWallet = $wallet ?? new NDKCashuWallet($ndk);
         cashuWallet.name ??= "My wallet";
         cashuWallet.relays = cashuMintList.relays;
         cashuWallet.mints = cashuMintList.mints;

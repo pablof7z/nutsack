@@ -11,8 +11,5 @@ const _ndk = new NDKSvelte({
     cacheAdapter: new NDKDexieCache({ dbName: 'nutsack' }),
     clientName: "nutsack",
 });
-_ndk.pool.on("connect", () => {
-    console.log("POOL CONNECTED");
-});
 
 export const ndk = writable(_ndk);

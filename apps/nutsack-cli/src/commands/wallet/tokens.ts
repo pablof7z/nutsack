@@ -1,10 +1,9 @@
 import { NDKCashuWallet } from '@nostr-dev-kit/ndk-wallet';
-import { walletService } from '../../lib/wallet';
 import chalk from 'chalk';
+import { allWallets } from '../../lib/wallet';
 
 export async function listTokens(verbose: boolean = false) {
-    const wallets = walletService.wallets;
-    for (const wallet of wallets) {
+    for (const wallet of allWallets) {
         if (!(wallet instanceof NDKCashuWallet)) continue;
 
         // print wallet in chalk white

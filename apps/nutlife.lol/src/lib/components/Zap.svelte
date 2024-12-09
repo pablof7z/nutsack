@@ -16,7 +16,7 @@
     const recipientPubkey = zap.tagValue("p");
     const recipient = recipientPubkey ? $ndk.getUser({pubkey: recipientPubkey}) : null;
     const sender = zap.author;
-    const comment = zap.tagValue("comment");
+    const comment = zap.tagValue("comment") ?? zap.content;
 
  
     if (unit.startsWith('msat')) {

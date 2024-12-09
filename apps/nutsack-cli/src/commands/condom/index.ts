@@ -3,8 +3,8 @@ import chalk from "chalk";
 import inquirer from "inquirer";
 import { ndk } from "../../lib/ndk";
 import { CashuWallet, getEncodedToken, Proof } from "@cashu/cashu-ts";
-import { walletService } from "../../lib/wallet";
 import { NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
+import { activeWallet } from "../../lib/wallet";
 
 const profiles: Record<string, string> = {};
 
@@ -67,9 +67,7 @@ async function getProofs(condoms: Hop[]): Promise<(Proof|undefined)[]> {
         fees.push(condom.fee ?? 0);
     }
 
-    const wallet = walletService.defaultWallet as NDKCashuWallet;
-
-    if (!wallet) {
+    if (!activeWallet) {
         console.error('No wallet found. Please create a wallet first.');
         process.exit(1);
     }
@@ -79,7 +77,7 @@ async function getProofs(condoms: Hop[]): Promise<(Proof|undefined)[]> {
         return [];
     }
 
-    const nuts = await wallet.mintNuts(nutsToMint, 'sat');
+    const nuts = await activeWallet.mintNuts(nutsToMint, 'sat');
 
     if (nuts && nuts.length > 0) {
         console.log(chalk.blue('Minted', nuts.length, 'nuts'));

@@ -1,7 +1,6 @@
 import chalk from "chalk";
 import { ndk } from "../lib/ndk";
 import { NDKEvent, NDKRelaySet } from "@nostr-dev-kit/ndk";
-import { walletService } from "../lib/wallet";
 import { CashuMint, CashuWallet, Token } from "@cashu/cashu-ts";
 import { NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
 import readline from 'readline';
@@ -95,7 +94,7 @@ async function processEvent(event: NDKEvent) {
     if (proof) {
         console.log(chalk.green('🥜 We found a nice little nut, worth', proof.amount, 'sat'));
 
-        const wallet = walletService.defaultWallet as NDKCashuWallet;
+        const wallet = activeWallet;
         if (!wallet) {
             console.log(chalk.red('No wallet found'));
             return;

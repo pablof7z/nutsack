@@ -1,10 +1,10 @@
 import inquirer from "inquirer";
-import { walletService } from "../../lib/wallet";
 import { NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
 import qrcode from 'qrcode-terminal';
+import { activeWallet, allWallets } from "../../lib/wallet";
 
 export async function depositToWallet(mintUrl?: string, amount?: string, unit?: string) {
-    const wallets = walletService.wallets;
+    const wallets = allWallets;
     let wallet: NDKCashuWallet | undefined;
 
     // if there is more than one wallet, ask which one to deposit to
@@ -18,7 +18,7 @@ export async function depositToWallet(mintUrl?: string, amount?: string, unit?: 
                 message: 'Select a wallet to deposit to:',
                 choices: wallets
                     .filter(w => w instanceof NDKCashuWallet)
-                    .map(w => `${w.name ?? "Unnamed"} (${w.event.encode()})`),
+                    .map(w => `${w.name ?? "Unnamed"} (${w.event!.encode()})`),
                 validate: (input: string) => {
                     if (!input) {
                         return 'You must select a wallet.';

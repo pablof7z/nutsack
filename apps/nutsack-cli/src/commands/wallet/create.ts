@@ -2,6 +2,7 @@ import inquirer from "inquirer";
 import { ndk } from "../../lib/ndk";
 import { NDKEvent, NDKPrivateKeySigner } from "@nostr-dev-kit/ndk";
 import { NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
+import { allWallets, setActiveWallet } from "../../lib/wallet";
 
 async function fetchMintList() {
     const list = await ndk.fetchEvents({
@@ -37,6 +38,8 @@ export async function createWallet(name?: string, mints?: string[], unit?: strin
             .map(event => event.tagValue("u"))
             .filter((url): url is string => url !== undefined);
         
+        mintUrls.unshift("https://testnut.cashu.space/")
+        
         console.log("Available Mint URLs:", mintUrls);
 
         // Ask user to select multiple mint URLs
@@ -64,7 +67,7 @@ export async function createWallet(name?: string, mints?: string[], unit?: strin
                 type: 'input',
                 name: 'inputUnit',
                 message: 'Enter the unit for your wallet:',
-                default: "sats",
+                default: "sat",
             },
         ]);
         walletUnit = inputUnit;
@@ -81,7 +84,10 @@ export async function createWallet(name?: string, mints?: string[], unit?: strin
     await wallet.getP2pk()
     await wallet.publish();
 
-    console.log("Wallet created:", wallet.event.encode());
+    setActiveWallet(wallet);
+    allWallets.push(wallet);
+
+    console.log("Wallet created:", wallet.event!.encode());
 
     return wallet;
 }

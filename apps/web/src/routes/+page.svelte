@@ -109,24 +109,26 @@
         </Button>
     </div>
 
-    <div class="flex flex-row items-center w-full flex-wrap gap-4 max-sm:p-2">
-        {#each $wallet?.relays as url}
-            <Button size="sm" variant="secondary" class="flex flex-row items-center gap-1 flex-nowrap whitespace-nowrap"
-                on:click={() => republish(url)}
-            >
-                <span
-                    class="
-                        w-2 h-2 rounded-full
-                        {
-                            $wallet?.onRelays.map(r => r.url).includes(url) ?
-                            "bg-green-500" : "bg-red-500"
-                        }
-                    "
-                ></span>
-                {url}
-            </Button>
-        {/each}
-    </div>
+    {#if $wallet}
+        <div class="flex flex-row items-center w-full flex-wrap gap-4 max-sm:p-2">
+            {#each $wallet?.relays as url}
+                <Button size="sm" variant="secondary" class="flex flex-row items-center gap-1 flex-nowrap whitespace-nowrap"
+                    on:click={() => republish(url)}
+                >
+                    <span
+                        class="
+                            w-2 h-2 rounded-full
+                            {
+                                $wallet.event.onRelays.map(r => r.url).includes(url) ?
+                                "bg-green-500" : "bg-red-500"
+                            }
+                        "
+                    ></span>
+                    {url}
+                </Button>
+            {/each}
+        </div>
+    {/if}
 </div>
 
 <div class="flex flex-col items-start divide-y divide-border border-y">
