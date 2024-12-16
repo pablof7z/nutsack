@@ -21,7 +21,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@cashu/cashu-ts": "2.0.0",
+    "@cashu/cashu-ts": "2.1.0",
     "@nostr-dev-kit/ndk": "workspace:*",
     "@nostr-dev-kit/ndk-wallet": "workspace:*",
     "chalk": "^5.3.0",
