@@ -10,21 +10,30 @@ export async function pay(payload: string, amount?: number) {
       throw new Error('Invalid payload. Please provide a valid BOLT11 invoice or NIP-05 identifier.');
     }
 
+    console.log("Payload", payload);
+
     if (isBolt11(payload)) {
       await handleBolt11Payment(payload);
     } else if (isNip05(payload)) {
       await handleNip05Payment(payload, amount);
     } else if (isNpub(payload)) {
       await handleNpubPayment(payload, amount);
+    } else if (isNevent(payload)) {
+      console.log("Nevent", payload);
+      await handleNeventPayment(payload, amount);
     }
   } catch (error) {
     console.error('Error making payment:', error.message);
   }
 }
 
+function isNevent(payload: string): boolean {
+  return payload.startsWith('nevent');
+}
+
 function isValidPayload(payload: string): boolean {
   // Implement validation logic for BOLT11 and NIP-05
-  return isBolt11(payload) || isNip05(payload) || isNpub(payload)
+  return isBolt11(payload) || isNip05(payload) || isNpub(payload) || isNevent(payload)
 }
 
 function isBolt11(payload: string): boolean {
@@ -65,6 +74,36 @@ async function handleNip05Payment(nip05: string, amount: number) {
 async function handleNpubPayment(npub: string, amount: number) {
   const user = ndk.getUser({npub});
   return payUser(user, amount);
+}
+
+async function handleNeventPayment(nevent: string, amount: number) {
+  if (!activeWallet) {
+    console.log(chalk.red("No active wallet found"));
+    return;
+  }
+  
+  const event = await ndk.fetchEvent(nevent);
+
+  if (!event) {
+    console.log(chalk.red("Event not found"));
+    return;
+  }
+  
+  console.log(event.content)
+  
+  const zapper = new NDKZapper(event, amount * 1000, 'msat', {
+    comment: "zap from nutsack-cli",
+    lnPay: activeWallet.lnPay.bind(activeWallet),
+    cashuPay: activeWallet.cashuPay.bind(activeWallet),
+  });
+  zapper.on("complete", (results) => {
+    console.log("Zap complete", results);
+  });
+  zapper.on("error", (error) => {
+    console.log("Zap error", error);
+  });
+  const res = await zapper.zap()
+  console.log("Zap results", res);
 }
 
 async function payUser(user: NDKUser, amount: number) {
