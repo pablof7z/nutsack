@@ -26,7 +26,7 @@ export default function LoginScreen() {
 
     useEffect(() => {
         if (currentUser) {
-            router.replace('/(wallet)');
+            router.replace('/(settings)');
         }
     }, [currentUser]);
 

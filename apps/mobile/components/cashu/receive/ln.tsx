@@ -3,17 +3,16 @@ import { Text } from "@/components/nativewindui/Text";
 import { NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
 import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
-import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { StyleSheet } from "react-native";
 import { TouchableOpacity, View } from "react-native";
 import { TextInput } from "react-native-gesture-handler";
 import { useNDKSession } from "@nostr-dev-kit/ndk-mobile";
-import { toast, Toasts } from '@backpackapp-io/react-native-toast';
 import WalletBalance from "@/components/ui/wallet/WalletBalance";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { Button, ButtonState } from "@/components/nativewindui/Button";
 import { Check } from "lucide-react-native";
+import { router } from "expo-router";
 
 export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
     const { colors } = useColorScheme();
@@ -94,6 +93,10 @@ export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
                                 <Text>Copied</Text>
                             </View>
                         ) : <Text>Copy</Text>}
+                    </Button>
+
+                    <Button variant="plain" onPress={() => router.push({ pathname: '/beg', params: { bolt11: qrCode, otherParam: 'value' } })}>
+                        <Text>Beg for money on nostr</Text>
                     </Button>
                 </View>
             ) : (

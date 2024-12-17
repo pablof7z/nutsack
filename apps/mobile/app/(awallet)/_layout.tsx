@@ -1,18 +1,28 @@
 import { useColorScheme } from "@/lib/useColorScheme";
-import { Tabs } from "expo-router";
+import { useNDK, useNDKSession } from "@nostr-dev-kit/ndk-mobile";
+import { BlurView } from "expo-blur";
+import { Redirect, Tabs } from "expo-router";
 import { Bolt, Calendar, List, PieChart, Repeat, SettingsIcon } from "lucide-react-native";
 import { View } from "react-native";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
     const { colors } = useColorScheme();
+    const { currentUser } = useNDK();
+    const { activeWallet } = useNDKSession();
+
+    if (!currentUser) {
+        return <Redirect href="/login" />
+    }
+
+    if (!activeWallet) {
+        return <Redirect href="/(settings)/wallets" />
+    }
     
     return (
         <Tabs screenOptions={{
             headerShown: true,
-            tabBarShowLabel: false,
+            tabBarShowLabel: true,
             tabBarActiveTintColor: colors.foreground,
-            tabBarInactiveTintColor: colors.muted,
-            tabBarBackground: () => <View className="bg-background" />
         }}>
             <Tabs.Screen
                 name="index"
@@ -42,7 +52,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             />
             
             <Tabs.Screen
-                name="(settings)"
+                name="(walletSettings)"
                 options={{
                     title: 'Settings',
                     headerShown: false,
