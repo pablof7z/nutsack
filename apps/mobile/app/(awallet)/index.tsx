@@ -8,7 +8,7 @@ import { List, ListItem } from "@/components/nativewindui/List";
 import { cn } from "@/lib/cn";
 import { BlurView } from "expo-blur";
 import { Button } from "@/components/nativewindui/Button";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BookDown, ChevronDown, Cog, Eye, Settings, ZoomIn } from "lucide-react-native";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Bolt, BookDown, ChevronDown, Cog, Eye, Settings, Settings2, User2, ZoomIn } from "lucide-react-native";
 import * as User from '@/components/ui/user';
 import RelativeTime from "../components/relative-time";
 import { useColorScheme } from "@/lib/useColorScheme";
@@ -16,7 +16,7 @@ import { activeEventStore, useActiveEventStore } from "@/stores";
 
 function WalletBalance({ wallet, balance }: { wallet: NDKWallet, balance: NDKWalletBalance }) {
     function update() {
-        router.push('/(wallet)')
+        router.push('/(awallet)')
     }
 
     const numberWithThousandsSeparator = (amount: number) => {
@@ -207,27 +207,11 @@ function WalletNip60({ wallet }: { wallet: NDKCashuWallet }) {
     );
 }
 
-function WalletHeader({ activeWallet }: { activeWallet: NDKWallet }) {
-    const { colors } = useColorScheme();
-    
-    if (activeWallet instanceof NDKCashuWallet) {
-        const title = activeWallet?.name || activeWallet?.type || 'Honeypot';
-        return <TouchableOpacity className="flex-row items-center gap-2" onPress={() => router.push('/(wallet)')}>
-            <Text className="text-lg text-muted-foreground font-medium">{title}</Text>
-            <ChevronDown size={24} color={colors.muted} />
-        </TouchableOpacity>;
-    }
-
-    return <Text>Honeypot</Text>
-}
-
 export default function WalletScreen() {
     const { ndk, currentUser } = useNDK();
     const { activeWallet, balances, setActiveWallet } = useNDKSession();
     const { colors } = useColorScheme();
     const mintList = useNDKSessionEventKind<NDKCashuMintList>(NDKCashuMintList, NDKKind.CashuMintList, { create: true });
-
-    console.log('mint list', JSON.stringify(mintList?.rawEvent(), null, 4));
 
     const isNutzapWallet = useMemo(() => {
         if (!(activeWallet instanceof NDKCashuWallet)) return false;
@@ -258,9 +242,8 @@ export default function WalletScreen() {
                     headerShown: true,
                     headerTransparent: true,
                     headerBackground: () => <BlurView intensity={100} tint="light" />,  
-                    headerRight: () => <TouchableOpacity className="pr-2" onPress={() => router.push('/(wallet)/(settings)')}>
-                        <Settings size={24} color={colors.foreground} />
-                    </TouchableOpacity>
+                    headerTitle: "Wallet",
+                    headerLeft: () => <HeaderLeft />
                 }}
             />
             <SafeAreaView className="flex-1 bg-card">
@@ -282,6 +265,23 @@ export default function WalletScreen() {
             </SafeAreaView>
             </>
     );
+}
+
+function HeaderLeft() {
+    const { colors } = useColorScheme();
+    const { currentUser } = useNDK();
+
+    const { userProfile } = useUserProfile(currentUser?.pubkey);
+
+    return (
+        <TouchableOpacity className="ml-2" onPress={() => router.push('/(settings)')}>
+            {currentUser && userProfile?.image ? (
+                <User.Avatar userProfile={userProfile} size={24} className="w-6 h-6" />
+            ) : (
+                <Settings size={24} color={colors.muted} className="w-6 h-6" />
+            )}
+        </TouchableOpacity>
+    )
 }
 
 function Footer({ activeWallet, currentUser }: { activeWallet: NDKWallet, currentUser: NDKUser }) {

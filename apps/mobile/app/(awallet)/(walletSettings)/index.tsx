@@ -35,13 +35,13 @@ export default function WalletSettings() {
                 id: '2',
                 title: 'Relays',
                 leftView: <IconView name="wifi" className="bg-blue-500" />,
-                onPress: () => router.push('/(wallet)/(settings)/mints')
+                onPress: () => router.push('/(awallet)/(walletSettings)/mints')
             },
             {
                 id: '3',
                 title: 'Mints',
                 leftView: <IconView name="home-outline" className="bg-green-500" />,
-                onPress: () => router.push('/(wallet)/(settings)/mints'),
+                onPress: () => router.push('/(awallet)/(walletSettings)/mints'),
             },
 
             'gap 0',
@@ -63,6 +63,16 @@ export default function WalletSettings() {
                     leftView: <IconView name="alpha-x-box" className="bg-red-500" />,
                     title: warning.msg,
                     subTitle: warning.relays?.map((r) => r.url).join(', '),
+                });
+            }
+
+            const pendingDeposits = activeWallet.depositMonitor.deposits.size;
+
+            if (pendingDeposits > 0) {
+                opts.push({
+                    id: '5',
+                    title: 'Pending deposits',
+                    subTitle: pendingDeposits.toString(),
                 });
             }
         }

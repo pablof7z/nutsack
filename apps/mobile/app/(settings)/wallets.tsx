@@ -21,11 +21,10 @@ export default function WalletsScreen() {
     const allWallets = useNDKSessionEvents([NDKKind.CashuWallet]);
     const [searchText, setSearchText] = useState<string | null>(null);
     const [relays, setRelays] = useState<NDKRelay[]>(Array.from(ndk!.pool.relays.values()));
-    const [url, setUrl] = useState('');
 
     const activateWallet = async (wallet: NDKEvent) => {
         router.back();
-        const w = await NDKCashuWallet.from(wallet);
+        const w = await NDKCashuWallet.from(awallet);
         setActiveWallet(w);
     }
 
@@ -63,7 +62,7 @@ export default function WalletsScreen() {
             subTitle: 'Create a new NIP-60 wallet',
             onPress: () => {
                 newWallet().then(() => {
-                    router.back();
+                    router.replace('/(awallet)/(walletSettings)/mints')
                 });
             },
         });
@@ -83,7 +82,7 @@ export default function WalletsScreen() {
 
     function save() {
         SecureStore.setItemAsync('relays', relays.map((r) => r.url).join(','));
-        router.back();
+        router.replace('/(awallet)');
     }
 
     async function newWallet() {
@@ -92,7 +91,7 @@ export default function WalletsScreen() {
         wallet.name = 'Honeypot Wallet';
         await wallet.getP2pk();
         await wallet.publish().then(() => {
-            setActiveWallet(wallet);
+            setActiveWallet(awallet);
             const mintList = new NDKCashuMintList(ndk);
             mintList.mints = wallet.mints;
             mintList.p2pk = wallet.p2pk;

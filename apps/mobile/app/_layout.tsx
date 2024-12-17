@@ -42,11 +42,22 @@ function Container({ children }: { children: React.ReactNode }) {
 
 function NDKCacheCheck({ children }: { children: React.ReactNode }) {
     const { ndk, currentUser, cacheInitialized } = useNDK();
+    const { activeWallet } = useNDKSession();
     const [ ready, setReady ] = useState(false);
 
     const start = () => {
         setReady(true);
     }
+
+    useEffect(() => {
+        if (cacheInitialized && currentUser && activeWallet) {
+            setTimeout(() => setReady(true), 500);
+        }
+
+        if (!currentUser && ready) {
+            setReady(false);
+        }
+    }, [cacheInitialized, currentUser, activeWallet]);
 
     if (!ready) {
         if (cacheInitialized === false) {
@@ -55,7 +66,7 @@ function NDKCacheCheck({ children }: { children: React.ReactNode }) {
                     <ActivityIndicator className="mt-4" color="white" />
                 </Container>
             );
-        } else if (!currentUser || true) {
+        } else if (!currentUser) {
             return (
                 <Container>
                     <Button variant="accent" className="mt-4 w-full" onPress={start}>
@@ -63,6 +74,26 @@ function NDKCacheCheck({ children }: { children: React.ReactNode }) {
                             Get Started
                         </Text>
                     </Button>
+                </Container>
+            )
+        } else if (!activeWallet) {
+            return (
+                <Container>
+                    <Button variant="accent" className="mt-4 w-full" onPress={() => {
+                        setReady(true);
+                    }}>
+                        <Text className="text-white font-semibold">
+                            Enable Wallet
+                        </Text>
+                    </Button>
+                </Container>
+            )
+        } else {
+            return (
+                <Container>
+                    <Text className="text-white font-semibold">
+                        Everything ready - LFG
+                    </Text>
                 </Container>
             )
         }
@@ -124,44 +155,44 @@ export default function RootLayout() {
             <StatusBar key={`root-status-bar-${isDarkColorScheme ? 'light' : 'dark'}`} style={isDarkColorScheme ? 'light' : 'dark'} />
             <NDKProvider
                 explicitRelayUrls={relays}
-                cacheAdapter={new NDKCacheAdapterSqlite('honeypot_')}
+                cacheAdapter={new NDKCacheAdapterSqlite('honeypot')}
                 netDebug={netDebug}
                 clientName="honeypot"
                 clientNip89="31990:fa984bd7dbb282f07e16e7ae87b26a2a7b9b90b7246a44771f0cf5ae58018f52:1731850618505"
             >
-                <NDKCacheCheck>
-                    <NDKSessionProvider
-                        muteList={true}
-                        follows={true}
-                        wallet={true}
-                        settingsStore={{
-                            get: SecureStore.getItemAsync,
-                            set: SecureStore.setItemAsync,
-                            delete: SecureStore.deleteItemAsync,
-                        }}
-                        kinds={kinds}
-                    >
+                <NDKSessionProvider
+                    muteList={true}
+                    follows={true}
+                    wallet={true}
+                    settingsStore={{
+                        get: SecureStore.getItemAsync,
+                        set: SecureStore.setItemAsync,
+                        delete: SecureStore.deleteItemAsync,
+                    }}
+                    kinds={kinds}
+                >
+                    <NDKCacheCheck>
                         <GestureHandlerRootView style={{ flex: 1 }}>
                             <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
                                 <NavThemeProvider value={NAV_THEME[colorScheme]}>
                                     <PortalHost />
                                     <Stack screenOptions={{
                                         headerShown: true,
-                                    }} initialRouteName="(wallet)">
-                                        <Stack.Screen name="(wallet)" options={{ headerShown: false }} />
+                                    }}>
+                                        <Stack.Screen name="(awallet)" options={{ headerShown: false, title: 'Wallet' }} />
                                         <Stack.Screen name="login" options={{ headerShown: false, presentation: 'modal' }} />
                                         <Stack.Screen name="tx" options={{ headerShown: false, presentation: 'modal' }} />
-                                        <Stack.Screen name="receive" options={{ headerShown: false, presentation: 'modal' }} />
-                                        <Stack.Screen name="send" options={{ headerShown: true }} />
-
-                                        {/* <Stack.Screen name="(settings)" options={{ headerShown: false, presentation: 'modal' }} /> */}
+                                        <Stack.Screen name="receive" options={{ headerShown: true, presentation: 'modal', title: 'Receive' }} />
+                                        <Stack.Screen name="send" options={{ headerShown: true, presentation: 'modal', title: 'Send' }} />
+                                        <Stack.Screen name="beg" options={{ headerShown: false, presentation: 'modal' }} />
+                                        <Stack.Screen name="(settings)" options={{ headerShown: false, presentation: 'modal' }} />
                                     </Stack>
                                 </NavThemeProvider>
                                 <Toasts />
                             </KeyboardProvider>
                         </GestureHandlerRootView>
-                    </NDKSessionProvider>
-                </NDKCacheCheck>
+                    </NDKCacheCheck>
+                </NDKSessionProvider>
             </NDKProvider>
         </>
     );
