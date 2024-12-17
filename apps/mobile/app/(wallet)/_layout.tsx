@@ -1,6 +1,6 @@
 import { useColorScheme } from "@/lib/useColorScheme";
 import { Tabs } from "expo-router";
-import { List, PieChart, SettingsIcon } from "lucide-react-native";
+import { Bolt, Calendar, List, PieChart, Repeat, SettingsIcon } from "lucide-react-native";
 import { View } from "react-native";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -8,7 +8,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     
     return (
         <Tabs screenOptions={{
-            headerShown: false,
+            headerShown: true,
             tabBarShowLabel: false,
             tabBarActiveTintColor: colors.foreground,
             tabBarInactiveTintColor: colors.muted,
@@ -18,23 +18,34 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 name="index"
                 options={{
                     title: 'Wallet',
-                    headerShown: true,
+                    headerShown: false,
+                    tabBarIcon: ({ focused }) => <Bolt size={24} color={focused ? colors.foreground : colors.muted} />
+                }}
+            />
+
+            <Tabs.Screen
+                name="mint"
+                options={{
+                    title: 'Mints',
+                    headerShown: false,
                     tabBarIcon: ({ focused }) => <PieChart size={24} color={focused ? colors.foreground : colors.muted} />
                 }}
             />
+
             <Tabs.Screen
-                name="tokens"
+                name="subscriptions"
                 options={{
-                    title: 'Tokens',
-                    headerShown: true,
-                    tabBarIcon: ({ focused }) => <List size={24} color={focused ? colors.foreground : colors.muted} />
+                    title: 'Subscriptions',
+                    headerShown: false,
+                    tabBarIcon: ({ focused }) => <Calendar size={24} color={focused ? colors.foreground : colors.muted} />
                 }}
             />
+            
             <Tabs.Screen
                 name="(settings)"
                 options={{
                     title: 'Settings',
-                    headerShown: true,
+                    headerShown: false,
                     tabBarIcon: ({ focused }) => <SettingsIcon size={24} color={focused ? colors.foreground : colors.muted} />
                 }}
             />

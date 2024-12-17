@@ -1,7 +1,8 @@
 import * as Slot from '@rn-primitives/slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 import * as React from 'react';
-import { Platform, Pressable, PressableProps, View, ViewStyle } from 'react-native';
+import { Platform, Pressable, PressableProps, View, ViewStyle, ActivityIndicator } from 'react-native';
+import { Check, AlertTriangle } from 'lucide-react-native';
 
 import { TextClassContext } from '~/components/nativewindui/Text';
 import { cn } from '~/lib/cn';
@@ -11,6 +12,7 @@ import { COLORS } from '~/theme/colors';
 const buttonVariants = cva('flex-row items-center justify-center gap-2', {
     variants: {
         variant: {
+            default: 'ios:active:opacity-80 bg-primary',
             primary: 'ios:active:opacity-80 bg-primary',
             secondary: 'ios:border-foreground ios:active:border-primary border border-foreground/40',
             tonal: 'ios:bg-primary/10 dark:ios:bg-primary/10 ios:active:bg-primary/15 bg-primary/15 dark:bg-primary/30',
@@ -52,7 +54,7 @@ const buttonTextVariants = cva('font-medium', {
     variants: {
         variant: {
             primary: 'text-foreground',
-            secondary: 'ios:text-primary text-foreground',
+            secondary: 'ios:text-foreground text-foreground font-mono',
             tonal: 'ios:text-primary text-foreground',
             plain: 'text-foreground',
             destructive: 'text-white',
@@ -148,13 +150,30 @@ type AndroidOnlyButtonProps = {
     androidRootClassName?: string;
 };
 
-type ButtonProps = PressableProps & ButtonVariantProps & AndroidOnlyButtonProps;
+type ButtonProps = PressableProps & ButtonVariantProps & AndroidOnlyButtonProps & {
+    state?: ButtonState;
+};
+
+export type ButtonState = 'idle' | 'loading' | 'success' | 'error';
 
 const Root = Platform.OS === 'android' ? View : Slot.Pressable;
 
 const Button = React.forwardRef<React.ElementRef<typeof Pressable>, ButtonProps>(
-    ({ className, variant = 'primary', size, style = BORDER_CURVE, androidRootClassName, ...props }, ref) => {
+    ({ className, variant = 'primary', size, style = BORDER_CURVE, androidRootClassName, state = 'idle', children, ...props }, ref) => {
         const { colorScheme } = useColorScheme();
+
+        const renderContent = () => {
+            switch (state) {
+                case 'loading':
+                    return <ActivityIndicator />;
+                case 'success':
+                    return <Check />;
+                case 'error':
+                    return <AlertTriangle />;
+                default:
+                    return children;
+            }
+        };
 
         return (
             <TextClassContext.Provider value={buttonTextVariants({ variant, size })}>
@@ -172,7 +191,9 @@ const Button = React.forwardRef<React.ElementRef<typeof Pressable>, ButtonProps>
                         style={style}
                         android_ripple={ANDROID_RIPPLE[colorScheme][variant]}
                         {...props}
-                    />
+                    >
+                        {renderContent()}
+                    </Pressable>
                 </Root>
             </TextClassContext.Provider>
         );

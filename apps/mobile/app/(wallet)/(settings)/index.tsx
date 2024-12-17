@@ -11,7 +11,7 @@ import { useColorScheme } from '~/lib/useColorScheme';
 import { router } from 'expo-router';
 import { NDKCashuWallet } from '@nostr-dev-kit/ndk-wallet';
 
-export default function SettingsIosStyleScreen() {
+export default function WalletSettings() {
     const { currentUser } = useNDK();
     const { activeWallet, balances, setActiveWallet } = useNDKSession();
     const [syncing, setSyncing] = useState(false);
@@ -54,29 +54,19 @@ export default function SettingsIosStyleScreen() {
             }
         ];
 
-        // if (currentUser) {
-        //     opts.unshift('gap 0');
-        //     opts.unshift({
-        //         id: '0',
-        //         onPress: () => {
-        //         },
-        //         title: (
-        //             <View className="flex-row items-center gap-2">
-        //                 <View className="flex-row">
-        //                     <User.Avatar userProfile={userProfile} size={32} />
+        if (activeWallet instanceof NDKCashuWallet && (activeWallet as NDKCashuWallet)?.warnings.length > 0) {
+            opts.push('Warnings')
 
-        //                     <View className="flex-col">
-        //                         <Text className="text-lg">
-        //                             {' '}
-        //                             <User.Name userProfile={userProfile} pubkey={currentUser.pubkey} />{' '}
-        //                         </Text>
-        //                     </View>
-        //                 </View>
-        //             </View>
-        //         ),
-        //     });
-        // }
-        
+            for (const warning of (activeWallet as NDKCashuWallet)?.warnings) {
+                opts.push({
+                    id: warning.event?.id ?? Math.random().toString(),
+                    leftView: <IconView name="alpha-x-box" className="bg-red-500" />,
+                    title: warning.msg,
+                    subTitle: warning.relays?.map((r) => r.url).join(', '),
+                });
+            }
+        }
+
         return opts;
     }, [currentUser, activeWallet, balances]);
 

@@ -6,7 +6,7 @@ import { PortalHost } from '@rn-primitives/portal';
 import * as SecureStore from 'expo-secure-store';
 import { Image } from 'react-native';
 import { ThemeProvider as NavThemeProvider } from '@react-navigation/native';
-import { NDKCacheAdapterSqlite, NDKCashuMintList, NDKEventWithFrom, useNDK, useNDKSession } from '@nostr-dev-kit/ndk-mobile';
+import { NDKCacheAdapterSqlite, NDKCashuMintList, NDKEventWithFrom, NDKNutzap, useNDK, useNDKSession } from '@nostr-dev-kit/ndk-mobile';
 import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -17,6 +17,7 @@ import { View } from 'react-native';
 import { useColorScheme, useInitialAndroidBarSync } from '~/lib/useColorScheme';
 import { NAV_THEME } from '~/theme';
 import { NDKProvider } from '@nostr-dev-kit/ndk-mobile';
+import { toast, Toasts } from '@backpackapp-io/react-native-toast';
 import { Text } from '@/components/nativewindui/Text';
 import { NDKKind, NDKList, NDKRelay } from '@nostr-dev-kit/ndk-mobile';
 import { NDKSessionProvider } from '@nostr-dev-kit/ndk-mobile';
@@ -107,7 +108,8 @@ export default function RootLayout() {
             console.log(`https://njump.me/${event.encode()}`)
         });
         mon.on("redeem", (event) => {
-            alert(event.id);
+            const nutzap = NDKNutzap.from(event);
+            toast.success("Redeemed a nutzap for " + nutzap.amount + " " + nutzap.unit);
         });
         mon.start();
         nutzapMonitor.current = mon;
@@ -144,17 +146,18 @@ export default function RootLayout() {
                                 <NavThemeProvider value={NAV_THEME[colorScheme]}>
                                     <PortalHost />
                                     <Stack screenOptions={{
-                                        headerShown: false,
-                                    }}>
+                                        headerShown: true,
+                                    }} initialRouteName="(wallet)">
+                                        <Stack.Screen name="(wallet)" options={{ headerShown: false }} />
                                         <Stack.Screen name="login" options={{ headerShown: false, presentation: 'modal' }} />
-                                        <Stack.Screen name="index" options={{ headerShown: false, }} />
-                                        <Stack.Screen name="(wallet)" options={{ headerShown: false, }} />
+                                        <Stack.Screen name="tx" options={{ headerShown: false, presentation: 'modal' }} />
                                         <Stack.Screen name="receive" options={{ headerShown: false, presentation: 'modal' }} />
                                         <Stack.Screen name="send" options={{ headerShown: true }} />
 
-                                        <Stack.Screen name="(settings)" options={{ headerShown: false, presentation: 'modal' }} />
+                                        {/* <Stack.Screen name="(settings)" options={{ headerShown: false, presentation: 'modal' }} /> */}
                                     </Stack>
                                 </NavThemeProvider>
+                                <Toasts />
                             </KeyboardProvider>
                         </GestureHandlerRootView>
                     </NDKSessionProvider>

@@ -1,6 +1,7 @@
 import { Picker } from "@react-native-picker/picker";
 import { Text } from "@/components/nativewindui/Text";
 import { NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
+import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -8,8 +9,11 @@ import { StyleSheet } from "react-native";
 import { TouchableOpacity, View } from "react-native";
 import { TextInput } from "react-native-gesture-handler";
 import { useNDKSession } from "@nostr-dev-kit/ndk-mobile";
+import { toast, Toasts } from '@backpackapp-io/react-native-toast';
 import WalletBalance from "@/components/ui/wallet/WalletBalance";
 import { useColorScheme } from "@/lib/useColorScheme";
+import { Button, ButtonState } from "@/components/nativewindui/Button";
+import { Check } from "lucide-react-native";
 
 export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
     const { colors } = useColorScheme();
@@ -18,6 +22,7 @@ export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
     const [selectedMint, setSelectedMint] = useState<string | null>(null);
     const inputRef = useRef<TextInput | null>(null);
     const [amount, setAmount] = useState(1000);
+    const [copyState, setCopyState] = useState<ButtonState>('idle');
 
     useEffect(() => {
         if (activeWallet && (activeWallet as NDKCashuWallet).mints.length > 0) {
@@ -25,6 +30,13 @@ export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
         }
     }, [activeWallet]);
     
+    function copy() {
+        Clipboard.setStringAsync(qrCode);
+        setCopyState('success');
+        setTimeout(() => {
+            setCopyState('idle');
+        }, 2000);
+    }
 
     if (!(activeWallet as NDKCashuWallet)) return (
         <View>
@@ -70,11 +82,19 @@ export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
             />
 
             {qrCode ? ( // Conditionally render QR code
-                <View>
-                    <Text>Your QR Code:</Text>
+                <View className="flex-col items-stretch justify-center gap-4 px-8">
                     <View style={styles.qrCodeContainer}>
                         <QRCode value={qrCode} size={350} />
                     </View>
+
+                    <Button variant="secondary" onPress={copy}>
+                        {copyState === 'success' ? (
+                            <View className="flex-row gap-1">
+                                <Check color={colors.foreground} />
+                                <Text>Copied</Text>
+                            </View>
+                        ) : <Text>Copy</Text>}
+                    </Button>
                 </View>
             ) : (
                 <>

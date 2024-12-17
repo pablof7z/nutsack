@@ -2,21 +2,32 @@ import { LargeTitleHeader } from "@/components/nativewindui/LargeTitleHeader";
 import { List, ListItem } from "@/components/nativewindui/List";
 import { StyleSheet } from "react-native";
 import { ActivityIndicator } from "@/components/nativewindui/ActivityIndicator";
-import { CashuPaymentInfo, Hexpubkey, NDKKind, NDKLnUrlData, NDKZapMethodInfo, NDKZapper, useNDK, useNDKSession, useSubscribe, useUserProfile } from "@nostr-dev-kit/ndk-mobile";
+import { CashuPaymentInfo, Hexpubkey, NDKKind, NDKLnUrlData, NDKUser, NDKUserProfile, NDKZapMethodInfo, NDKZapper, useNDK, useNDKSession, useSubscribe, useUserProfile } from "@nostr-dev-kit/ndk-mobile";
 import { TextInput, TouchableOpacity, View } from "react-native";
 import * as User from "@/components/ui/user"
 import { Text } from "@/components/nativewindui/Text";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { myFollows } from "@/utils/myfollows";
 import { Button } from "@/components/nativewindui/Button";
 import WalletBalance from "@/components/ui/wallet/WalletBalance";
 import { NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
 import { router } from "expo-router";
+import { toast } from "@backpackapp-io/react-native-toast";
+
+export function UserAsHeader({ pubkey }: { pubkey: Hexpubkey }) {
+    const { userProfile } = useUserProfile(pubkey);
+    return (
+        <View className="flex-1 flex-col items-center gap-2">
+            <User.Avatar userProfile={userProfile} size={24} className="w-20 h-20" />
+            <Text className="text-xl font-bold">
+                <User.Name userProfile={userProfile} pubkey={pubkey} />
+            </Text>
+        </View>
+    )
+}
 
 function SendToUser({ pubkey, onCancel }: { pubkey: Hexpubkey, onCancel: () => void }) {
     const { ndk } = useNDK();
     const { activeWallet, balances } = useNDKSession();
-    const {userProfile} = useUserProfile(pubkey);
     const inputRef = useRef<TextInput | null>(null);
     const [amount, setAmount] = useState(21);
     const user = useMemo(() => ndk.getUser({ pubkey }), [pubkey]);
@@ -45,12 +56,7 @@ function SendToUser({ pubkey, onCancel }: { pubkey: Hexpubkey, onCancel: () => v
     
     return (
         <View className="flex-1 flex-col justify-between items-stretch px-4 py-10 gap-2">
-            <View className="flex-1 flex-col items-center gap-2">
-                <User.Avatar userProfile={userProfile} size={24} className="w-20 h-20" />
-                <Text className="text-xl font-bold">
-                    <User.Name userProfile={userProfile} pubkey={pubkey} />
-                </Text>
-            </View>
+            <UserAsHeader pubkey={pubkey} />
 
             <View className="flex-1 flex-col items-center gap-2">
                 <TextInput
@@ -114,21 +120,15 @@ function StateButton({ state, onPress, children }: { state: ButtonState, onPress
     </Button>
 }
 
-function FollowItem({ search, index, target, item, onPress }: { search: string, index: number, target: ListItemTarget, item: string, onPress: () => void }) {
+function FollowItem({ index, target, item, onPress }: { index: number, target: ListItemTarget, item: string, onPress: () => void }) {
     const {userProfile} = useUserProfile(item);
-    const hasSearch = search && search.length > 0;
-
-    if (hasSearch) {
-        if (!userProfile) return null;
-        if (!JSON.stringify(userProfile).toLowerCase().includes(search)) return null;
-    }
     
     return <ListItem
         index={index}
         target={target}
         item={{
             id: item,
-            title: search,
+            title: ""
         }}
         leftView={<TouchableOpacity className="flex-row items-center py-1" onPress={onPress}>
             <User.Avatar userProfile={userProfile} size={16} className="w-8 h-8 mr-2" />
@@ -138,7 +138,7 @@ function FollowItem({ search, index, target, item, onPress }: { search: string, 
 }
 
 export default function SendView() {
-    const { follows } = useNDKSession();
+    const { ndk } = useNDK();
     const [search, setSearch] = useState('');
     const [selectedPubkey, setSelectedPubkey] = useState<Hexpubkey | null>(null);
 
@@ -149,36 +149,58 @@ export default function SendView() {
         return mintlistEvents.map((event) => event.pubkey);
     }, [mintlistEvents]);
 
-    console.log({selectedPubkey});
-
     if (selectedPubkey) {
         return (<SendToUser pubkey={selectedPubkey} onCancel={() => setSelectedPubkey(null)} />)
     }
+
+    async function getUser() {
+        if (search.startsWith('npub')) {
+            try {
+                const user = ndk.getUser({ npub: search });
+                setSelectedPubkey(user.pubkey);
+                return;
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        try {
+            const user = await NDKUser.fromNip05(search, ndk);
+            if (user) {
+                setSelectedPubkey(user.pubkey);
+                return;
+            }
+        } catch { }
+
+        toast.error("Couldn't find anyone with that");
+    }
     
+
     return (
         <View className="flex-1">
-            {/* <LargeTitleHeader
-                title={"Send"}
-                searchBar={{
-                    iosHideWhenScrolling: true,
-                    onChangeText: setSearch,
-                    onSearchButtonPress: () => {
-                        console.log(search);
-                    }
-                }}
-            /> */}
+
+            <View className="flex-col gap-2">
+                <TextInput
+                    className="text-base bg-muted/40 text-foreground m-4 rounded-lg p-2"
+                    placeholder="Enter a Nostr address or npub"
+                    value={search}
+                    onChangeText={setSearch}
+                />
+
+                <Button variant="primary" className="mx-4 flex-none h-10 w-full" onPress={getUser}>
+                    <Text className="text-xl font-medium py-2">Search</Text>
+                </Button>
+            </View>
 
             <List
-                // data={follows && follows.length > 0 ? follows : myFollows}
                 data={usersWithMintlist}
                 keyExtractor={(item) => item}
-                estimatedItemSize={56}
                 contentInsetAdjustmentBehavior="automatic"
+                estimatedItemSize={56}
                 sectionHeaderAsGap
                 variant="insets"
                 renderItem={({ index, target, item }) => (
                     <FollowItem
-                        search={search}
                         index={index}
                         target={target}
                         item={item}

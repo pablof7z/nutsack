@@ -14,13 +14,12 @@ import {
 import { Text } from '~/components/nativewindui/Text';
 import { cn } from '~/lib/cn';
 import { useColorScheme } from '~/lib/useColorScheme';
-import { walleteStore } from '@/app/stores';
-import { useStore } from 'zustand';
 import { TextInput, TouchableOpacity } from 'react-native-gesture-handler';
-import { router } from 'expo-router';
+import { router, Tabs } from 'expo-router';
 import { CashuMint, GetInfoResponse } from '@cashu/cashu-ts';
 import { useNDKSession, useSubscribe } from '@nostr-dev-kit/ndk-mobile';
 import { useNDK } from '@nostr-dev-kit/ndk-mobile';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function RelaysScreen() {
     const { ndk } = useNDK();
@@ -33,6 +32,8 @@ export default function RelaysScreen() {
     const opts = useMemo(() => ({ groupable: false, closeOnEose: true, subId: 'mints' }), []);
     const { events: mintList } = useSubscribe({ filters: filter, opts });
     const [mintInfos, setMintInfos] = useState<Record<string, GetInfoResponse | null>>({});
+
+    const insets = useSafeAreaInsets();
 
     const addFn = () => {
         try {
@@ -107,7 +108,7 @@ export default function RelaysScreen() {
   
 
   return (
-    <>
+    <View className="flex-1" style={{ marginTop: insets.top }}>
         <LargeTitleHeader
           title="Mints"
           searchBar={{ iosHideWhenScrolling: true, onChangeText: setSearchText }}
@@ -130,7 +131,7 @@ export default function RelaysScreen() {
                 sectionHeaderAsGap
             />
         </View>
-    </>
+    </View>
   );
 }
 

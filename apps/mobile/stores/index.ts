@@ -1,5 +1,5 @@
 import { NDKEvent } from '@nostr-dev-kit/ndk-mobile';
-import { create } from 'zustand';
+import { create, useStore } from 'zustand';
 import { NDKCashuWallet } from '@nostr-dev-kit/ndk-wallet';
 
 type ActiveEventStoreState = {
@@ -15,15 +15,6 @@ export const activeEventStore = create<ActiveEventStoreState>((set) => ({
     },
 }));
 
-type WalletStoreState = {
-    activeWallet: NDKCashuWallet | null;
-    setActiveWallet: (wallet?: NDKCashuWallet) => void;
-};
-
-/** Store */
-export const walleteStore = create<WalletStoreState>((set) => ({
-    activeWallet: null,
-    setActiveWallet(wallet?: NDKCashuWallet): void {
-        set(() => ({ activeWallet: wallet }));
-    },
-}));
+export const useActiveEventStore = () => {
+    return useStore(activeEventStore);
+}

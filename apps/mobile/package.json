@@ -13,6 +13,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@backpackapp-io/react-native-toast": "^0.13.0",
     "@bacons/text-decoder": "^0.0.0",
     "@cashu/cashu-ts": "^2.1.0",
     "@expo/vector-icons": "^14.0.4",
