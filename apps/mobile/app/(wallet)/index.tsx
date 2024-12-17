@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 import { formatMoney } from "@/utils/bitcoin";
 import { useMemo } from "react";
 import { PieChart } from "react-native-gifted-charts";
+import { useColorScheme } from "@/lib/useColorScheme";
 
 export default function Index() {
     const { activeWallet } = useNDKSession();
@@ -26,7 +27,7 @@ export default function Index() {
 }
 
 function Chart({ mintBalances }: { mintBalances: Record<string, number> }) {
-    
+    const { colors } = useColorScheme();
     const chartData = useMemo(() => {
         return Object.entries(mintBalances).map(([mint, balance], index) => {
             const url = new URL(mint);
@@ -51,8 +52,9 @@ function Chart({ mintBalances }: { mintBalances: Record<string, number> }) {
                 donut
                 radius={150}
                 innerRadius={100}
+                backgroundColor={colors.grey6}
                 centerLabelComponent={() => (
-                    <Text style={{ fontSize: 18, fontWeight: 'bold' }}>
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.foreground }}>
                         {Object.keys(mintBalances).length} Mints
                     </Text>
                 )}

@@ -9,8 +9,10 @@ import { TouchableOpacity, View } from "react-native";
 import { TextInput } from "react-native-gesture-handler";
 import { useNDKSession } from "@nostr-dev-kit/ndk-mobile";
 import WalletBalance from "@/components/ui/wallet/WalletBalance";
+import { useColorScheme } from "@/lib/useColorScheme";
 
 export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
+    const { colors } = useColorScheme();
     const { activeWallet } = useNDKSession();
     const [qrCode, setQrCode] = useState<string | null>(null);
     const [selectedMint, setSelectedMint] = useState<string | null>(null);
@@ -81,7 +83,7 @@ export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
                         style={styles.continueButton}
                     >
                         <Text style={styles.continueButtonText}>Continue</Text>
-                    </TouchableOpacity>
+                        </TouchableOpacity>
 
                     <Picker
                         selectedValue={selectedMint}
@@ -89,7 +91,7 @@ export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
                         style={styles.picker}
                     >
                         {(activeWallet as NDKCashuWallet).mints.map((mint, index) => (
-                            <Picker.Item key={index} label={mint} value={mint} />
+                            <Picker.Item key={index} label={mint} value={mint} style={{ color: colors.foreground }} />
                         ))}
                     </Picker>
                 </>

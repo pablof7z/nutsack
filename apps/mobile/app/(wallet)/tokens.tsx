@@ -5,8 +5,10 @@ import { useMemo } from "react";
 import { PieChart } from "react-native-gifted-charts";
 import { FlashList } from "@shopify/flash-list";
 import { useNDKSession } from "@nostr-dev-kit/ndk-mobile";
+import { useColorScheme } from "@/lib/useColorScheme";
 
 export default function Tokens() {
+    const { colors } = useColorScheme();
     const { activeWallet } = useNDKSession();
 
     if (!(activeWallet instanceof NDKCashuWallet)) return null;
@@ -46,8 +48,8 @@ export default function Tokens() {
                         color: item.color,
                     }))}
                     donut
-                    radius={150}
-                    innerRadius={100}
+                    radius={10}
+                    innerRadius={0}
                     centerLabelComponent={() => (
                         <Text style={{ fontSize: 18, fontWeight: 'bold' }}>
                             {tokens.length} Tokens
@@ -63,7 +65,7 @@ export default function Tokens() {
                         <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 5, paddingHorizontal: 10, width: '100%' }}>
                             <View style={{ width: 20, height: 20, backgroundColor: item.color, marginRight: 10 }} />
                             <Text style={{ flex: 1 }}>{`${item.amount} ${unit}`}</Text>
-                            <Text style={{ flex: 1, marginRight: 10 }}>
+                            <Text style={{ flex: 1, marginRight: 10 }} color={colors.foreground}>
                                 {`${item.count} proofs`}
                             </Text>
                             <Text style={{ flex: 0 }}>

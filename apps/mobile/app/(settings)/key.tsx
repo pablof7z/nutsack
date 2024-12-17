@@ -1,7 +1,7 @@
 import { Icon, MaterialIconName } from '@roninoss/icons';
 import { useMemo } from 'react';
 import { View } from 'react-native';
-import * as User from '@/components/ui/user';
+import * as Clipboard from 'expo-clipboard';
 
 import { LargeTitleHeader } from '~/components/nativewindui/LargeTitleHeader';
 import { ESTIMATED_ITEM_HEIGHT, List, ListDataItem, ListItem, ListRenderItemInfo, ListSectionHeader } from '~/components/nativewindui/List';
@@ -31,6 +31,9 @@ export default function SettingsIosStyleScreen() {
                     </View>
                 ),
                 rightView: <IconView name="clipboard-outline" className="bg-gray-500" />,
+                onPress: () => {
+                    Clipboard.setStringAsync(nsec ?? '');
+                },
             },
         ];
     }, [currentUser, privateKey]);
@@ -48,7 +51,6 @@ export default function SettingsIosStyleScreen() {
                 keyExtractor={keyExtractor}
                 sectionHeaderAsGap
             />
-            <Text>{(ndk?.signer as NDKPrivateKeySigner)?.privateKey}</Text>
         </>
     );
 }
@@ -82,7 +84,7 @@ function renderItem<T extends (typeof data)[number]>(info: ListRenderItemInfo<T>
                 )
             }
             {...info}
-            onPress={() => console.log('onPress')}
+            onPress={info.item.onPress}
         />
     );
 }

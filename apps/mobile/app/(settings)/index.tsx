@@ -2,6 +2,7 @@ import { useNDK, useNDKSession } from '@nostr-dev-kit/ndk-mobile';
 import { Icon, MaterialIconName } from '@roninoss/icons';
 import { useEffect, useMemo, useState } from 'react';
 import { Platform, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 
 import { LargeTitleHeader } from '~/components/nativewindui/LargeTitleHeader';
 import { ESTIMATED_ITEM_HEIGHT, List, ListDataItem, ListItem, ListRenderItemInfo, ListSectionHeader } from '~/components/nativewindui/List';
@@ -49,16 +50,20 @@ export default function SettingsIosStyleScreen() {
             opts.unshift({
                 id: '0',
                 onPress: () => {
+                    Clipboard.setStringAsync(currentUser.npub);
                 },
                 title: (
                     <View className="flex-row items-center gap-2">
                         <View className="flex-row">
-                            <User.Avatar userProfile={userProfile} size={32} />
+                            <User.Avatar userProfile={userProfile} size={32} className="mr-2" />
 
                             <View className="flex-col">
                                 <Text className="text-lg">
                                     {' '}
                                     <User.Name userProfile={userProfile} pubkey={currentUser.pubkey} />{' '}
+                                </Text>
+                                <Text className="text-muted-foreground font-mono text-xs mr-12">
+                                    {currentUser.npub}
                                 </Text>
                             </View>
                         </View>

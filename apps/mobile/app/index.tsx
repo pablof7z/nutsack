@@ -8,14 +8,14 @@ import { List, ListItem } from "@/components/nativewindui/List";
 import { cn } from "@/lib/cn";
 import { BlurView } from "expo-blur";
 import { Button } from "@/components/nativewindui/Button";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BookDown, Cog, Eye, ZoomIn } from "lucide-react-native";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BookDown, ChevronDown, Cog, Eye, ZoomIn } from "lucide-react-native";
 import * as User from '@/components/ui/user';
 import RelativeTime from "./components/relative-time";
 import { useColorScheme } from "@/lib/useColorScheme";
 
 function WalletBalance({ wallet, balance }: { wallet: NDKWallet, balance: NDKWalletBalance }) {
     function update() {
-        wallet?.updateBalance?.()
+        router.push('/(wallet)')
     }
 
     const numberWithThousandsSeparator = (amount: number) => {
@@ -197,7 +197,7 @@ function WalletHeader({ activeWallet }: { activeWallet: NDKWallet }) {
         const title = activeWallet?.name || activeWallet?.type || 'Honeypot';
         return <TouchableOpacity className="flex-row items-center gap-2" onPress={() => router.push('/(wallet)')}>
             <Text className="text-lg text-muted-foreground font-medium">{title}</Text>
-            <ZoomIn size={24} color={colors.foreground} />
+            <ChevronDown size={24} color={colors.muted} />
         </TouchableOpacity>;
     }
 
@@ -239,7 +239,6 @@ export default function WalletScreen() {
             <Stack.Screen
                 options={{
                     headerShown: true,
-                    headerTransparent: true,
                     headerBackground: () => <BlurView intensity={100} tint="light" />,  
                     headerTitle: () => <WalletHeader activeWallet={activeWallet} />,
                     headerRight: () => (
@@ -252,11 +251,11 @@ export default function WalletScreen() {
 
             <View className="flex-1 flex-col">
                 <View className="flex-col grow">
-                    {!isNutzapWallet && (
+                    {/* {!isNutzapWallet && (
                         <Button onPress={setNutzapWallet}>
                             <Text>Enable Nutzaps</Text>
                         </Button>
-                    )}
+                    )} */}
                     
                     {balances.length > 0 && <WalletBalance wallet={activeWallet} balance={balances[0]} />}
                     {activeWallet instanceof NDKNWCWallet && <WalletNWC wallet={activeWallet} />}
@@ -308,10 +307,10 @@ function WalletButtons() {
     return (
         <View className="flex-row justify-stretch p-4 gap-14">
             <Button variant="secondary" className="grow items-center" onPress={receive}>
-                <Text className="py-2 text-white font-medium">Receive</Text>
+                <Text className="py-2 text-foreground font-mono font-medium uppercase">Receive</Text>
             </Button>
             <Button variant="secondary" className="grow items-center" onPress={send}>
-                <Text className="py-2 text-white font-medium">Send</Text>
+                <Text className="py-2 text-foreground font-mono font-medium uppercase">Send</Text>
             </Button>
         </View>
     )

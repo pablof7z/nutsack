@@ -18,7 +18,7 @@ function SendToUser({ pubkey, onCancel }: { pubkey: Hexpubkey, onCancel: () => v
     const { activeWallet, balances } = useNDKSession();
     const {userProfile} = useUserProfile(pubkey);
     const inputRef = useRef<TextInput | null>(null);
-    const [amount, setAmount] = useState(1000);
+    const [amount, setAmount] = useState(21);
     const user = useMemo(() => ndk.getUser({ pubkey }), [pubkey]);
     const zap = useMemo(() => new NDKZapper(user, 0, 'msat', {
         comment: "Honeypot nutzap"
@@ -35,10 +35,12 @@ function SendToUser({ pubkey, onCancel }: { pubkey: Hexpubkey, onCancel: () => v
         setButtonState('pending');
         zap.amount = amount * 1000;
         zap.once("complete", (split, info) => {
-            router.replace("/");
             setButtonState('idle');
         });
         zap.zap();
+        setTimeout(() => {
+            router.back();
+        }, 500);
     }
     
     return (
