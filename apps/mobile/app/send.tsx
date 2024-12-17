@@ -11,6 +11,7 @@ import { myFollows } from "@/utils/myfollows";
 import { Button } from "@/components/nativewindui/Button";
 import WalletBalance from "@/components/ui/wallet/WalletBalance";
 import { NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
+import { router } from "expo-router";
 
 function SendToUser({ pubkey, onCancel }: { pubkey: Hexpubkey, onCancel: () => void }) {
     const { ndk } = useNDK();
@@ -34,8 +35,7 @@ function SendToUser({ pubkey, onCancel }: { pubkey: Hexpubkey, onCancel: () => v
         setButtonState('pending');
         zap.amount = amount * 1000;
         zap.once("complete", (split, info) => {
-            alert("complete");
-            console.log("complete", split, info);
+            router.replace("/");
             setButtonState('idle');
         });
         zap.zap();
@@ -138,7 +138,7 @@ function FollowItem({ search, index, target, item, onPress }: { search: string, 
 export default function SendView() {
     const { follows } = useNDKSession();
     const [search, setSearch] = useState('');
-    const [selectedPubkey, setSelectedPubkey] = useState<Hexpubkey | null>("fa984bd7dbb282f07e16e7ae87b26a2a7b9b90b7246a44771f0cf5ae58018f52");
+    const [selectedPubkey, setSelectedPubkey] = useState<Hexpubkey | null>(null);
 
     const mintlistFilter = useMemo(() => [{ kinds: [NDKKind.CashuMintList] }], []);
     const { events: mintlistEvents } = useSubscribe({ filters: mintlistFilter });

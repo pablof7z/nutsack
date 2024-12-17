@@ -39,6 +39,7 @@ export async function createWallet(name?: string, mints?: string[], unit?: strin
             .filter((url): url is string => url !== undefined);
         
         mintUrls.unshift("https://testnut.cashu.space/")
+        mintUrls.unshift("https://nofees.testnut.cashu.space/")
         
         console.log("Available Mint URLs:", mintUrls);
 
