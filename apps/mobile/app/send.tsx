@@ -145,10 +145,18 @@ function FollowItem({ index, target, item, onPress }: { index: number, target: L
 
 export default function SendView() {
     const { ndk } = useNDK();
+    const { follows } = useNDKSession();
     const [search, setSearch] = useState('');
     const [selectedPubkey, setSelectedPubkey] = useState<Hexpubkey | null>(null);
 
-    const mintlistFilter = useMemo(() => [{ kinds: [NDKKind.CashuMintList] }], []);
+    const mintlistFilter = useMemo(() => {
+      if (follows?.length >= 5) {
+        return [{ kinds: [NDKKind.CashuMintList], authors: follows }]
+      } else {
+        return [{ kinds: [NDKKind.CashuMintList] }]
+      }
+    }, []);
+
     const { events: mintlistEvents } = useSubscribe({ filters: mintlistFilter });
 
     const usersWithMintlist = useMemo(() => {
