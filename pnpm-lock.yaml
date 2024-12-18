@@ -198,8 +198,8 @@ importers:
         specifier: ^4.5.1
         version: 4.5.1(n673dzdhnkonekw5h5zpqfh34e)
       react-native-keyboard-controller:
-        specifier: ^1.14.3
-        version: 1.14.5(react-native-reanimated@3.16.2(@babel/core@7.26.0)(react-native@0.76.5(@babel/core@7.26.0)(@babel/preset-env@7.26.0(@babel/core@7.26.0))(@react-native-community/cli-server-api@13.6.9(bufferutil@4.0.8)(utf-8-validate@5.0.10))(@types/react@18.3.12)(bufferutil@4.0.8)(react@18.3.1)(utf-8-validate@5.0.10))(react@18.3.1))(react-native@0.76.5(@babel/core@7.26.0)(@babel/preset-env@7.26.0(@babel/core@7.26.0))(@react-native-community/cli-server-api@13.6.9(bufferutil@4.0.8)(utf-8-validate@5.0.10))(@types/react@18.3.12)(bufferutil@4.0.8)(react@18.3.1)(utf-8-validate@5.0.10))(react@18.3.1)
+        specifier: ^1.15.0
+        version: 1.15.0(react-native-reanimated@3.16.2(@babel/core@7.26.0)(react-native@0.76.5(@babel/core@7.26.0)(@babel/preset-env@7.26.0(@babel/core@7.26.0))(@react-native-community/cli-server-api@13.6.9(bufferutil@4.0.8)(utf-8-validate@5.0.10))(@types/react@18.3.12)(bufferutil@4.0.8)(react@18.3.1)(utf-8-validate@5.0.10))(react@18.3.1))(react-native@0.76.5(@babel/core@7.26.0)(@babel/preset-env@7.26.0(@babel/core@7.26.0))(@react-native-community/cli-server-api@13.6.9(bufferutil@4.0.8)(utf-8-validate@5.0.10))(@types/react@18.3.12)(bufferutil@4.0.8)(react@18.3.1)(utf-8-validate@5.0.10))(react@18.3.1)
       react-native-linear-gradient:
         specifier: ^2.8.3
         version: 2.8.3(react-native@0.76.5(@babel/core@7.26.0)(@babel/preset-env@7.26.0(@babel/core@7.26.0))(@react-native-community/cli-server-api@13.6.9(bufferutil@4.0.8)(utf-8-validate@5.0.10))(@types/react@18.3.12)(bufferutil@4.0.8)(react@18.3.1)(utf-8-validate@5.0.10))(react@18.3.1)
@@ -394,7 +394,7 @@ importers:
         version: 9.0.7
       bun-types:
         specifier: latest
-        version: 1.1.38
+        version: 1.1.39
 
   apps/web:
     dependencies:
@@ -5431,8 +5431,8 @@ packages:
   builtin-status-codes@3.0.0:
     resolution: {integrity: sha512-HpGFw18DgFWlncDfjTa2rcQ4W88O1mC8e8yZ2AvQY5KDaktSTwo+KRf6nHK6FRI5FyRyb/5T6+TSxfP7QyGsmQ==}
 
-  bun-types@1.1.38:
-    resolution: {integrity: sha512-iglB2t9z1Hc6DIuwwscwWj/csx22QlCZ96QbcqQfiy1wmuZ38srQLI/fDVkFHAo2+KL7aJZGVWF+nAWrR6Njig==}
+  bun-types@1.1.39:
+    resolution: {integrity: sha512-8enJ1uad+v5ZRzmSMU2S4/CiF0AerRoVoQlEvYIt9xSbR6p8cjeYj9GAgxZumHWoarIu+WcqZ6NklGCfl9PAkw==}
 
   bundle-require@4.2.1:
     resolution: {integrity: sha512-7Q/6vkyYAwOmQNRw75x+4yRtZCZJXUDmHHlFdkiV0wgv/reNjtJwpu1jPJ0w2kbEpIM0uoKI3S4/f39dU7AjSA==}
@@ -10024,8 +10024,8 @@ packages:
       react: '>=18.2.0'
       react-native: '>=0.73.0'
 
-  react-native-keyboard-controller@1.14.5:
-    resolution: {integrity: sha512-Cx7+SWI/P50i4PKJZN4T43RqoFkJ3GBoxjQ5ysrzZGoImHTF4j3atSwcBQGMmunKCem1yGOOQ84or+Vbcor6wQ==}
+  react-native-keyboard-controller@1.15.0:
+    resolution: {integrity: sha512-Laqszs0Uciu9MFkHurLwaHs9kftzUueew75HVOndbdcGR3MbKs2MqKdQEg1AgXSHcGoGg5nKafMOLVIoYjK6kA==}
     peerDependencies:
       react: '*'
       react-native: '*'
@@ -18215,7 +18215,7 @@ snapshots:
 
   builtin-status-codes@3.0.0: {}
 
-  bun-types@1.1.38:
+  bun-types@1.1.39:
     dependencies:
       '@types/node': 20.12.14
       '@types/ws': 8.5.13
@@ -24238,7 +24238,7 @@ snapshots:
       react: 18.3.1
       react-native: 0.76.5(@babel/core@7.26.0)(@babel/preset-env@7.26.0(@babel/core@7.26.0))(@react-native-community/cli-server-api@13.6.9(bufferutil@4.0.8)(utf-8-validate@5.0.10))(@types/react@18.3.12)(bufferutil@4.0.8)(react@18.3.1)(utf-8-validate@5.0.10)
 
-  react-native-keyboard-controller@1.14.5(react-native-reanimated@3.16.2(@babel/core@7.26.0)(react-native@0.76.5(@babel/core@7.26.0)(@babel/preset-env@7.26.0(@babel/core@7.26.0))(@react-native-community/cli-server-api@13.6.9(bufferutil@4.0.8)(utf-8-validate@5.0.10))(@types/react@18.3.12)(bufferutil@4.0.8)(react@18.3.1)(utf-8-validate@5.0.10))(react@18.3.1))(react-native@0.76.5(@babel/core@7.26.0)(@babel/preset-env@7.26.0(@babel/core@7.26.0))(@react-native-community/cli-server-api@13.6.9(bufferutil@4.0.8)(utf-8-validate@5.0.10))(@types/react@18.3.12)(bufferutil@4.0.8)(react@18.3.1)(utf-8-validate@5.0.10))(react@18.3.1):
+  react-native-keyboard-controller@1.15.0(react-native-reanimated@3.16.2(@babel/core@7.26.0)(react-native@0.76.5(@babel/core@7.26.0)(@babel/preset-env@7.26.0(@babel/core@7.26.0))(@react-native-community/cli-server-api@13.6.9(bufferutil@4.0.8)(utf-8-validate@5.0.10))(@types/react@18.3.12)(bufferutil@4.0.8)(react@18.3.1)(utf-8-validate@5.0.10))(react@18.3.1))(react-native@0.76.5(@babel/core@7.26.0)(@babel/preset-env@7.26.0(@babel/core@7.26.0))(@react-native-community/cli-server-api@13.6.9(bufferutil@4.0.8)(utf-8-validate@5.0.10))(@types/react@18.3.12)(bufferutil@4.0.8)(react@18.3.1)(utf-8-validate@5.0.10))(react@18.3.1):
     dependencies:
       react: 18.3.1
       react-native: 0.76.5(@babel/core@7.26.0)(@babel/preset-env@7.26.0(@babel/core@7.26.0))(@react-native-community/cli-server-api@13.6.9(bufferutil@4.0.8)(utf-8-validate@5.0.10))(@types/react@18.3.12)(bufferutil@4.0.8)(react@18.3.1)(utf-8-validate@5.0.10)

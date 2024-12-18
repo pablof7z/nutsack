@@ -118,7 +118,6 @@ export default function RelaysScreen() {
             </TouchableOpacity>
           )}
         />
-            <Text>here {data.length}</Text>
         <View className="flex-1">
             <List
                 contentContainerClassName="pt-4"
