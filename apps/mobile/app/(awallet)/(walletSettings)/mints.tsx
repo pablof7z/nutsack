@@ -152,7 +152,7 @@ function renderItem<T extends (typeof data)[number]>(info: ListRenderItemInfo<T>
                 {...info}
             >
                 <TextInput
-                    className="flex-1 text-lg"
+                    className="flex-1 text-lg text-foreground"
                     placeholder="Add mint"
                     onChangeText={info.item.set}
                     autoCapitalize="none"

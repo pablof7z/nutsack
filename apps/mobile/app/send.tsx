@@ -136,7 +136,7 @@ function FollowItem({ index, target, item, onPress }: { index: number, target: L
             id: item,
             title: ""
         }}
-        leftView={<TouchableOpacity className="flex-row items-center py-2" onPress={onPress}>
+        leftView={<TouchableOpacity className="flex-row items-center p-2" onPress={onPress}>
             <User.Avatar userProfile={userProfile} size={16} className="w-10 h-10 mr-2" />
             <User.Name userProfile={userProfile} pubkey={item} className="text-lg text-foreground" />
         </TouchableOpacity>}
@@ -193,8 +193,8 @@ export default function SendView() {
                     onChangeText={setSearch}
                 />
 
-                <Button variant="primary" className="mx-4 flex-none h-10 w-full" onPress={getUser}>
-                    <Text className="text-xl font-medium py-2">Search</Text>
+                <Button variant="primary" className="mb-4 mx-4 flex-none h-10" onPress={getUser}>
+                    <Text className="text-xl font-medium">Search</Text>
                 </Button>
             </View>
 
