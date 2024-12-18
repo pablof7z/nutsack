@@ -4,103 +4,23 @@ import '@bacons/text-decoder/install';
 import 'react-native-get-random-values';
 import { PortalHost } from '@rn-primitives/portal';
 import * as SecureStore from 'expo-secure-store';
-import { Image } from 'react-native';
 import { ThemeProvider as NavThemeProvider } from '@react-navigation/native';
 import { NDKCacheAdapterSqlite, NDKCashuMintList, NDKEventWithFrom, NDKNutzap, useNDK, useNDKSession } from '@nostr-dev-kit/ndk-mobile';
-import { router, Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
-import { View } from 'react-native';
 
 import { useColorScheme, useInitialAndroidBarSync } from '~/lib/useColorScheme';
 import { NAV_THEME } from '~/theme';
 import { NDKProvider } from '@nostr-dev-kit/ndk-mobile';
 import { toast, Toasts } from '@backpackapp-io/react-native-toast';
-import { Text } from '@/components/nativewindui/Text';
 import { NDKKind, NDKList, NDKRelay } from '@nostr-dev-kit/ndk-mobile';
 import { NDKSessionProvider } from '@nostr-dev-kit/ndk-mobile';
-import { ActivityIndicator } from '@/components/nativewindui/ActivityIndicator';
 import { NDKCashuWallet, NDKNutzapMonitor } from '@nostr-dev-kit/ndk-wallet';
 import { useEffect, useRef, useState } from 'react';
-import { Button } from '@/components/nativewindui/Button';
+import LoaderScreen from '@/components/LoaderScreen';
 
-function Container({ children }: { children: React.ReactNode }) {
-    const splashImage = require('../assets/splash.png');
-
-    return (
-        <View className="flex bg-black flex-col relative h-screen w-screen items-stretch">
-            <Image source={splashImage} className="h-screen w-screen absolute top-0 left-0"/>
-
-            <View className="flex flex-col absolute bottom-10 left-10 z-10 right-10 items-center">
-                {children}
-            </View>
-        </View>
-    );
-}
-
-function NDKCacheCheck({ children }: { children: React.ReactNode }) {
-    const { ndk, currentUser, cacheInitialized } = useNDK();
-    const { activeWallet } = useNDKSession();
-    const [ ready, setReady ] = useState(false);
-
-    const start = () => {
-        setReady(true);
-    }
-
-    useEffect(() => {
-        if (cacheInitialized && currentUser && activeWallet) {
-            setTimeout(() => setReady(true), 500);
-        }
-
-        if (!currentUser && ready) {
-            setReady(false);
-        }
-    }, [cacheInitialized, currentUser, activeWallet]);
-
-    if (!ready) {
-        if (cacheInitialized === false) {
-            return (
-                <Container>
-                    <ActivityIndicator className="mt-4" color="white" />
-                </Container>
-            );
-        } else if (!currentUser) {
-            return (
-                <Container>
-                    <Button variant="accent" className="mt-4 w-full" onPress={start}>
-                        <Text className="text-white font-semibold">
-                            Get Started
-                        </Text>
-                    </Button>
-                </Container>
-            )
-        } else if (!activeWallet) {
-            return (
-                <Container>
-                    <Button variant="accent" className="mt-4 w-full" onPress={() => {
-                        setReady(true);
-                    }}>
-                        <Text className="text-white font-semibold">
-                            Enable Wallet
-                        </Text>
-                    </Button>
-                </Container>
-            )
-        } else {
-            return (
-                <Container>
-                    <Text className="text-white font-semibold">
-                        Everything ready - LFG
-                    </Text>
-                </Container>
-            )
-        }
-    } else {
-        return <>{children}</>;
-    }
-}
 
 export default function RootLayout() {
     useInitialAndroidBarSync();
@@ -108,7 +28,7 @@ export default function RootLayout() {
     const netDebug = (msg: string, relay: NDKRelay, direction?: 'send' | 'recv') => {
         const url = new URL(relay.url);
         if (direction === 'send') console.log('👉', url.hostname, msg);
-        // if (direction === 'recv') console.log('👈', url.hostname, msg);
+        if (direction === 'recv') console.log('👈', url.hostname, msg);
     };
 
     let relays = (SecureStore.getItem('relays') || '').split(',');
@@ -156,7 +76,6 @@ export default function RootLayout() {
             <NDKProvider
                 explicitRelayUrls={relays}
                 cacheAdapter={new NDKCacheAdapterSqlite('honeypot')}
-                netDebug={netDebug}
                 clientName="honeypot"
                 clientNip89="31990:fa984bd7dbb282f07e16e7ae87b26a2a7b9b90b7246a44771f0cf5ae58018f52:1731850618505"
             >
@@ -171,7 +90,7 @@ export default function RootLayout() {
                     }}
                     kinds={kinds}
                 >
-                    <NDKCacheCheck>
+                    <LoaderScreen>
                         <GestureHandlerRootView style={{ flex: 1 }}>
                             <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
                                 <NavThemeProvider value={NAV_THEME[colorScheme]}>
@@ -183,7 +102,7 @@ export default function RootLayout() {
                                         <Stack.Screen name="login" options={{ headerShown: false, presentation: 'modal' }} />
                                         <Stack.Screen name="tx" options={{ headerShown: false, presentation: 'modal' }} />
                                         <Stack.Screen name="receive" options={{ headerShown: true, presentation: 'modal', title: 'Receive' }} />
-                                        <Stack.Screen name="send" options={{ headerShown: true, presentation: 'modal', title: 'Send' }} />
+                                        <Stack.Screen name="send" options={{ headerShown: false, presentation: 'modal', title: 'Send' }} />
                                         <Stack.Screen name="beg" options={{ headerShown: false, presentation: 'modal' }} />
                                         <Stack.Screen name="(settings)" options={{ headerShown: false, presentation: 'modal' }} />
                                     </Stack>
@@ -191,7 +110,7 @@ export default function RootLayout() {
                                 <Toasts />
                             </KeyboardProvider>
                         </GestureHandlerRootView>
-                    </NDKCacheCheck>
+                    </LoaderScreen>
                 </NDKSessionProvider>
             </NDKProvider>
         </>

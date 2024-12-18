@@ -1,6 +1,6 @@
-olas:
+honeypot:
   android:
-    name: Olas
-    description: Beauty is in the eye of the hodler
-    repository: https://github.com/pablof7z/olas
+    name: Honeypot
+    description: A freedom wallet for the relays
+    repository: https://github.com/pablof7z/nutsack
     license: MIT

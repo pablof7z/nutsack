@@ -23,15 +23,17 @@ export default function WalletsScreen() {
     const [relays, setRelays] = useState<NDKRelay[]>(Array.from(ndk!.pool.relays.values()));
 
     const activateWallet = async (wallet: NDKEvent) => {
-        router.back();
-        const w = await NDKCashuWallet.from(awallet);
+        const w = await NDKCashuWallet.from(wallet);
+        if (w.mints.length === 0) {
+            router.replace('/(awallet)/(walletSettings)/mints')
+        } else {
+            router.replace('/(awallet)');
+        }
         setActiveWallet(w);
     }
 
     const data = useMemo(() => {
         if (!ndk) return [];
-
-        console.log('all wallets', Array.from(allWallets.values()).length);
 
         const options = Array.from(allWallets.values())
             .map((walletEvent: NDKEvent) => ({
@@ -39,13 +41,6 @@ export default function WalletsScreen() {
                 title: walletEvent.dTag,
                 subTitle: walletEvent.getMatchingTags('mint').length + ' mint(s)',
                 onPress: () => activateWallet(walletEvent),
-                rightView: (
-                    <View className="flex-1 items-center px-2">
-                        <Button variant="secondary" size="sm" onPress={() => activateWallet(walletEvent)}>
-                            <Text>Use</Text>
-                        </Button>
-                    </View>
-                ),
             }))
             .filter((item) => (searchText ?? '').trim().length === 0 || item.title.match(searchText!));
         
@@ -91,7 +86,7 @@ export default function WalletsScreen() {
         wallet.name = 'Honeypot Wallet';
         await wallet.getP2pk();
         await wallet.publish().then(() => {
-            setActiveWallet(awallet);
+            setActiveWallet(wallet);
             const mintList = new NDKCashuMintList(ndk);
             mintList.mints = wallet.mints;
             mintList.p2pk = wallet.p2pk;

@@ -23,7 +23,7 @@ export default function Index() {
         <ScrollView className="flex-1 p-4 bg-card" style={{ paddingTop: insets.top }}>
             <View className="flex-col gap-1 items-start justify-start text-left w-full">
                 <Text className="text-xl font-bold text-left">Mints</Text>
-                <Text className="text-muted-foreground">{Object.keys(mintBalances).length} mints</Text>
+                <Text className="text-muted-foreground">{activeWallet.mints.length} mints</Text>
             </View>
             <Chart mintBalances={mintBalances} />
             <MintBalances wallet={activeWallet} />
@@ -72,6 +72,13 @@ function Chart({ mintBalances }: { mintBalances: Record<string, number> }) {
 
 function MintBalances({ wallet }: { wallet: NDKCashuWallet }) {
     const mintBalances = wallet.mintBalances;
+
+    // add the mints with a zero balance to the list
+    for (const mint of wallet.mints) {
+        if (!(mint in mintBalances)) {
+            mintBalances[mint] = 0;
+        }
+    }
 
     return (
         <List

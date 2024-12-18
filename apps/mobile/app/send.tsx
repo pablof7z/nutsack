@@ -3,15 +3,17 @@ import { List, ListItem } from "@/components/nativewindui/List";
 import { StyleSheet } from "react-native";
 import { ActivityIndicator } from "@/components/nativewindui/ActivityIndicator";
 import { CashuPaymentInfo, Hexpubkey, NDKKind, NDKLnUrlData, NDKUser, NDKUserProfile, NDKZapMethodInfo, NDKZapper, useNDK, useNDKSession, useSubscribe, useUserProfile } from "@nostr-dev-kit/ndk-mobile";
-import { TextInput, TouchableOpacity, View } from "react-native";
+import { TextInput, TouchableOpacity, View, KeyboardAvoidingView } from "react-native";
 import * as User from "@/components/ui/user"
 import { Text } from "@/components/nativewindui/Text";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button } from "@/components/nativewindui/Button";
+import { Button, ButtonProps } from "@/components/nativewindui/Button";
 import WalletBalance from "@/components/ui/wallet/WalletBalance";
 import { NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
-import { router } from "expo-router";
+import { router, Stack } from "expo-router";
 import { toast } from "@backpackapp-io/react-native-toast";
+import { useAppStateStore } from "@/stores";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 export function UserAsHeader({ pubkey }: { pubkey: Hexpubkey }) {
     const { userProfile } = useUserProfile(pubkey);
@@ -36,6 +38,7 @@ function SendToUser({ pubkey, onCancel }: { pubkey: Hexpubkey, onCancel: () => v
     }), [pubkey, amount]);
     const [methods, setMethods] = useState<NDKZapMethodInfo[]>([]);
     const [buttonState, setButtonState] = useState<ButtonState>('idle');
+    const { addPendingPayment } = useAppStateStore();
 
     useEffect(() => {
         zap.amount = amount * 1000;
@@ -48,15 +51,27 @@ function SendToUser({ pubkey, onCancel }: { pubkey: Hexpubkey, onCancel: () => v
         zap.once("complete", (split, info) => {
             setButtonState('idle');
         });
-        zap.zap();
+        // zap.zap();
+        addPendingPayment(zap);
         setTimeout(() => {
             router.back();
         }, 500);
     }
     
     return (
-        <View className="flex-1 flex-col justify-between items-stretch px-4 py-10 gap-2">
-            <UserAsHeader pubkey={pubkey} />
+        <KeyboardAwareScrollView>
+            <View className="flex-1 flex-col items-center gap-2 pt-5 w-full">
+                <View className="flex-1 flex-row items-center w-full justify-between gap-2 p-2 absolute">
+                    <Button variant="plain" className="w-fit" onPress={onCancel}>
+                        <Text className="text-base text-muted-foreground">Cancel</Text>
+                    </Button>
+
+                    <StateButton variant="plain" state={buttonState} onPress={send}>
+                        <Text className="">Send</Text>
+                    </StateButton>
+                </View>
+
+                <UserAsHeader pubkey={pubkey} />
 
             <View className="flex-1 flex-col items-center gap-2">
                 <TextInput
@@ -75,7 +90,7 @@ function SendToUser({ pubkey, onCancel }: { pubkey: Hexpubkey, onCancel: () => v
                 />
             </View>
 
-            <View className="flex flex-col gap-2">
+            <View className="flex flex-col gap-2 w-full">
                 {methods.map((method) => (
                     <View key={method.type} className="mx-4">
                         <Text className="text-xl font-bold py-2">{method.type.toUpperCase()}</Text>
@@ -83,8 +98,7 @@ function SendToUser({ pubkey, onCancel }: { pubkey: Hexpubkey, onCancel: () => v
                         {method.type === 'nip61' && (
                             <View className="flex flex-col gap-2">
                                 {(method.data as CashuPaymentInfo).mints.map((mint) => {
-                                    console.log(mint);
-                                    return <Text key={mint} className="text-base font-medium">{mint}</Text>
+                                    return <Text key={mint} className="text-sm text-muted-foreground">{mint}</Text>
                                 })}
                             </View>
                         )}
@@ -98,23 +112,15 @@ function SendToUser({ pubkey, onCancel }: { pubkey: Hexpubkey, onCancel: () => v
                 ))}
             </View>
 
-            <View className="flex flex-col gap-2">
-                <StateButton state={buttonState} onPress={send}>
-                    <Text className="text-xl font-medium py-2">Send</Text>
-                </StateButton>
-
-                <Button variant="plain" className="mx-4" onPress={onCancel}>
-                    <Text className="text-base text-muted-foreground">Cancel</Text>
-                </Button>
             </View>
-        </View>
+        </KeyboardAwareScrollView>
     )
 }
 
 type ButtonState = 'idle' | 'pending' | 'complete' | 'error';
 
-function StateButton({ state, onPress, children }: { state: ButtonState, onPress: () => void, children: React.ReactNode }) {
-    return <Button variant="primary" className="mx-4" onPress={onPress} disabled={state !== 'idle'}>
+function StateButton({ variant, state, onPress, children }: { variant: ButtonProps["variant"], state: ButtonState, onPress: () => void, children: React.ReactNode }) {
+    return <Button variant={variant} onPress={onPress} disabled={state !== 'idle'}>
         {state === 'idle' && children}
         {state === 'pending' && <ActivityIndicator size="small" color="white" className="my-3" />}
     </Button>
@@ -130,9 +136,9 @@ function FollowItem({ index, target, item, onPress }: { index: number, target: L
             id: item,
             title: ""
         }}
-        leftView={<TouchableOpacity className="flex-row items-center py-1" onPress={onPress}>
-            <User.Avatar userProfile={userProfile} size={16} className="w-8 h-8 mr-2" />
-            <User.Name userProfile={userProfile} pubkey={item} className="text-foreground" />
+        leftView={<TouchableOpacity className="flex-row items-center py-2" onPress={onPress}>
+            <User.Avatar userProfile={userProfile} size={16} className="w-10 h-10 mr-2" />
+            <User.Name userProfile={userProfile} pubkey={item} className="text-lg text-foreground" />
         </TouchableOpacity>}
     />
 }
@@ -177,9 +183,9 @@ export default function SendView() {
     
 
     return (
-        <View className="flex-1">
-
-            <View className="flex-col gap-2">
+        <>
+            <View className="flex-1">
+                <View className="flex-col gap-2">
                 <TextInput
                     className="text-base bg-muted/40 text-foreground m-4 rounded-lg p-2"
                     placeholder="Enter a Nostr address or npub"
@@ -209,6 +215,7 @@ export default function SendView() {
                 )}
             />
         </View>
+        </>
     )
 }
 

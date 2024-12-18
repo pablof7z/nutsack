@@ -3,7 +3,7 @@ import { Text } from "@/components/nativewindui/Text";
 import { NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
 import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet } from "react-native";
 import { TouchableOpacity, View } from "react-native";
 import { TextInput } from "react-native-gesture-handler";
@@ -13,6 +13,8 @@ import { useColorScheme } from "@/lib/useColorScheme";
 import { Button, ButtonState } from "@/components/nativewindui/Button";
 import { Check } from "lucide-react-native";
 import { router } from "expo-router";
+import { List, ListItem } from "@/components/nativewindui/List";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
     const { colors } = useColorScheme();
@@ -51,7 +53,6 @@ export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
             return;
         }
         const deposit = (activeWallet as NDKCashuWallet).deposit(amount, selectedMint);
-        console.log('deposit', deposit);
 
         deposit.on("success", (token) => {
             console.log('success', token);
@@ -62,9 +63,11 @@ export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
         console.log('qr', qr);
         setQrCode(qr);
     };
+
+    const mints = useMemo(() => Array.from(new Set((activeWallet as NDKCashuWallet).mints)), [activeWallet]);
     
     return (
-        <View style={{ flex: 1 }}>
+        <KeyboardAwareScrollView style={{ flex: 1 }}>
             <TextInput
                 ref={inputRef}
                 keyboardType="numeric" 
@@ -80,7 +83,7 @@ export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
                 onPress={() => inputRef.current?.focus()}
             />
 
-            {qrCode ? ( // Conditionally render QR code
+            {qrCode ? (
                 <View className="flex-col items-stretch justify-center gap-4 px-8">
                     <View style={styles.qrCodeContainer}>
                         <QRCode value={qrCode} size={350} />
@@ -101,25 +104,31 @@ export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
                 </View>
             ) : (
                 <>
-                    <TouchableOpacity 
-                        onPress={handleContinue} 
-                        style={styles.continueButton}
-                    >
-                        <Text style={styles.continueButtonText}>Continue</Text>
-                        </TouchableOpacity>
-
-                    <Picker
-                        selectedValue={selectedMint}
-                        onValueChange={(itemValue) => setSelectedMint(itemValue)}
-                        style={styles.picker}
-                    >
-                        {(activeWallet as NDKCashuWallet).mints.map((mint, index) => (
-                            <Picker.Item key={index} label={mint} value={mint} style={{ color: colors.foreground }} />
-                        ))}
-                    </Picker>
+                    <List
+                        data={mints}    
+                        estimatedItemSize={56}
+                        contentInsetAdjustmentBehavior="automatic"
+                        sectionHeaderAsGap
+                        variant="insets"
+                        renderItem={({ item, index, target  }) => (
+                            <ListItem
+                                target={target}
+                                index={index}
+                                variant="insets"
+                                item={{
+                                    id: item,
+                                    title: item
+                                }}
+                                onPress={() => {
+                                    setSelectedMint(item)
+                                    handleContinue();
+                                }}
+                            />
+                        )}
+                    />
                 </>
             )}
-        </View>
+        </KeyboardAwareScrollView>
     )
 }
 
