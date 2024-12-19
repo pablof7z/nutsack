@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator } from "./nativewindui/ActivityIndicator";
 import { Button, ButtonState } from "./nativewindui/Button";
 import { Text } from "./nativewindui/Text";
 import { NDKCashuMintList, NDKEvent, NDKKind, NDKSubscription, useNDK, useNDKSession, useSubscribe } from "@nostr-dev-kit/ndk-mobile";
 import { View, Image, TextInput, TouchableOpacity, Touchable, TouchableWithoutFeedback } from "react-native";
 import LoginComponent from "./login";
-import { Bolt } from "lucide-react-native";
+import { ArrowRight, Bolt } from "lucide-react-native";
 import { CashuMint, CashuWallet } from "@cashu/cashu-ts";
+import { ProgressIndicator } from '~/components/nativewindui/ProgressIndicator';
 import { NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
 import { ScrollView } from "react-native";
 import { Checkbox } from "./nativewindui/Checkbox";
@@ -55,10 +56,140 @@ function Initializing() {
 function GetStarted({ onReady }: { onReady: () => void }) {
     return (
         <Container>
-            <Button variant="accent" className="mt-4 w-full" onPress={onReady}>
-                <Text className="text-white font-semibold py-3">
+            <Button variant="accent" className="mt-4" onPress={onReady}>
+                <Text className="text-white font-semibold py-3 px-20">
                     Get Started
                 </Text>
+            </Button>
+        </Container>
+    )
+}
+
+function Welcome({ onReady }: { onReady: () => void }) {
+    const [ step, setStep ] = useState(0);
+
+    const step1 = (
+        <>
+            <Text className="text-white text-2xl font-black pt-3 text-left">
+                    What is Honeypot?
+            </Text>
+            
+            <Text className="text-white text-lg font-bold -mt-2 text-left">
+                    A NIP 60 client.
+                </Text>
+
+                <Text className="text-white text-lg font-regular py-1 text-left">
+                    In other words, a nostr client that
+                    interfaces with your nostr-native ecash.
+                </Text>
+
+                <Text className="text-white text-lg font-regular py-1 text-left">
+                    You no longer need to do pair with an external
+                    wallet; your wallet is IN the relay.
+                </Text>
+            
+                <Text className="text-white text-lg font-regular py-1 text-left">
+                    Much like money in your pocket, every time you walk into a store you don't
+                    have to do a magical dance to have access to those notes.
+                </Text>
+            
+                <Text className="text-white text-lg font-bold py-1 text-left">
+                    A NIP-60 wallet is cash that follows you around on the internet.
+                </Text>
+        </>
+    )
+
+    const step2 = (
+        <>
+            <Text className="text-white text-2xl font-black pt-3 text-left">
+                Nutzaps
+            </Text>
+
+            <Text className="text-white text-lg font-semibold py-1 text-left">
+                Honeypot also supports NIP-61, Nutzaps. A way to send verifiable, faster, and more reliable zaps.
+            </Text>
+
+            <Text className="text-white text-lg font-semibold py-1 text-left">
+                More importantly, nutzaps DON'T require setting up an external wallet;
+            </Text>
+
+            <Text className="text-white text-lg font-semibold py-1 text-left">
+                New Nostr users can immediately receive zaps with no hassle; no more of the dreaded
+                "hey, you don't have lightning, install X, Y or Z!"
+            </Text>
+        </>
+    )
+
+    const step3 = (
+        <>
+            <Text className="text-white text-2xl font-black pt-3 text-left">
+                Cashu
+            </Text>
+
+            <Text className="text-white text-lg font-semibold py-1 text-left">
+                Honeypot works with Cashu under the hood; the wallet balance is custody by the mints
+                you select.
+            </Text>
+
+            <Text className="text-white text-lg font-semibold py-1 text-left">
+                You can also add your own mints to the wallet.
+            </Text>
+
+            <Text className="text-white text-lg font-semibold py-1 text-left">
+                Much like Wallet of Satoshi, and what 95% of nostr users use,
+                cashu is custodial; the benefit, though, is that instead of keeping your whole
+                balance in a single custodian, you can split it up across multiple mints.
+            </Text>
+        </>
+    )
+
+    const step4 = (
+        <>
+            <Text className="text-white text-2xl font-black pt-3 text-left">
+                Experimental
+            </Text>
+
+            <Text className="text-white text-lg font-semibold py-1 text-left">
+                Always keep in mind, this is extremely experimental, so don't
+                load up big balances.
+            </Text>
+
+            <Text className="text-white text-lg font-semibold py-1 text-left">
+                Bugs are to be expected.
+            </Text>
+        </>
+    )
+
+    const next = () => {
+        if (step >= 3) {
+            onReady();
+        } else {
+            setStep(step + 1);
+        }
+    }
+
+    const [progress, setProgress] = useState(0);
+    
+    useEffect(() => {
+        setProgress(((step + 1) / 4) * 100);
+    }, [step]);
+    
+    return (
+        <Container skipImage>
+            <View className="flex-col items-start justify-start gap-4 w-full mb-[10vh]">
+                {step === 0 && step1}
+                {step === 1 && step2}
+                {step === 2 && step3}
+                {step === 3 && step4}
+            </View>
+
+            <ProgressIndicator value={progress} />
+
+            <Button variant="accent" className="mt-4 !py-3 !px-20" onPress={next}>
+                <Text className="text-white font-semibold">
+                    Continue
+                </Text>
+                <ArrowRight size={20} color="white" />
             </Button>
         </Container>
     )
@@ -127,17 +258,25 @@ function NoWallet({ proceedWithoutWallet }: { proceedWithoutWallet: () => void }
     const { ndk } = useNDK();
     const { setActiveWallet } = useNDKSession();
 
-    const [ queryingMints, setQueryingMints ] = useState(new Set<string>());
+    const [ knownMints, setKnownMints ] = useState(new Set<string>());
+    const queryingMints = useRef(new Set<string>());
     const [ mints, setMints ] = useState(new Set<string>());
+    const unqueriedMints = useRef(new Set<string>());
+
+    const rejectedMints = useRef(new Set<string>());
+    const fullUrl = useRef(new Map<string, string>());
 
     const sub = useRef<NDKSubscription | null>(null);
 
     const queryMint = (url: string, normalizedUrl: string) => {
-        setQueryingMints(prev => new Set([...prev, normalizedUrl]));
-        console.log('querying mint', normalizedUrl);
+        if (rejectedMints.current.has(normalizedUrl)) {
+            return;
+        }
+
         const mint = new CashuMint(url);
         const w = new CashuWallet(mint);
         w.createMintQuote(1000).then(info => {
+            queryingMints.current.delete(normalizedUrl);
             if (info) {
                 console.log('adding mint', url);
                 mints.add(url);
@@ -145,20 +284,52 @@ function NoWallet({ proceedWithoutWallet }: { proceedWithoutWallet: () => void }
             } else {
                 console.log('failed to query mint', url);
             }
+        }).catch(e => {
+            console.error('error querying mint', url, e);
+            queryingMints.current.delete(normalizedUrl);
         });
     }
 
+    const eventHandler = useCallback((event: NDKEvent) => {
+        const url = event.tagValue('u');
+        const normalizedUrl = new URL(url).hostname;
+
+        if (rejectedMints.current.has(normalizedUrl)) return;
+        if (knownMints.has(normalizedUrl)) return;
+
+        setKnownMints(prev => new Set([...prev, normalizedUrl]));
+
+        if (queryingMints.current.size > 10) {
+            unqueriedMints.current.add(normalizedUrl);
+            fullUrl.current.set(normalizedUrl, url);
+        } else {
+            queryingMints.current.add(normalizedUrl);
+            queryMint(url, normalizedUrl);
+        }
+    }, [knownMints, mints]);
+
     if (!sub.current) {
-        sub.current = ndk.subscribe([{ kinds: [38172], limit: 500 }], { groupable: false, closeOnEose: true, subId: 'mints' }, undefined, false);
-        sub.current.on('event', (event) => {
-            const url = event.tagValue('u');
-            const normalizedUrl = new URL(url).hostname;
-            if (!queryingMints.has(normalizedUrl)) {
-                queryMint(url, normalizedUrl);
-            }
-        });
+        sub.current = ndk.subscribe([{ kinds: [38172], limit: 300 }], { groupable: false, closeOnEose: true, subId: 'mints' }, undefined, false);
+        sub.current.on('event', eventHandler);
         sub.current.start();
     }
+
+    useEffect(() => {
+        console.log('running effect', mints.size, unqueriedMints.current.size, queryingMints.current.size);
+        if (mints.size <= 6 && queryingMints.current.size < 5) {
+            // get 3 mints from unqueriedMints, query them, and remove them from unqueriedMints
+            const mintsToQuery = Array.from(unqueriedMints.current).slice(0, 10);
+            mintsToQuery.forEach(mint => {
+                console.log('querying mint', mint);
+                queryingMints.current.add(mint);
+                const url = fullUrl.current.get(mint);
+                if (url) {
+                    queryMint(url, mint);
+                }
+                unqueriedMints.current.delete(mint);
+            });
+        }
+    }, [mints, queryingMints]);
     
     const [ state, setState ] = useState<ButtonState>('idle');
     
@@ -189,6 +360,8 @@ function NoWallet({ proceedWithoutWallet }: { proceedWithoutWallet: () => void }
     }
 
     const [ nutzaps, setNutzaps ] = useState(true);
+    const [ mintInput, setMintInput ] = useState('');
+    const [showAddMint, setShowAddMint] = useState(false);
     
     return (
         <Container skipImage>
@@ -208,26 +381,52 @@ function NoWallet({ proceedWithoutWallet }: { proceedWithoutWallet: () => void }
                     {Array.from(mints).map((mint) => (
                         <TouchableOpacity key={mint} onPress={() => {
                             setMints(new Set(Array.from(mints).filter(m => m !== mint)));
+                            rejectedMints.current.add(mint);
                         }} className="py-1 flex-row gap-2 items-center">
                             <View className="w-2 h-2 bg-green-500 rounded-full" />
                             <Text key={mint} className="text-white/60 text-sm">{mint}</Text>
                         </TouchableOpacity>
                     ))}
+                    <View className="flex-row items-center justify-center gap-2">
+                        {showAddMint && (
+                            <TextInput
+                                className="!text-white border border-gray-500 py-2 px-4 rounded-lg grow"
+                                style={{ fontSize: 12, color: 'white' }}
+                                autoCapitalize="none"
+                                onChangeText={setMintInput}
+                                autoCorrect={false}
+                                autoFocus={false}
+                                placeholder="Add a mint" />
+                        )}
+
+                        <Button variant="plain" onPress={() => {
+                            if (showAddMint) {
+                                queryMint(mintInput, mintInput);
+                                setMintInput('');
+                            } else {
+                                setShowAddMint(!showAddMint);
+                            }
+                        }}>
+                            <Text className="text-white text-sm">
+                                {showAddMint ? 'Add' : 'Type a mint'}
+                            </Text>
+                        </Button>
+                    </View>
                 </View>
 
             </ScrollView>
 
-            <Button variant="plain" className="flex-row items-center justify-start gap-2 flex-1 w-full mt-5" onPress={() => setNutzaps(!nutzaps)}>
+            <Button variant="plain" className="flex-row items-center max-h-10 justify-start gap-2 flex-1 w-full mt-5" onPress={() => setNutzaps(!nutzaps)}>
                 <Checkbox checked={nutzaps} />
                 <Text className="text-white font-medium">
                     Enable Nutzaps
                 </Text>
             </Button>
 
-            <View className="flex-col items-center justify-center flex-1 w-full">
+            <View className="flex-col items-stretch justify-center flex-1 w-full">
                 {mints.size > 0 ? (
                     <>
-                    <Button variant="accent" className="mt-4 w-full !py-4" onPress={createWallet} state={state}>
+                    <Button variant="accent" className="mt-4 !py-4" onPress={createWallet} state={state}>
                         <Text className="text-white font-semibold">
                             Create wallet
                         </Text>
@@ -259,6 +458,7 @@ export default function LoaderScreen({ children }: { children: React.ReactNode }
     const [wallets, setWallets] = useState<NDKEvent[] | 'checking' | undefined>(undefined);
     const [proceedWithoutWallet, setProceedWithoutWallet] = useState(false);
     const [walletReady, setWalletReady] = useState<boolean | undefined>(undefined);
+    const [welcome, setWelcome] = useState(false);
 
     useEffect(() => {
         if (cacheInitialized && !cacheReady) {
@@ -276,15 +476,18 @@ export default function LoaderScreen({ children }: { children: React.ReactNode }
 
     const state = useMemo(() => {
         if (!cacheInitialized) return 'initializing';
-        if (!currentUser && !userReady) return 'get-started';
-        if (!currentUser) return 'login';
+        if (!currentUser) {
+            if (!userReady) return 'get-started';
+            if (!welcome) return 'welcome';
+            return 'login';
+        }
         if ((activeWallet && walletReady) || proceedWithoutWallet) return 'ready';
         if (activeWallet && !walletReady) return 'checking-wallets';
         if (wallets && (wallets === 'checking' || wallets.length === 0)) return 'checking-wallets';
         if (wallets === null && !activeWallet && !proceedWithoutWallet) return 'no-wallet';
         if (wallets && wallets.length > 0) return 'choose-wallet';
         return 'unhandled' + !!currentUser + JSON.stringify(wallets);
-    }, [cacheInitialized, currentUser, userReady, wallets, activeWallet, proceedWithoutWallet, walletReady]);
+    }, [cacheInitialized, currentUser, userReady, wallets, activeWallet, welcome, proceedWithoutWallet, walletReady]);
 
     const [ hadUser, setHadUser ] = useState(!!currentUser);
     
@@ -345,6 +548,7 @@ export default function LoaderScreen({ children }: { children: React.ReactNode }
     switch (state) {
         case 'initializing': return <Initializing />;
         case 'get-started': return <GetStarted onReady={() => setUserReady(true)} />;
+        case 'welcome': return <Welcome onReady={() => setWelcome(true)} />;
         case 'login': return <Login />;
         case 'checking-wallets': return <CheckingWallets />;
         case 'choose-wallet': return <ChooseWallet wallets={wallets} onChoose={handleChooseWallet} onCreateNew={handleCreateNewWallet} />;

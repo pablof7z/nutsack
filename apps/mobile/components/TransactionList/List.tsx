@@ -1,6 +1,6 @@
 import { useActiveEventStore, useAppStateStore, ZapperWithId } from "@/stores";
 import { useNDK, NDKKind, useSubscribe, NDKEvent, NDKZapSplit, NDKPaymentConfirmation, NDKNutzap } from "@nostr-dev-kit/ndk-mobile";
-import { NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
+import { NDKCashuDeposit, NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
 import HistoryItem from "./Item";
 import { router } from "expo-router";
 import { List } from "../nativewindui/List";
@@ -27,7 +27,8 @@ export default function TransactionHistory({ wallet }: { wallet: NDKCashuWallet 
     const listening = useRef(new Set<string>());
     const completedPendingZaps = useRef(new Map<string, string>());
 
-    const keyExtractor = (item: NDKEvent | ZapperWithId) => {
+    const keyExtractor = (item: NDKEvent | NDKCashuDeposit | ZapperWithId) => {
+        if (item instanceof NDKCashuDeposit) return item.quoteId;
         const id = item instanceof NDKEvent ? item.id : item.internalId;
         const res = completedPendingZaps.current.get(id) ?? id
         return res;
@@ -68,6 +69,7 @@ export default function TransactionHistory({ wallet }: { wallet: NDKCashuWallet 
 
     const historyWithPendingZaps = useMemo(() => {
         return [
+            ...Array.from(wallet.depositMonitor.deposits.values()),
             ...pendingPayments,
             ...history.sort((a, b) => b.created_at - a.created_at)
         ]

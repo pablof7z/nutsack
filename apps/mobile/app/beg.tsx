@@ -7,6 +7,7 @@ import { useState } from "react";
 import { View } from "react-native";
 import { TextInput } from "react-native-gesture-handler";
 import { router, Stack } from "expo-router";
+import { toast } from "@backpackapp-io/react-native-toast";
 
 export default function Beg() {
     const { ndk } = useNDK();
@@ -23,8 +24,10 @@ export default function Beg() {
                 ['t', 'honeypotapp']
             ]
         } as NostrEvent);
-        event.publish();
-        router.back();
+        event.publish().then(() => {
+            toast.success('Post published');
+            router.back();
+        })
     }
     
     return (

@@ -3,8 +3,8 @@ import { Text } from "@/components/nativewindui/Text";
 import { NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
 import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
-import { useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet } from "react-native";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { FlatList, StyleSheet } from "react-native";
 import { TouchableOpacity, View } from "react-native";
 import { TextInput } from "react-native-gesture-handler";
 import { useNDKSession } from "@nostr-dev-kit/ndk-mobile";
@@ -15,6 +15,7 @@ import { Check } from "lucide-react-native";
 import { router } from "expo-router";
 import { List, ListItem } from "@/components/nativewindui/List";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { ActivityIndicator } from "@/components/nativewindui/ActivityIndicator";
 
 export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
     const { colors } = useColorScheme();
@@ -24,6 +25,7 @@ export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
     const inputRef = useRef<TextInput | null>(null);
     const [amount, setAmount] = useState(1000);
     const [copyState, setCopyState] = useState<ButtonState>('idle');
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         if (activeWallet && (activeWallet as NDKCashuWallet).mints.length > 0) {
@@ -47,11 +49,13 @@ export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
         </View>
     )
 
-    const handleContinue = async () => {
+    const handleContinue = async (amount: number) => {
+        setIsLoading(true);
         if (!selectedMint) {
             console.error('No mint selected');
             return;
         }
+        console.log('will deposit', { amount, mint: selectedMint });
         const deposit = (activeWallet as NDKCashuWallet).deposit(amount, selectedMint);
 
         deposit.on("success", (token) => {
@@ -62,6 +66,7 @@ export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
         const qr = await deposit.start();
         console.log('qr', qr);
         setQrCode(qr);
+        setIsLoading(false);
     };
 
     const mints = useMemo(() => Array.from(new Set((activeWallet as NDKCashuWallet).mints)), [activeWallet]);
@@ -74,7 +79,7 @@ export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
                 autoFocus
                 style={styles.input} 
                 value={amount.toString()}
-                onChangeText={(text) => setAmount(Number(text))}
+                onChangeText={(text) => setAmount(Number(text) ?? 0)}
             />
 
             <WalletBalance
@@ -104,15 +109,12 @@ export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
                 </View>
             ) : (
                 <>
-                    <List
-                        data={mints}    
-                        estimatedItemSize={56}
+                    {isLoading && <ActivityIndicator />}
+                    <FlatList
+                        data={mints}
                         contentInsetAdjustmentBehavior="automatic"
-                        sectionHeaderAsGap
-                        variant="insets"
-                        renderItem={({ item, index, target  }) => (
+                        renderItem={({ item, index }) =>
                             <ListItem
-                                target={target}
                                 index={index}
                                 variant="insets"
                                 item={{
@@ -121,10 +123,10 @@ export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
                                 }}
                                 onPress={() => {
                                     setSelectedMint(item)
-                                    handleContinue();
+                                    handleContinue(amount);
                                 }}
                             />
-                        )}
+                        }
                     />
                 </>
             )}

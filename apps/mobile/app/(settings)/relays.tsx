@@ -7,37 +7,11 @@ import { ESTIMATED_ITEM_HEIGHT, List, ListDataItem, ListItem, ListRenderItemInfo
 import { Text } from '~/components/nativewindui/Text';
 import { cn } from '~/lib/cn';
 import { useColorScheme } from '~/lib/useColorScheme';
-import { NDKRelay, NDKRelayStatus } from '@nostr-dev-kit/ndk-mobile';
+import { NDKRelay } from '@nostr-dev-kit/ndk-mobile';
+import { Components } from '@nostr-dev-kit/ndk-mobile';
 import * as SecureStore from 'expo-secure-store';
 import { TextInput, TouchableOpacity } from 'react-native-gesture-handler';
 import { router } from 'expo-router';
-
-const CONNECTIVITY_STATUS_COLORS: Record<NDKRelayStatus, string> = {
-    [NDKRelayStatus.RECONNECTING]: '#f1c40f',
-    [NDKRelayStatus.CONNECTING]: '#f1c40f',
-    [NDKRelayStatus.DISCONNECTED]: '#aa4240',
-    [NDKRelayStatus.DISCONNECTING]: '#aa4240',
-    [NDKRelayStatus.CONNECTED]: '#66cc66',
-    [NDKRelayStatus.FLAPPING]: '#2ecc71',
-    [NDKRelayStatus.AUTHENTICATING]: '#3498db',
-    [NDKRelayStatus.AUTHENTICATED]: '#e74c3c',
-    [NDKRelayStatus.AUTH_REQUESTED]: '#e74c3c',
-} as const;
-
-function RelayConnectivityIndicator({ relay }: { relay: NDKRelay }) {
-    const color = CONNECTIVITY_STATUS_COLORS[relay.status];
-
-    return (
-        <View
-            style={{
-                borderRadius: 10,
-                width: 8,
-                height: 8,
-                backgroundColor: color,
-            }}
-        />
-    );
-}
 
 export default function RelaysScreen() {
     const { ndk } = useNDK();
@@ -46,14 +20,16 @@ export default function RelaysScreen() {
     const [url, setUrl] = useState('');
 
     const addFn = () => {
-        console.log({ url });
+        let u = url.trim();
+        if (!u.match(/wss?:\/\//)) u = `wss://${u}`;
+        
         try {
-            const uri = new URL(url);
+            const uri = new URL(u);
             if (!['wss:', 'ws:'].includes(uri.protocol)) {
                 alert('Invalid protocol');
                 return;
             }
-            const relay = ndk?.addExplicitRelay(url);
+            const relay = ndk?.addExplicitRelay(u);
             if (relay) setRelays([...relays, relay]);
             setUrl('');
         } catch (e) {
@@ -76,7 +52,7 @@ export default function RelaysScreen() {
                 title: relay.url,
                 rightView: (
                     <View className="flex-1 items-center px-4 py-2">
-                        <RelayConnectivityIndicator relay={relay} />
+                        <Components.Relays.ConnectivityIndicator relay={relay} />
                     </View>
                 ),
             }))

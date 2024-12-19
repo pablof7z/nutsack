@@ -17,9 +17,10 @@ import { useColorScheme } from '~/lib/useColorScheme';
 import { TextInput, TouchableOpacity } from 'react-native-gesture-handler';
 import { router, Tabs } from 'expo-router';
 import { CashuMint, GetInfoResponse } from '@cashu/cashu-ts';
-import { useNDKSession, useSubscribe } from '@nostr-dev-kit/ndk-mobile';
+import { NDKCashuMintList, useNDKSession, useSubscribe } from '@nostr-dev-kit/ndk-mobile';
 import { useNDK } from '@nostr-dev-kit/ndk-mobile';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { NDKCashuWallet } from '@nostr-dev-kit/ndk-wallet';
 
 export default function RelaysScreen() {
     const { ndk } = useNDK();
@@ -36,6 +37,7 @@ export default function RelaysScreen() {
     const insets = useSafeAreaInsets();
 
     const addFn = () => {
+        console.log("addFn", url)
         try {
             const uri = new URL(url)
             if (!['https:', 'http:'].includes(uri.protocol)) {
@@ -45,6 +47,7 @@ export default function RelaysScreen() {
             setMints([...mints, url])
             setUrl("");
         } catch (e) {
+            console.log("addFn", e)
             alert("Invalid URL")
         }
     };
@@ -83,11 +86,17 @@ export default function RelaysScreen() {
         return m;
   }, [mintList, mints, searchText, mintInfos]);
 
-    const save = () => {
-        if (!activeWallet) return;
+    const save = async () => {
+        if (!(activeWallet instanceof NDKCashuWallet)) return;
 
         activeWallet.mints = mints;
+        await activeWallet.getP2pk();
         activeWallet.publish().then(() => {
+            const mintList = new NDKCashuMintList(ndk);
+            mintList.mints = mints;
+            mintList.relays = activeWallet.relays;
+            mintList.p2pk = activeWallet.p2pk;
+            mintList.publish();
             router.back()
         })
     }

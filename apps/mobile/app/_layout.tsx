@@ -57,6 +57,7 @@ export default function RootLayout() {
         mon.on("seen", (event) => {
             console.log("seen", JSON.stringify(event.rawEvent(), null, 4));
             console.log(`https://njump.me/${event.encode()}`)
+            toast.success("Received a nutzap for " + event.amount + " " + event.unit);
         });
         mon.on("redeem", (event) => {
             const nutzap = NDKNutzap.from(event);
