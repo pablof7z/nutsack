@@ -35,7 +35,7 @@ export default function WalletSettings() {
                 id: '2',
                 title: 'Relays',
                 leftView: <IconView name="wifi" className="bg-blue-500" />,
-                onPress: () => router.push('/(awallet)/(walletSettings)/mints')
+                onPress: () => router.push('/(awallet)/(walletSettings)/relays')
             },
             {
                 id: '3',
