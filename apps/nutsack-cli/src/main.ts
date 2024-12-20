@@ -258,8 +258,9 @@ async function promptForCommand() {
     console.log('  set-nutzap-wallet [naddr...]   - Set the NIP-60 wallet that should receive nutzaps');
     console.log('  ls [-l]             - List wallets (use -l to show all details)');
     console.log('  deposit             - Deposit funds to a wallet');
-    console.log('  destroy-all-proofs  - Destroy all tokens in the wallet');
+    console.log('  destroy             - Destroy all tokens in the wallet');
     console.log('  sweep-nutzaps       - Sweep all nutzaps');
+    console.log('  me                  - Show your npub');
     console.log('  exit                - Quit the application');
     console.log('  create-wallet       - Create a new wallet with specified options');
     console.log('  ls-tokens [-v]      - List all tokens in the wallet (use -v for verbose output)');
@@ -271,8 +272,10 @@ async function promptForCommand() {
     const message = command.replace(/^publish /, '').trim();
     await condom(message);
     await new Promise(resolve => setTimeout(resolve, 1000));
-  } else if (command.toLowerCase() === 'destroy-all-proofs') {
+  } else if (command.toLowerCase() === 'destroy') {
     await destroyAllProofs();
+  } else if (command.toLowerCase() === 'me') {
+    console.log(ndk!.activeUser?.npub);
   } else if (command.toLowerCase() === 'sweep-nutzaps') {
     await sweepNutzaps();
   } else if (command.toLowerCase().startsWith('route')) {

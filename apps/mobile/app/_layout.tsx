@@ -21,6 +21,28 @@ import { NDKCashuWallet, NDKNutzapMonitor } from '@nostr-dev-kit/ndk-wallet';
 import { useEffect, useRef, useState } from 'react';
 import LoaderScreen from '@/components/LoaderScreen';
 
+function NutzapMonitor() {
+    const { nutzapMonitor } = useNDKSession();
+    const connected = useRef(false);
+
+    if (!nutzapMonitor) return null;
+    if (connected.current) {
+        return null;
+    }
+
+    connected.current = true;
+
+    nutzapMonitor.on("seen", (event) => {
+        console.log("seen", JSON.stringify(event.rawEvent(), null, 4));
+        console.log(`https://njump.me/${event.encode()}`)
+        // toast.success("Received a nutzap for " + event.amount + " " + event.unit);
+    });
+    nutzapMonitor.on("redeem", (event) => {
+        const nutzap = NDKNutzap.from(event);
+        toast.success("Redeemed a nutzap for " + nutzap.amount + " " + nutzap.unit);
+    });
+}
+
 
 export default function RootLayout() {
     useInitialAndroidBarSync();
@@ -47,25 +69,9 @@ export default function RootLayout() {
     }
 
     relays.push('wss://promenade.fiatjaf.com/');
+    relays.push('wss://purplepag.es/');
 
     const { ndk, currentUser } = useNDK();
-    const nutzapMonitor = useRef<NDKNutzapMonitor | null>(null);
-
-    useEffect(() => {
-        if (!ndk || !currentUser || nutzapMonitor.current) return;
-        const mon = new NDKNutzapMonitor(ndk, currentUser);
-        mon.on("seen", (event) => {
-            console.log("seen", JSON.stringify(event.rawEvent(), null, 4));
-            console.log(`https://njump.me/${event.encode()}`)
-            toast.success("Received a nutzap for " + event.amount + " " + event.unit);
-        });
-        mon.on("redeem", (event) => {
-            const nutzap = NDKNutzap.from(event);
-            toast.success("Redeemed a nutzap for " + nutzap.amount + " " + nutzap.unit);
-        });
-        mon.start();
-        nutzapMonitor.current = mon;
-    }, [ndk, currentUser]);
 
     const kinds = new Map<NDKKind, { wrapper?: NDKEventWithFrom<any> }>();
     kinds.set(NDKKind.CashuMintList, { wrapper: NDKCashuMintList });
@@ -91,6 +97,7 @@ export default function RootLayout() {
                     }}
                     kinds={kinds}
                 >
+                    <NutzapMonitor />
                     <LoaderScreen>
                         <GestureHandlerRootView style={{ flex: 1 }}>
                             <KeyboardProvider statusBarTranslucent navigationBarTranslucent>

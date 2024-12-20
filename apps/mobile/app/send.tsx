@@ -62,6 +62,8 @@ function SendToUser({ pubkey, onCancel }: { pubkey: Hexpubkey, onCancel: () => v
     }
 
     const inset = useSafeAreaInsets();
+
+    const [note, setNote] = useState('🥜 Honeypot nutzap');
     
     return (
         <KeyboardAwareScrollView>
@@ -92,6 +94,15 @@ function SendToUser({ pubkey, onCancel }: { pubkey: Hexpubkey, onCancel: () => v
                     amount={amount}
                     unit={(activeWallet as NDKCashuWallet).unit}
                     onPress={() => inputRef.current?.focus()}
+                />
+                
+                <TextInput
+                    className="text-base bg-card text-foreground m-4 rounded-lg p-2 grow"
+                    placeholder="The medium is the message... but you can also write an actual message"
+                    multiline
+                    numberOfLines={4}
+                    value={note}
+                    onChangeText={setNote}
                 />
 
                 <Button variant="secondary" className="grow items-center bg-foreground" onPress={send} state={buttonState}>

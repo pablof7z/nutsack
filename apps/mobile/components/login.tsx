@@ -13,7 +13,7 @@ import { myFollows } from '@/utils/myfollows';
 
 export default function LoginComponent({ textClassName }: { textClassName?: string }) {
     const [payload, setPayload] = useState<string | undefined>(undefined);
-    const { ndk, loginWithPayload, currentUser } = useNDK();
+    const { ndk, loginWithPayload } = useNDK();
     const [state, setState] = useState<ButtonState>("idle");
 
     const handleLogin = async () => {

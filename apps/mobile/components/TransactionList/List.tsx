@@ -69,7 +69,6 @@ export default function TransactionHistory({ wallet }: { wallet: NDKCashuWallet 
 
     const historyWithPendingZaps = useMemo(() => {
         return [
-            ...Array.from(wallet.depositMonitor.deposits.values()),
             ...pendingPayments,
             ...history.sort((a, b) => b.created_at - a.created_at)
         ]

@@ -3,7 +3,7 @@ import { Text } from "@/components/nativewindui/Text";
 import { NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
 import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, StyleSheet } from "react-native";
 import { TouchableOpacity, View } from "react-native";
 import { TextInput } from "react-native-gesture-handler";
@@ -21,18 +21,11 @@ export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
     const { colors } = useColorScheme();
     const { activeWallet } = useNDKSession();
     const [qrCode, setQrCode] = useState<string | null>(null);
-    const [selectedMint, setSelectedMint] = useState<string | null>(null);
     const inputRef = useRef<TextInput | null>(null);
     const [amount, setAmount] = useState(1000);
     const [copyState, setCopyState] = useState<ButtonState>('idle');
     const [isLoading, setIsLoading] = useState(false);
 
-    useEffect(() => {
-        if (activeWallet && (activeWallet as NDKCashuWallet).mints.length > 0) {
-            setSelectedMint((activeWallet as NDKCashuWallet).mints[0]);
-        }
-    }, [activeWallet]);
-    
     function copy() {
         Clipboard.setStringAsync(qrCode);
         setCopyState('success');
@@ -41,22 +34,14 @@ export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
         }, 2000);
     }
 
-    if (!(activeWallet as NDKCashuWallet)) return (
-        <View>
-            <Text>
-                No wallet found
-            </Text>
-        </View>
-    )
-
-    const handleContinue = async (amount: number) => {
+    const handleContinue = async (mint: string) => {
         setIsLoading(true);
-        if (!selectedMint) {
+        if (!mint) {
             console.error('No mint selected');
             return;
         }
-        console.log('will deposit', { amount, mint: selectedMint });
-        const deposit = (activeWallet as NDKCashuWallet).deposit(amount, selectedMint);
+        console.log('will deposit', { amount, mint });
+        const deposit = (activeWallet as NDKCashuWallet).deposit(amount, mint);
 
         deposit.on("success", (token) => {
             console.log('success', token);
@@ -67,9 +52,17 @@ export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
         console.log('qr', qr);
         setQrCode(qr);
         setIsLoading(false);
-    };
+    }
 
     const mints = useMemo(() => Array.from(new Set((activeWallet as NDKCashuWallet).mints)), [activeWallet]);
+
+    if (!(activeWallet as NDKCashuWallet)) return (
+        <View>
+            <Text>
+                No wallet found
+            </Text>
+        </View>
+    )
     
     return (
         <KeyboardAwareScrollView style={{ flex: 1 }}>
@@ -110,30 +103,26 @@ export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
             ) : (
                 <>
                     {isLoading && <ActivityIndicator />}
-                    <FlatList
-                        data={mints}
-                        contentInsetAdjustmentBehavior="automatic"
-                        renderItem={({ item, index }) =>
-                            <ListItem
-                                index={index}
-                                variant="insets"
-                                item={{
-                                    id: item,
-                                    title: item
-                                }}
-                                onPress={() => {
-                                    setSelectedMint(item)
-                                    handleContinue(amount);
-                                }}
-                            />
-                        }
-                    />
+                        <FlatList
+                            data={mints}
+                            contentInsetAdjustmentBehavior="automatic"
+                            renderItem={({item, index, target}) => (
+                                <ListItem
+                                    onPress={() => handleContinue(item)}
+                                    index={index}
+                                    target={target}
+                                    item={{
+                                        id: item,
+                                        title: item
+                                    }}
+                                />
+                            )}
+                        />
                 </>
             )}
         </KeyboardAwareScrollView>
     )
 }
-
 
 const styles = StyleSheet.create({
     input: {

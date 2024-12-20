@@ -22,7 +22,7 @@ import { useNDK } from '@nostr-dev-kit/ndk-mobile';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NDKCashuWallet } from '@nostr-dev-kit/ndk-wallet';
 
-export default function RelaysScreen() {
+export default function MintsScreen() {
     const { ndk } = useNDK();
     const { activeWallet } = useNDKSession();
     const [ searchText, setSearchText ] = useState<string | null>(null);
@@ -100,12 +100,6 @@ export default function RelaysScreen() {
             router.back()
         })
     }
-
-    const unselectedMints = useMemo(() => mintList.filter(m => {
-        const url = m.tagValue("u");
-        if (!url || mints.includes(url)) return false;
-        return true;
-    }).map(m => m.tagValue("u")), [ mintList])
 
     const addMint = (url: string) => {
         setMints([...mints, url])
@@ -197,11 +191,6 @@ function renderItem<T extends (typeof data)[number]>(info: ListRenderItemInfo<T>
                 {...info}
             />
     );
-}
-
-function ChevronRight() {
-  const { colors } = useColorScheme();
-  return <Icon name="chevron-right" size={17} color={colors.grey} />;
 }
 
 function keyExtractor(item: (Omit<ListDataItem, string> & { id: string }) | string) {

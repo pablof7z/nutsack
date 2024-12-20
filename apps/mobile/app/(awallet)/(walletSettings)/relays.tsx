@@ -1,4 +1,4 @@
-import { useNDK } from '@nostr-dev-kit/ndk-mobile';
+import { useNDK, useNDKSession } from '@nostr-dev-kit/ndk-mobile';
 import { Icon } from '@roninoss/icons';
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
@@ -11,6 +11,7 @@ import { NDKRelay, NDKRelayStatus } from '@nostr-dev-kit/ndk-mobile';
 import * as SecureStore from 'expo-secure-store';
 import { TextInput, TouchableOpacity } from 'react-native-gesture-handler';
 import { router } from 'expo-router';
+import { NDKCashuWallet } from '@nostr-dev-kit/ndk-wallet';
 
 const CONNECTIVITY_STATUS_COLORS: Record<NDKRelayStatus, string> = {
     [NDKRelayStatus.RECONNECTING]: '#f1c40f',
@@ -39,10 +40,11 @@ function RelayConnectivityIndicator({ relay }: { relay: NDKRelay }) {
     );
 }
 
-export default function RelaysScreen() {
+export default function WalletRelayScreen() {
     const { ndk } = useNDK();
+    const { activeWallet } = useNDKSession();
     const [searchText, setSearchText] = useState<string | null>(null);
-    const [relays, setRelays] = useState<NDKRelay[]>(Array.from(ndk!.pool.relays.values()));
+    const [relays, setRelays] = useState<NDKRelay[]>(Array.from((activeWallet as NDKCashuWallet).relaySet.relays.values()));
     const [url, setUrl] = useState('');
 
     const addFn = () => {
@@ -62,15 +64,13 @@ export default function RelaysScreen() {
     };
 
     const data = useMemo(() => {
-        if (!ndk) return [];
+        let r: NDKRelay[] = relays;
 
-        const allRelays = new Map<string, NDKRelay>();
-        ndk.pool.relays.forEach((r) => allRelays.set(r.url, r));
-        relays.forEach((r) => {
-            if (!allRelays.has(r.url)) allRelays.set(r.url, r);
-        });
+        if (searchText) {
+            r = r.filter((relay) => relay.url.includes(searchText));
+        }
 
-        return Array.from(allRelays.values())
+        return r
             .map((relay: NDKRelay) => ({
                 id: relay.url,
                 title: relay.url,
@@ -81,7 +81,7 @@ export default function RelaysScreen() {
                 ),
             }))
             .filter((item) => (searchText ?? '').trim().length === 0 || item.title.match(searchText!));
-    }, [ndk?.pool.relays, searchText, relays]);
+    }, [searchText, relays]);
 
     function save() {
         SecureStore.setItemAsync('relays', relays.map((r) => r.url).join(','));
