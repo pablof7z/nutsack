@@ -17,6 +17,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Search } from "lucide-react-native";
 import { useColorScheme } from "@/lib/useColorScheme";
+import { myFollows } from "@/utils/myfollows";
 
 export function UserAsHeader({ pubkey }: { pubkey: Hexpubkey }) {
     const { userProfile } = useUserProfile(pubkey);
@@ -139,7 +140,7 @@ function SendToUser({ pubkey, onCancel }: { pubkey: Hexpubkey, onCancel: () => v
 
 function FollowItem({ index, target, item, onPress }: { index: number, target: ListItemTarget, item: string, onPress: () => void }) {
     const {userProfile} = useUserProfile(item);
-    
+
     return <ListItem
         index={index}
         target={target}
@@ -147,10 +148,11 @@ function FollowItem({ index, target, item, onPress }: { index: number, target: L
             id: item,
             title: ""
         }}
-        leftView={<TouchableOpacity className="flex-row items-center py-2" onPress={onPress}>
+        leftView={<TouchableOpacity className="flex-row items-center py-2">
             <User.Avatar userProfile={userProfile} size={16} className="w-10 h-10 mr-2" />
             <User.Name userProfile={userProfile} pubkey={item} className="text-lg text-foreground" />
         </TouchableOpacity>}
+        onPress={onPress}
     />
 }
 
@@ -162,11 +164,19 @@ export default function SendView() {
     const inset = useSafeAreaInsets();
     const { colors } = useColorScheme();
 
-    const mintlistFilter = useMemo(() => [{ kinds: [NDKKind.CashuMintList], authors: follows }], [follows]);
-    const { events: mintlistEvents } = useSubscribe({ filters: mintlistFilter });
+    const mintlistFilter = useMemo(() => [{ kinds: [0, NDKKind.CashuMintList], authors: Array.from(new Set([...follows, ...myFollows])) }], [follows]);
+    const opts = useMemo(() => ({ groupable: false, closeOnEose: true }), []);
+    const { events: mintlistEvents } = useSubscribe({ filters: mintlistFilter, opts });
 
     const usersWithMintlist = useMemo(() => {
-        return mintlistEvents.map((event) => event.pubkey);
+        const pubkeysWithKind0 = new Set<Hexpubkey>(
+            mintlistEvents.filter(e => e.kind === 0).map(e => e.pubkey)
+        );
+
+        return mintlistEvents
+            .filter(e => pubkeysWithKind0.has(e.pubkey))
+            .filter(e => e.kind === NDKKind.CashuMintList)
+            .map((event) => event.pubkey);
     }, [mintlistEvents]);
 
     if (selectedPubkey) {
@@ -215,9 +225,7 @@ export default function SendView() {
                 <List
                     data={usersWithMintlist}
                     keyExtractor={(item) => item}
-                    contentInsetAdjustmentBehavior="automatic"
                     estimatedItemSize={56}
-                    sectionHeaderAsGap
                     variant="insets"
                     renderItem={({ index, target, item }) => (
                         <FollowItem
