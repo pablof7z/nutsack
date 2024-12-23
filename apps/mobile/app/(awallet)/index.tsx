@@ -13,6 +13,7 @@ import * as User from '@/components/ui/user';
 import { useColorScheme } from "@/lib/useColorScheme";
 import TransactionHistory from "@/components/TransactionList/List";
 import WalletBalance from "@/components/ui/wallet/WalletBalance";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function WalletNWC({ wallet }: { wallet: NDKNWCWallet }) {
     const [info, setInfo] = useState<Record<string, any> | null>(null);
@@ -61,6 +62,8 @@ export default function WalletScreen() {
         }
     }
 
+    const inset = useSafeAreaInsets();
+
     return (
         <>
             <Tabs.Screen
@@ -72,7 +75,7 @@ export default function WalletScreen() {
                     headerLeft: () => <HeaderLeft />
                 }}
             />
-            <SafeAreaView className="flex-1">
+            <SafeAreaView className="flex-1" style={{ paddingTop: inset.top }}>
                 <View className="flex-1 flex-col">
                     <View className="flex-col grow">
                         {/* {!isNutzapWallet && (

@@ -17,11 +17,12 @@ import { useColorScheme } from '~/lib/useColorScheme';
 import { TextInput, TouchableOpacity } from 'react-native-gesture-handler';
 import { router, Tabs } from 'expo-router';
 import { CashuMint, GetInfoResponse } from '@cashu/cashu-ts';
-import { useNDKSession, useSubscribe } from '@nostr-dev-kit/ndk-mobile';
+import { NDKCashuMintList, useNDKSession, useSubscribe } from '@nostr-dev-kit/ndk-mobile';
 import { useNDK } from '@nostr-dev-kit/ndk-mobile';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { NDKCashuWallet } from '@nostr-dev-kit/ndk-wallet';
 
-export default function RelaysScreen() {
+export default function MintsScreen() {
     const { ndk } = useNDK();
     const { activeWallet } = useNDKSession();
     const [ searchText, setSearchText ] = useState<string | null>(null);
@@ -36,6 +37,7 @@ export default function RelaysScreen() {
     const insets = useSafeAreaInsets();
 
     const addFn = () => {
+        console.log("addFn", url)
         try {
             const uri = new URL(url)
             if (!['https:', 'http:'].includes(uri.protocol)) {
@@ -45,6 +47,7 @@ export default function RelaysScreen() {
             setMints([...mints, url])
             setUrl("");
         } catch (e) {
+            console.log("addFn", e)
             alert("Invalid URL")
         }
     };
@@ -83,20 +86,20 @@ export default function RelaysScreen() {
         return m;
   }, [mintList, mints, searchText, mintInfos]);
 
-    const save = () => {
-        if (!activeWallet) return;
+    const save = async () => {
+        if (!(activeWallet instanceof NDKCashuWallet)) return;
 
         activeWallet.mints = mints;
+        await activeWallet.getP2pk();
         activeWallet.publish().then(() => {
+            const mintList = new NDKCashuMintList(ndk);
+            mintList.mints = mints;
+            mintList.relays = activeWallet.relays;
+            mintList.p2pk = activeWallet.p2pk;
+            mintList.publish();
             router.back()
         })
     }
-
-    const unselectedMints = useMemo(() => mintList.filter(m => {
-        const url = m.tagValue("u");
-        if (!url || mints.includes(url)) return false;
-        return true;
-    }).map(m => m.tagValue("u")), [ mintList])
 
     const addMint = (url: string) => {
         setMints([...mints, url])
@@ -188,11 +191,6 @@ function renderItem<T extends (typeof data)[number]>(info: ListRenderItemInfo<T>
                 {...info}
             />
     );
-}
-
-function ChevronRight() {
-  const { colors } = useColorScheme();
-  return <Icon name="chevron-right" size={17} color={colors.grey} />;
 }
 
 function keyExtractor(item: (Omit<ListDataItem, string> & { id: string }) | string) {

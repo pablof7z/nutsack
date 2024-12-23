@@ -14,13 +14,13 @@ export default function WalletBalance({ amount, unit, onPress }: { amount: numbe
     const numberStrLength = numberStr.length;
 
     if (numberStrLength < 4) {  
-        fontSize = 120;
-    } else if (numberStrLength < 6) {
         fontSize = 100;
-    } else if (numberStrLength < 8) {
+    } else if (numberStrLength < 6) {
         fontSize = 80;
-    } else if (numberStrLength < 10) {
+    } else if (numberStrLength < 8) {
         fontSize = 60;
+    } else {
+        fontSize = 40;
     }
 
     return <TouchableOpacity className="p-4 flex-col" onPress={onPress}>

@@ -1,19 +1,23 @@
 import { LargeTitleHeader } from "@/components/nativewindui/LargeTitleHeader";
 import { List, ListItem } from "@/components/nativewindui/List";
-import { StyleSheet } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 import { ActivityIndicator } from "@/components/nativewindui/ActivityIndicator";
 import { CashuPaymentInfo, Hexpubkey, NDKKind, NDKLnUrlData, NDKUser, NDKUserProfile, NDKZapMethodInfo, NDKZapper, useNDK, useNDKSession, useSubscribe, useUserProfile } from "@nostr-dev-kit/ndk-mobile";
 import { TextInput, TouchableOpacity, View, KeyboardAvoidingView } from "react-native";
 import * as User from "@/components/ui/user"
 import { Text } from "@/components/nativewindui/Text";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, ButtonProps } from "@/components/nativewindui/Button";
+import { Button, ButtonProps, ButtonState } from "@/components/nativewindui/Button";
 import WalletBalance from "@/components/ui/wallet/WalletBalance";
 import { NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
 import { router, Stack } from "expo-router";
 import { toast } from "@backpackapp-io/react-native-toast";
 import { useAppStateStore } from "@/stores";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { Search } from "lucide-react-native";
+import { useColorScheme } from "@/lib/useColorScheme";
+import { myFollows } from "@/utils/myfollows";
 
 export function UserAsHeader({ pubkey }: { pubkey: Hexpubkey }) {
     const { userProfile } = useUserProfile(pubkey);
@@ -46,34 +50,38 @@ function SendToUser({ pubkey, onCancel }: { pubkey: Hexpubkey, onCancel: () => v
     }, [pubkey]);
 
     async function send() {
-        setButtonState('pending');
+        setButtonState('loading');
         zap.amount = amount * 1000;
         zap.once("complete", (split, info) => {
-            setButtonState('idle');
+            setButtonState('success');
         });
-        // zap.zap();
+        zap.zap();
         addPendingPayment(zap);
         setTimeout(() => {
             router.back();
         }, 500);
     }
+
+    const inset = useSafeAreaInsets();
+
+    const [note, setNote] = useState('🥜 Honeypot nutzap');
     
     return (
         <KeyboardAwareScrollView>
-            <View className="flex-1 flex-col items-center gap-2 pt-5 w-full">
+            <View className="flex-1 flex-col items-center gap-2 pt-5 w-full" style={{ marginTop: Platform.OS === 'android' ? inset.top : 0 }}>
                 <View className="flex-1 flex-row items-center w-full justify-between gap-2 p-2 absolute">
                     <Button variant="plain" className="w-fit" onPress={onCancel}>
                         <Text className="text-base text-muted-foreground">Cancel</Text>
                     </Button>
 
-                    <StateButton variant="plain" state={buttonState} onPress={send}>
+                    <Button variant="plain" state={buttonState} onPress={send}>
                         <Text className="">Send</Text>
-                    </StateButton>
+                    </Button>
                 </View>
 
                 <UserAsHeader pubkey={pubkey} />
 
-            <View className="flex-1 flex-col items-center gap-2">
+            <View className="flex-1 flex-col items-stretch w-full px-4 gap-2">
                 <TextInput
                     ref={inputRef}
                     keyboardType="numeric" 
@@ -88,6 +96,19 @@ function SendToUser({ pubkey, onCancel }: { pubkey: Hexpubkey, onCancel: () => v
                     unit={(activeWallet as NDKCashuWallet).unit}
                     onPress={() => inputRef.current?.focus()}
                 />
+                
+                <TextInput
+                    className="text-base bg-card text-foreground m-4 rounded-lg p-2 grow"
+                    placeholder="The medium is the message... but you can also write an actual message"
+                    multiline
+                    numberOfLines={4}
+                    value={note}
+                    onChangeText={setNote}
+                />
+
+                <Button variant="secondary" className="grow items-center bg-foreground" onPress={send} state={buttonState}>
+                    <Text className="py-2 !text-background font-mono font-bold text-lg uppercase">Send</Text>
+                </Button>
             </View>
 
             <View className="flex flex-col gap-2 w-full">
@@ -117,18 +138,9 @@ function SendToUser({ pubkey, onCancel }: { pubkey: Hexpubkey, onCancel: () => v
     )
 }
 
-type ButtonState = 'idle' | 'pending' | 'complete' | 'error';
-
-function StateButton({ variant, state, onPress, children }: { variant: ButtonProps["variant"], state: ButtonState, onPress: () => void, children: React.ReactNode }) {
-    return <Button variant={variant} onPress={onPress} disabled={state !== 'idle'}>
-        {state === 'idle' && children}
-        {state === 'pending' && <ActivityIndicator size="small" color="white" className="my-3" />}
-    </Button>
-}
-
 function FollowItem({ index, target, item, onPress }: { index: number, target: ListItemTarget, item: string, onPress: () => void }) {
     const {userProfile} = useUserProfile(item);
-    
+
     return <ListItem
         index={index}
         target={target}
@@ -136,23 +148,35 @@ function FollowItem({ index, target, item, onPress }: { index: number, target: L
             id: item,
             title: ""
         }}
-        leftView={<TouchableOpacity className="flex-row items-center py-2" onPress={onPress}>
+        leftView={<TouchableOpacity className="flex-row items-center py-2">
             <User.Avatar userProfile={userProfile} size={16} className="w-10 h-10 mr-2" />
             <User.Name userProfile={userProfile} pubkey={item} className="text-lg text-foreground" />
         </TouchableOpacity>}
+        onPress={onPress}
     />
 }
 
 export default function SendView() {
     const { ndk } = useNDK();
+    const { follows } = useNDKSession();
     const [search, setSearch] = useState('');
     const [selectedPubkey, setSelectedPubkey] = useState<Hexpubkey | null>(null);
+    const inset = useSafeAreaInsets();
+    const { colors } = useColorScheme();
 
-    const mintlistFilter = useMemo(() => [{ kinds: [NDKKind.CashuMintList] }], []);
-    const { events: mintlistEvents } = useSubscribe({ filters: mintlistFilter });
+    const mintlistFilter = useMemo(() => [{ kinds: [0, NDKKind.CashuMintList], authors: Array.from(new Set([...follows, ...myFollows])) }], [follows]);
+    const opts = useMemo(() => ({ groupable: false, closeOnEose: true }), []);
+    const { events: mintlistEvents } = useSubscribe({ filters: mintlistFilter, opts });
 
     const usersWithMintlist = useMemo(() => {
-        return mintlistEvents.map((event) => event.pubkey);
+        const pubkeysWithKind0 = new Set<Hexpubkey>(
+            mintlistEvents.filter(e => e.kind === 0).map(e => e.pubkey)
+        );
+
+        return mintlistEvents
+            .filter(e => pubkeysWithKind0.has(e.pubkey))
+            .filter(e => e.kind === NDKKind.CashuMintList)
+            .map((event) => event.pubkey);
     }, [mintlistEvents]);
 
     if (selectedPubkey) {
@@ -184,37 +208,35 @@ export default function SendView() {
 
     return (
         <>
-            <View className="flex-1">
-                <View className="flex-col gap-2">
-                <TextInput
-                    className="text-base bg-muted/40 text-foreground m-4 rounded-lg p-2"
-                    placeholder="Enter a Nostr address or npub"
-                    value={search}
-                    onChangeText={setSearch}
-                />
-
-                <Button variant="primary" className="mx-4 flex-none h-10 w-full" onPress={getUser}>
-                    <Text className="text-xl font-medium py-2">Search</Text>
-                </Button>
-            </View>
-
-            <List
-                data={usersWithMintlist}
-                keyExtractor={(item) => item}
-                contentInsetAdjustmentBehavior="automatic"
-                estimatedItemSize={56}
-                sectionHeaderAsGap
-                variant="insets"
-                renderItem={({ index, target, item }) => (
-                    <FollowItem
-                        index={index}
-                        target={target}
-                        item={item}
-                        onPress={() => setSelectedPubkey(item)}
+            <View className="flex-1" style={{ paddingTop: Platform.OS === 'android' ? inset.top : 0 }}>
+                <View className="flex-row gap-2 items-center pr-4">
+                    <TextInput
+                        className="text-base bg-muted/40 text-foreground m-4 rounded-lg p-2 grow"
+                        placeholder="Enter a Nostr address or npub"
+                        value={search}
+                        onChangeText={setSearch}
                     />
-                )}
-            />
-        </View>
+
+                    <TouchableOpacity onPress={getUser}>
+                        <Search size={24} color={colors.foreground} />
+                    </TouchableOpacity>
+                </View>
+
+                <List
+                    data={usersWithMintlist}
+                    keyExtractor={(item) => item}
+                    estimatedItemSize={56}
+                    variant="insets"
+                    renderItem={({ index, target, item }) => (
+                        <FollowItem
+                            index={index}
+                            target={target}
+                            item={item}
+                            onPress={() => setSelectedPubkey(item)}
+                        />
+                    )}
+                />
+            </View>
         </>
     )
 }

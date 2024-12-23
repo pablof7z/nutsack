@@ -1,4 +1,4 @@
-import { useNDK } from '@nostr-dev-kit/ndk-mobile';
+import { useNDK, useNDKSession } from '@nostr-dev-kit/ndk-mobile';
 import { Icon } from '@roninoss/icons';
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
@@ -7,29 +7,55 @@ import { ESTIMATED_ITEM_HEIGHT, List, ListDataItem, ListItem, ListRenderItemInfo
 import { Text } from '~/components/nativewindui/Text';
 import { cn } from '~/lib/cn';
 import { useColorScheme } from '~/lib/useColorScheme';
-import { NDKRelay } from '@nostr-dev-kit/ndk-mobile';
-import { Components } from '@nostr-dev-kit/ndk-mobile';
+import { NDKRelay, NDKRelayStatus } from '@nostr-dev-kit/ndk-mobile';
 import * as SecureStore from 'expo-secure-store';
 import { TextInput, TouchableOpacity } from 'react-native-gesture-handler';
 import { router } from 'expo-router';
+import { NDKCashuWallet } from '@nostr-dev-kit/ndk-wallet';
 
-export default function RelaysScreen() {
+const CONNECTIVITY_STATUS_COLORS: Record<NDKRelayStatus, string> = {
+    [NDKRelayStatus.RECONNECTING]: '#f1c40f',
+    [NDKRelayStatus.CONNECTING]: '#f1c40f',
+    [NDKRelayStatus.DISCONNECTED]: '#aa4240',
+    [NDKRelayStatus.DISCONNECTING]: '#aa4240',
+    [NDKRelayStatus.CONNECTED]: '#66cc66',
+    [NDKRelayStatus.FLAPPING]: '#2ecc71',
+    [NDKRelayStatus.AUTHENTICATING]: '#3498db',
+    [NDKRelayStatus.AUTHENTICATED]: '#e74c3c',
+    [NDKRelayStatus.AUTH_REQUESTED]: '#e74c3c',
+} as const;
+
+function RelayConnectivityIndicator({ relay }: { relay: NDKRelay }) {
+    const color = CONNECTIVITY_STATUS_COLORS[relay.status];
+
+    return (
+        <View
+            style={{
+                borderRadius: 10,
+                width: 8,
+                height: 8,
+                backgroundColor: color,
+            }}
+        />
+    );
+}
+
+export default function WalletRelayScreen() {
     const { ndk } = useNDK();
+    const { activeWallet } = useNDKSession();
     const [searchText, setSearchText] = useState<string | null>(null);
-    const [relays, setRelays] = useState<NDKRelay[]>(Array.from(ndk!.pool.relays.values()));
+    const [relays, setRelays] = useState<NDKRelay[]>(Array.from((activeWallet as NDKCashuWallet).relaySet.relays.values()));
     const [url, setUrl] = useState('');
 
     const addFn = () => {
-        let u = url.trim();
-        if (!u.match(/wss?:\/\//)) u = `wss://${u}`;
-        
+        console.log({ url });
         try {
-            const uri = new URL(u);
+            const uri = new URL(url);
             if (!['wss:', 'ws:'].includes(uri.protocol)) {
                 alert('Invalid protocol');
                 return;
             }
-            const relay = ndk?.addExplicitRelay(u);
+            const relay = ndk?.addExplicitRelay(url);
             if (relay) setRelays([...relays, relay]);
             setUrl('');
         } catch (e) {
@@ -38,26 +64,24 @@ export default function RelaysScreen() {
     };
 
     const data = useMemo(() => {
-        if (!ndk) return [];
+        let r: NDKRelay[] = relays;
 
-        const allRelays = new Map<string, NDKRelay>();
-        ndk.pool.relays.forEach((r) => allRelays.set(r.url, r));
-        relays.forEach((r) => {
-            if (!allRelays.has(r.url)) allRelays.set(r.url, r);
-        });
+        if (searchText) {
+            r = r.filter((relay) => relay.url.includes(searchText));
+        }
 
-        return Array.from(allRelays.values())
+        return r
             .map((relay: NDKRelay) => ({
                 id: relay.url,
                 title: relay.url,
                 rightView: (
                     <View className="flex-1 items-center px-4 py-2">
-                        <Components.Relays.ConnectivityIndicator relay={relay} />
+                        <RelayConnectivityIndicator relay={relay} />
                     </View>
                 ),
             }))
             .filter((item) => (searchText ?? '').trim().length === 0 || item.title.match(searchText!));
-    }, [ndk?.pool.relays, searchText, relays]);
+    }, [searchText, relays]);
 
     function save() {
         SecureStore.setItemAsync('relays', relays.map((r) => r.url).join(','));

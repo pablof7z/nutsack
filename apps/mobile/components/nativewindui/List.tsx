@@ -167,7 +167,7 @@ type ListItemRef = React.Ref<View>;
 const itemVariants = cva('ios:gap-0 flex-row gap-0 bg-card', {
     variants: {
         variant: {
-            insets: 'ios:bg-card bg-card/70',
+            insets: 'ios:bg-card bg-card/70 android:px-4',
             'full-width': 'bg-card dark:bg-background',
         },
         sectionHeaderAsGap: {

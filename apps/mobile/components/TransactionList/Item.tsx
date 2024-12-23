@@ -2,14 +2,15 @@ import RelativeTime from "@/app/components/relative-time";
 import { cn } from "@/lib/cn";
 import { useAppStateStore, ZapperWithId } from "@/stores";
 import { nicelyFormattedMintName } from "@/utils/mint";
+import { Button } from "@/components/nativewindui/Button";
 import { formatMoney } from "@/utils/bitcoin";
-import { NDKEvent, useNDK, NDKNutzap, useUserProfile, NDKZapSplit, NDKPaymentConfirmation } from "@nostr-dev-kit/ndk-mobile";
-import { NDKWallet, NDKWalletChange } from "@nostr-dev-kit/ndk-wallet";
+import { NDKEvent, useNDK, NDKNutzap, useUserProfile, NDKZapSplit, NDKPaymentConfirmation, NDKKind } from "@nostr-dev-kit/ndk-mobile";
+import { NDKCashuDeposit, NDKWallet, NDKWalletChange } from "@nostr-dev-kit/ndk-wallet";
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { View } from "react-native";
 import { ListItem } from "../nativewindui/List";
 import { Text } from "../nativewindui/Text";
-import { ArrowUp, ArrowDown } from "lucide-react-native";
+import { ArrowUp, ArrowDown, Timer } from "lucide-react-native";
 import { useColorScheme } from "@/lib/useColorScheme";
 import * as User from "@/components/ui/user";
 
@@ -54,9 +55,15 @@ const Zapper = ({ pubkey }: { pubkey: string }) => {
     )
 }
 
-export default function HistoryItem({ wallet, item, index, target, onPress }: { wallet: NDKWallet, item: NDKEvent | ZapperWithId, index: number, target: any, onPress: () => void }) {
-    console.log('rendering history item', item.id ?? item.internalId);
-    if (item instanceof NDKEvent) {
+export default function HistoryItem({ wallet, item, index, target, onPress }: {
+    wallet: NDKWallet, item: NDKEvent | NDKCashuDeposit | ZapperWithId,
+    index: number,
+    target: any,
+    onPress: () => void
+}) {
+    if (item instanceof NDKCashuDeposit) {
+        return <HistoryItemCashuQuote item={item} index={index} target={target} onPress={onPress} />
+    } else if (item instanceof NDKEvent) {
         return <HistoryItemEvent wallet={wallet} item={item} index={index} target={target} onPress={onPress} />
     } else {
         return <HistoryItemPendingZap item={item} index={index} target={target} />
@@ -65,7 +72,7 @@ export default function HistoryItem({ wallet, item, index, target, onPress }: { 
 
 
 function HistoryItemPendingZap({ item, index, target }: { item: ZapperWithId, index: number, target: any }) {
-    const [ state, setState ] = useState<'pending' | 'sending' | 'complete' | 'failed'>('pending');
+    const [ state, setState ] = useState<'pending' | 'sending' | 'complete' | 'failed'>('sending');
     const timer = useRef<NodeJS.Timeout | null>(null);
     const [ error, setError ] = useState<Error | null>(null);
     const { pendingPayments, removePendingPayment } = useAppStateStore();
@@ -77,10 +84,6 @@ function HistoryItemPendingZap({ item, index, target }: { item: ZapperWithId, in
             // remove it from the store
             removePendingPayment(item.internalId);
         }
-        
-        if (state !== 'pending') return;
-        setState('sending');
-        item.zapper.zap();
     }
 
     if (!timer.current) {
@@ -123,6 +126,33 @@ function HistoryItemPendingZap({ item, index, target }: { item: ZapperWithId, in
     )
 }
 
+function HistoryItemCashuQuote({ item, index, target, onPress }: { item: NDKCashuDeposit, index: number, target: any, onPress: () => void }) {
+    const { colors } = useColorScheme();
+
+    const check = async () => {
+        const res =await item.check();
+        console.log('check', res);
+    }
+
+    return (
+        <ListItem
+            className={cn('ios:pl-0 pl-2 !bg-transparent', index === 0 && 'ios:border-t-0 border-border/25 dark:border-border/80 border-t')}
+            target={target}
+            leftView={<Timer size={24} color={colors.foreground} />}
+            rightView={<Button variant="plain" size="sm" onPress={check}>
+                <Text>Check</Text>
+            </Button>}
+            item={{
+                id: item.quoteId,
+                title: 'Cashu Deposit',
+                subTitle: 'Waiting for confirmation'
+            }}
+            index={index}
+            onPress={onPress}
+        >
+        </ListItem>  
+    )
+}
 
 function HistoryItemEvent({ wallet, item, index, target, onPress }: { wallet: NDKWallet, item: NDKEvent, index: number, target: any, onPress: () => void }) {
     const { ndk } = useNDK();

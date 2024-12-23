@@ -53,7 +53,7 @@ const androidRootVariants = cva('overflow-hidden', {
 const buttonTextVariants = cva('font-medium', {
     variants: {
         variant: {
-            primary: 'text-foreground',
+            primary: 'text-white',
             secondary: 'ios:text-foreground text-foreground font-mono',
             tonal: 'ios:text-primary text-foreground',
             plain: 'text-foreground',

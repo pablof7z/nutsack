@@ -1,9 +1,7 @@
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useNDK, useNDKSession } from "@nostr-dev-kit/ndk-mobile";
-import { BlurView } from "expo-blur";
 import { Redirect, Tabs } from "expo-router";
-import { Bolt, Calendar, List, PieChart, Repeat, SettingsIcon } from "lucide-react-native";
-import { View } from "react-native";
+import { Bolt, Calendar, PieChart, QrCode, SettingsIcon } from "lucide-react-native";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
     const { colors } = useColorScheme();
@@ -43,11 +41,20 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             />
 
             <Tabs.Screen
+                name="scan"
+                options={{
+                    title: 'Scan',
+                    headerShown: false,
+                    tabBarIcon: ({ focused }) => <QrCode size={24} color={focused ? colors.foreground : colors.muted} />,
+                }}
+            />
+
+            <Tabs.Screen
                 name="subscriptions"
                 options={{
                     title: 'Subscriptions',
                     headerShown: false,
-                    tabBarIcon: ({ focused }) => <Calendar size={24} color={focused ? colors.foreground : colors.muted} />
+                    tabBarIcon: ({ focused }) => <Calendar size={24} color={focused ? colors.foreground : colors.muted} />,
                 }}
             />
             

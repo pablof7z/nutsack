@@ -13,7 +13,8 @@ export async function listTokens(verbose: boolean = false) {
             console.log(
                 "  " +
                 chalk.green(amount),
-                chalk.gray(`(${mint})`) +
+                chalk.white(`(${token.id.substring(0, 6)})`),
+                chalk.gray(`(${mint})`),
                 chalk.yellow(` (${proofs.length} proofs)`)
             );
 

@@ -45,7 +45,7 @@ export default function Subscriptions() {
     return (
         <View className="flex-1 items-stretch p-4 bg-card" style={{ paddingTop: insets.top }}>
             <View className="flex-col gap-1 items-start justify-start text-left w-full">
-                <Text className="text-xl font-bold text-left">Subscriptions</Text>
+                <Text className="mt-2 text-5xl font-bold text-left">Subscriptions</Text>
                 <Text className="text-muted-foreground">
                     These are your currently active subscriptions.
                 </Text>
@@ -58,8 +58,10 @@ export default function Subscriptions() {
                     You don't have any subscriptions yet.
                 </Text>
 
-                <Button variant="default">
-                    <Text className="px-6">
+                <Button variant="accent" onPress={() => {
+                    alert('Not ready yet! Ping Pablo if you are curious.');
+                }}>
+                    <Text className="text-white px-6">
                         Explore
                     </Text>
                 </Button>
