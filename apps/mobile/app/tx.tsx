@@ -7,7 +7,7 @@ import { NDKWalletChange } from "@nostr-dev-kit/ndk-wallet";
 import { UserAsHeader } from "./send";
 
 export default function TxView() {
-    const { currentUser } = useNDK();
+    const currentUser = useNDKCurrentUser();
     const { activeEvent } = useActiveEventStore();
     const [event, setEvent] = useState<NDKEvent | null>(null);
     const [counterPart, setCounterPart] = useState<Hexpubkey | undefined>(undefined);

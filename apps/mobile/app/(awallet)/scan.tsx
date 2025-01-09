@@ -14,7 +14,7 @@ import { toast } from "@backpackapp-io/react-native-toast";
 
 export default function Scan() {
     const [permission, requestPermission] = useCameraPermissions();
-    const { activeWallet } = useNDKSession();
+    const { activeWallet } = useNDKWallet();
     const [amount, setAmount] = useState<number | null>(null);
     const [description, setDescription] = useState<string | null>(null);
     const [state, setState] = useState<ButtonState>('idle');

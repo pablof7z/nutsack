@@ -13,13 +13,13 @@ import { myFollows } from '@/utils/myfollows';
 
 export default function LoginComponent({ textClassName }: { textClassName?: string }) {
     const [payload, setPayload] = useState<string | undefined>(undefined);
-    const { ndk, loginWithPayload } = useNDK();
+    const { ndk, login } = useNDK();
     const [state, setState] = useState<ButtonState>("idle");
 
     const handleLogin = async () => {
         if (!ndk) return;
         try {
-            await loginWithPayload(payload, { save: true });
+            await login(payload);
         } catch (error) {
             Alert.alert('Error', error.message || 'An error occurred during login');
         }
@@ -52,7 +52,7 @@ export default function LoginComponent({ textClassName }: { textClassName?: stri
             setState("error");
         }
         
-        await loginWithPayload(nsec, { save: true })
+        await login(nsec)
         setState("success");
     };
 
@@ -62,7 +62,7 @@ export default function LoginComponent({ textClassName }: { textClassName?: stri
         setPayload(data.trim());
         setScanQR(false);
         try {
-            await loginWithPayload(data.trim(), { save: true });
+            await login(data.trim());
         } catch (error) {
             Alert.alert('Error', error.message || 'An error occurred during login');
         }

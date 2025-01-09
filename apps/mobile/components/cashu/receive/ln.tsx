@@ -19,7 +19,7 @@ import { ActivityIndicator } from "@/components/nativewindui/ActivityIndicator";
 
 export default function ReceiveLn({ onReceived }: { onReceived: () => void }) {
     const { colors } = useColorScheme();
-    const { activeWallet } = useNDKSession();
+    const { activeWallet } = useNDKWallet();
     const [qrCode, setQrCode] = useState<string | null>(null);
     const inputRef = useRef<TextInput | null>(null);
     const [amount, setAmount] = useState(1000);

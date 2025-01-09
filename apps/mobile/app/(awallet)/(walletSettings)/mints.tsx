@@ -24,7 +24,7 @@ import { NDKCashuWallet } from '@nostr-dev-kit/ndk-wallet';
 
 export default function MintsScreen() {
     const { ndk } = useNDK();
-    const { activeWallet } = useNDKSession();
+    const { activeWallet } = useNDKWallet();
     const [ searchText, setSearchText ] = useState<string | null>(null);
     const [url, setUrl] = useState<string>("");
     const [mints, setMints] = useState<string[]>(activeWallet?.mints??[]);

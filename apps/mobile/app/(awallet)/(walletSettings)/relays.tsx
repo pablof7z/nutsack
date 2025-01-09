@@ -42,7 +42,7 @@ function RelayConnectivityIndicator({ relay }: { relay: NDKRelay }) {
 
 export default function WalletRelayScreen() {
     const { ndk } = useNDK();
-    const { activeWallet } = useNDKSession();
+    const { activeWallet } = useNDKWallet();
     const [searchText, setSearchText] = useState<string | null>(null);
     const [relays, setRelays] = useState<NDKRelay[]>(Array.from((activeWallet as NDKCashuWallet).relaySet.relays.values()));
     const [url, setUrl] = useState('');

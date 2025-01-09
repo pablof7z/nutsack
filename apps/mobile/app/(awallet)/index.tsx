@@ -1,11 +1,8 @@
 import { View, Text, SafeAreaView, TouchableOpacity, ScrollView } from "react-native";
-import { NDKCashuMintList, NDKEvent, NDKKind, NDKNutzap, NDKPaymentConfirmation, NDKUser, NDKZapper, NDKZapSplit, useNDK, useNDKSession, useNDKSessionEventKind, useNDKSessionEvents, useSubscribe, useUserProfile } from "@nostr-dev-kit/ndk-mobile";
+import { NDKCashuMintList, NDKEvent, NDKKind, NDKNutzap, NDKPaymentConfirmation, NDKUser, NDKZapper, NDKZapSplit, useNDK, useNDKCurrentUser, useNDKSession, useNDKSessionEventKind, useNDKSessionEvents, useNDKWallet, useSubscribe, useUserProfile } from "@nostr-dev-kit/ndk-mobile";
 import { NDKCashuWallet, NDKNWCWallet, NDKWallet, NDKWalletBalance, NDKWalletChange } from "@nostr-dev-kit/ndk-wallet";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { router, Stack, Tabs } from "expo-router";
-import { formatMoney } from "@/utils/bitcoin";
-import { List, ListItem } from "@/components/nativewindui/List";
-import { cn } from "@/lib/cn";
 import { BlurView } from "expo-blur";
 import { Button } from "@/components/nativewindui/Button";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Bolt, BookDown, ChevronDown, Cog, Eye, Settings, Settings2, User2, ZoomIn } from "lucide-react-native";
@@ -36,8 +33,9 @@ function WalletNip60({ wallet }: { wallet: NDKCashuWallet }) {
 }
 
 export default function WalletScreen() {
-    const { ndk, currentUser } = useNDK();
-    const { activeWallet, balances, setActiveWallet } = useNDKSession();
+    const { ndk } = useNDK();
+    const currentUser = useNDKCurrentUser();
+    const { activeWallet, balances } = useNDKWallet();
     const mintList = useNDKSessionEventKind<NDKCashuMintList>(NDKCashuMintList, NDKKind.CashuMintList, { create: true });
 
     const isNutzapWallet = useMemo(() => {
@@ -97,7 +95,7 @@ export default function WalletScreen() {
 
 function HeaderLeft() {
     const { colors } = useColorScheme();
-    const { currentUser } = useNDK();
+    const currentUser = useNDKCurrentUser();
 
     const { userProfile } = useUserProfile(currentUser?.pubkey);
 

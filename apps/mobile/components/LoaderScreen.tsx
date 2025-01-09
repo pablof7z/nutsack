@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator } from "./nativewindui/ActivityIndicator";
 import { Button, ButtonState } from "./nativewindui/Button";
 import { Text } from "./nativewindui/Text";
-import { NDKCashuMintList, NDKEvent, NDKKind, NDKSubscription, useNDK, useNDKSession, useSubscribe } from "@nostr-dev-kit/ndk-mobile";
+import { NDKCashuMintList, NDKEvent, NDKKind, NDKSubscription, useNDK, useNDKCacheInitialized, useNDKCurrentUser, useNDKSession, useNDKSessionEventKind, useNDKSessionEvents, useNDKWallet, useSubscribe } from "@nostr-dev-kit/ndk-mobile";
 import { View, Image, TextInput, TouchableOpacity, Touchable, TouchableWithoutFeedback } from "react-native";
 import LoginComponent from "./login";
 import { ArrowRight, Bolt } from "lucide-react-native";
@@ -11,9 +11,12 @@ import { ProgressIndicator } from '~/components/nativewindui/ProgressIndicator';
 import { NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
 import { ScrollView } from "react-native";
 import { Checkbox } from "./nativewindui/Checkbox";
+import { useAtomValue } from "jotai";
+import { appReadyAtom } from "@/atoms/app";
 
 function Container({ skipImage, children }: { skipImage?: boolean, children?: React.ReactNode }) {
-    const { currentUser, logout } = useNDK();
+    const currentUser = useNDKCurrentUser();
+    const { logout } = useNDK();
     const splashImage = require('../assets/splash.png');
 
     return (
@@ -254,9 +257,9 @@ function ChooseWallet({ wallets, onChoose, onCreateNew }: { wallets: NDKEvent[],
     )
 }
 
-function NoWallet({ proceedWithoutWallet }: { proceedWithoutWallet: () => void }) {
+function CreateNewWallet({ proceedWithoutWallet }: { proceedWithoutWallet: () => void }) {
     const { ndk } = useNDK();
-    const { setActiveWallet } = useNDKSession();
+    const { setActiveWallet } = useNDKWallet();
 
     const [ knownMints, setKnownMints ] = useState(new Set<string>());
     const queryingMints = useRef(new Set<string>());
@@ -309,7 +312,7 @@ function NoWallet({ proceedWithoutWallet }: { proceedWithoutWallet: () => void }
     }, [knownMints, mints]);
 
     if (!sub.current) {
-        sub.current = ndk.subscribe([{ kinds: [38172], limit: 300 }], { groupable: false, closeOnEose: true, subId: 'mints' }, undefined, false);
+        sub.current = ndk.subscribe([{ kinds: [38172 as NDKKind], limit: 300 }], { groupable: false, closeOnEose: true, subId: 'mints' }, undefined, false);
         sub.current.on('event', eventHandler);
         sub.current.start();
     }
@@ -348,9 +351,11 @@ function NoWallet({ proceedWithoutWallet }: { proceedWithoutWallet: () => void }
                 mintList.relays = wallet.relays;
                 mintList.p2pk = wallet.p2pk;
                 mintList.publish().then(() => {
+                    console.log('calling setActiveWallet', wallet);
                     setActiveWallet(wallet);
                 });
             } else {
+                console.log('calling setActiveWallet no mint list', wallet);
                 setActiveWallet(wallet);
             }
         }).catch((e) => {
@@ -450,15 +455,21 @@ function NoWallet({ proceedWithoutWallet }: { proceedWithoutWallet: () => void }
 }
 
 export default function LoaderScreen({ children }: { children: React.ReactNode }) {
-    const { currentUser, cacheInitialized, ndk } = useNDK();
-    const { activeWallet, setActiveWallet } = useNDKSession();
+    const currentUser = useNDKCurrentUser();
+    const { ndk } = useNDK();
+    const cacheInitialized = useNDKCacheInitialized();
+    const { activeWallet, setActiveWallet } = useNDKWallet();
     const [ready, setReady] = useState(false);
     const [cacheReady, setCacheReady] = useState(false);
     const [userReady, setUserReady] = useState(false);
-    const [wallets, setWallets] = useState<NDKEvent[] | 'checking' | undefined>(undefined);
     const [proceedWithoutWallet, setProceedWithoutWallet] = useState(false);
     const [walletReady, setWalletReady] = useState<boolean | undefined>(undefined);
     const [welcome, setWelcome] = useState(false);
+    const [forceCreateNewWallet, setForceCreateNewWallet] = useState(false);
+
+    const appReady = useAtomValue(appReadyAtom);    
+
+    const wallets = useNDKSessionEvents([NDKKind.CashuWallet]);
 
     useEffect(() => {
         if (cacheInitialized && !cacheReady) {
@@ -468,6 +479,7 @@ export default function LoaderScreen({ children }: { children: React.ReactNode }
 
     useEffect(() => {
         if (activeWallet && walletReady === undefined) {
+            console.log('calling activeWallet.once ready');
             activeWallet.once('ready', () => {
                 setWalletReady(true);
             });
@@ -483,44 +495,25 @@ export default function LoaderScreen({ children }: { children: React.ReactNode }
         }
         if ((activeWallet && walletReady) || proceedWithoutWallet) return 'ready';
         if (activeWallet && !walletReady) return 'checking-wallets';
-        if (wallets && (wallets === 'checking' || wallets.length === 0)) return 'checking-wallets';
-        if (wallets === null && !activeWallet && !proceedWithoutWallet) return 'no-wallet';
+        if (!appReady)  return 'checking-wallets';
+        if (forceCreateNewWallet || (wallets.length === 0 && !activeWallet && !proceedWithoutWallet)) return 'create-new-wallet';
         if (wallets && wallets.length > 0) return 'choose-wallet';
-        return 'unhandled' + !!currentUser + JSON.stringify(wallets);
+        return 'unhandled ' + !!currentUser + ' ' + JSON.stringify(wallets);
     }, [cacheInitialized, currentUser, userReady, wallets, activeWallet, welcome, proceedWithoutWallet, walletReady]);
 
-    const [ hadUser, setHadUser ] = useState(!!currentUser);
+    const [hadUser, setHadUser] = useState(!!currentUser);
+
+    console.log('state', state);
     
     useEffect(() => {
+        console.log('running effect to get wallets currentUser', currentUser?.pubkey);
+        
         if (!currentUser && hadUser) {
             setUserReady(true);
         } else if (currentUser && !hadUser) {
             setHadUser(true);
         }
-
-        let fetchWallets = [];
-        
-        if (currentUser && wallets === undefined) {
-            setWallets('checking');
-            // check if user has a wallet
-            const sub = ndk.subscribe([{ kinds: [NDKKind.CashuWallet], authors: [currentUser.pubkey] }], { groupable: false, closeOnEose: true, subId: 'wallets' }, undefined, false);
-            sub.on('event', (event) => {
-                fetchWallets.push(event);
-            });
-            sub.on('eose', () => {
-                if (fetchWallets.length === 1) {
-                    NDKCashuWallet.from(fetchWallets[0]).then(wallet => {
-                        setActiveWallet(wallet);
-                    });
-                } else if (fetchWallets.length === 0) {
-                    setWallets(null);
-                } else {
-                    setWallets(fetchWallets);
-                }
-            });
-            sub.start();
-        }
-    }, [currentUser])
+    }, [currentUser?.pubkey])
 
     useEffect(() => {
         if (cacheInitialized && currentUser && activeWallet) {
@@ -537,12 +530,14 @@ export default function LoaderScreen({ children }: { children: React.ReactNode }
 
     function handleChooseWallet(wallet: NDKEvent) {
         NDKCashuWallet.from(wallet).then(wallet => {
+            console.log('calling setActiveWallet', wallet);
+            wallet.start();
             setActiveWallet(wallet);
         });
     }
 
-    function handleCreateNewWallet() {
-        setWallets(null);
+    const handleCreateNewWallet = () => {
+        setForceCreateNewWallet(true);
     }
 
     switch (state) {
@@ -552,7 +547,7 @@ export default function LoaderScreen({ children }: { children: React.ReactNode }
         case 'login': return <Login />;
         case 'checking-wallets': return <CheckingWallets />;
         case 'choose-wallet': return <ChooseWallet wallets={wallets} onChoose={handleChooseWallet} onCreateNew={handleCreateNewWallet} />;
-        case 'no-wallet': return <NoWallet proceedWithoutWallet={() => setProceedWithoutWallet(true)} />;
+        case 'create-new-wallet': return <CreateNewWallet proceedWithoutWallet={() => setProceedWithoutWallet(true)} />;
         case 'ready': return <>{children}</>;
         default:
             return (

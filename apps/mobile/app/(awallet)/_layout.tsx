@@ -1,12 +1,12 @@
 import { useColorScheme } from "@/lib/useColorScheme";
-import { useNDK, useNDKSession } from "@nostr-dev-kit/ndk-mobile";
+import { useNDKCurrentUser, useNDKWallet } from "@nostr-dev-kit/ndk-mobile";
 import { Redirect, Tabs } from "expo-router";
 import { Bolt, Calendar, PieChart, QrCode, SettingsIcon } from "lucide-react-native";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
     const { colors } = useColorScheme();
-    const { currentUser } = useNDK();
-    const { activeWallet } = useNDKSession();
+    const currentUser = useNDKCurrentUser();
+    const { activeWallet } = useNDKWallet();
 
     if (!currentUser) {
         return <Redirect href="/login" />

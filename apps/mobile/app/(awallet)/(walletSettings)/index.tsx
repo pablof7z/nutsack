@@ -12,7 +12,7 @@ import { router } from 'expo-router';
 import { NDKCashuWallet } from '@nostr-dev-kit/ndk-wallet';
 
 export default function WalletSettings() {
-    const { currentUser } = useNDK();
+    const currentUser = useNDKCurrentUser();
     const { activeWallet, balances, setActiveWallet } = useNDKSession();
     const [syncing, setSyncing] = useState(false);
     const { colors } = useColorScheme();

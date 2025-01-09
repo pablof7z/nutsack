@@ -36,13 +36,13 @@
           },
           "imageWidth": 200,
           "ios": {
-            // You may want to use regular full screen splash on iOS 
-            "image": "./assets/splash.png", // Full screen transparent splash png
+            "image": "./assets/splash.png",
             "enableFullScreenImage_legacy": true,
             "resizeMode": "contain"
           }
         }
-      ]
+      ],
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true,

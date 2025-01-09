@@ -12,7 +12,7 @@ import { toast } from "@backpackapp-io/react-native-toast";
 
 export default function ReceiveEcash({ onReceived }: { onReceived: () => void }) {
     const [permission, requestPermission] = useCameraPermissions();
-    const { activeWallet } = useNDKSession();
+    const { activeWallet } = useNDKWallet();
     const [error, setError] = useState(null);
 
     if (!permission) {

@@ -9,7 +9,7 @@ import { View } from "react-native";
 import { toast } from "@backpackapp-io/react-native-toast";
 
 export default function TransactionHistory({ wallet }: { wallet: NDKCashuWallet }) {
-    const { currentUser } = useNDK();
+    const currentUser = useNDKCurrentUser();
     const filters = useMemo(() => [{ kinds: [NDKKind.WalletChange], authors: [currentUser?.pubkey] }], [currentUser?.pubkey])
     const { events: history } = useSubscribe({ filters });
     const { setActiveEvent } = useActiveEventStore();

@@ -1,13 +1,10 @@
-import { NDKEvent, NDKKind, useNDK, useNDKSession, useNDKSessionEvents } from '@nostr-dev-kit/ndk-mobile';
-import { Icon } from '@roninoss/icons';
+import { NDKEvent, NDKKind, useNDK, useNDKSession, useNDKSessionEvents, useNDKWallet } from '@nostr-dev-kit/ndk-mobile';
 import { useMemo, useState } from 'react';
 import { LargeTitleHeader } from '~/components/nativewindui/LargeTitleHeader';
 import { Text } from '~/components/nativewindui/Text';
-import { cn } from '~/lib/cn';
-import { useColorScheme } from '~/lib/useColorScheme';
 import { NDKRelay, NDKRelayStatus } from '@nostr-dev-kit/ndk-mobile';
 import * as SecureStore from 'expo-secure-store';
-import { TextInput, TouchableOpacity } from 'react-native-gesture-handler';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import { router } from 'expo-router';
 import { TextField } from '@/components/nativewindui/TextField';
 import { View } from 'react-native';
@@ -15,7 +12,7 @@ import { NDKNWCWallet } from '@nostr-dev-kit/ndk-wallet';
 
 export default function NwcScreen() {
     const { ndk } = useNDK();
-    const { activeWallet, setActiveWallet } = useNDKSession();
+    const { activeWallet, setActiveWallet } = useNDKWallet();
     const [relays, setRelays] = useState<NDKRelay[]>(Array.from(ndk!.pool.relays.values()));
     const [url, setUrl] = useState('');
 
