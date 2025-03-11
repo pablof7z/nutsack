@@ -17,7 +17,7 @@ import { useColorScheme } from '~/lib/useColorScheme';
 import { TextInput, TouchableOpacity } from 'react-native-gesture-handler';
 import { router, Tabs } from 'expo-router';
 import { CashuMint, GetInfoResponse } from '@cashu/cashu-ts';
-import { NDKCashuMintList, useNDKSession, useSubscribe } from '@nostr-dev-kit/ndk-mobile';
+import { NDKCashuMintList, useSubscribe, useNDKWallet, NDKKind } from '@nostr-dev-kit/ndk-mobile';
 import { useNDK } from '@nostr-dev-kit/ndk-mobile';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NDKCashuWallet } from '@nostr-dev-kit/ndk-wallet';
@@ -27,11 +27,11 @@ export default function MintsScreen() {
     const { activeWallet } = useNDKWallet();
     const [ searchText, setSearchText ] = useState<string | null>(null);
     const [url, setUrl] = useState<string>("");
-    const [mints, setMints] = useState<string[]>(activeWallet?.mints??[]);
+    const [mints, setMints] = useState<string[]>((activeWallet as NDKCashuWallet)?.mints??[]);
 
-    const filter = useMemo(() => ([{ kinds: [38172], limit: 50 }]), [1]);
-    const opts = useMemo(() => ({ groupable: false, closeOnEose: true, subId: 'mints' }), []);
-    const { events: mintList } = useSubscribe({ filters: filter, opts });
+    const { events: mintList } = useSubscribe(
+        [{ kinds: [38172 as NDKKind], limit: 50 }],
+        { groupable: false, closeOnEose: true, subId: 'mints' }, []);
     const [mintInfos, setMintInfos] = useState<Record<string, GetInfoResponse | null>>({});
 
     const insets = useSafeAreaInsets();

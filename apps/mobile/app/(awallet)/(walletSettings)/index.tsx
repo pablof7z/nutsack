@@ -1,4 +1,4 @@
-import { useNDK, useNDKSession } from '@nostr-dev-kit/ndk-mobile';
+import { useNDK, useNDKCurrentUser, useNDKSession, useNDKWallet } from '@nostr-dev-kit/ndk-mobile';
 import { Icon, MaterialIconName } from '@roninoss/icons';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
@@ -13,14 +13,14 @@ import { NDKCashuWallet } from '@nostr-dev-kit/ndk-wallet';
 
 export default function WalletSettings() {
     const currentUser = useNDKCurrentUser();
-    const { activeWallet, balances, setActiveWallet } = useNDKSession();
+    const { activeWallet, balance } = useNDKWallet();
     const [syncing, setSyncing] = useState(false);
     const { colors } = useColorScheme();
-    console.log('balances', balances);
+    console.log('balance', balance);
 
     useEffect(() => {
-        console.log('use effect balances', balances);
-    }, [balances]);
+        console.log('use effect balance', balance);
+    }, [balance]);
 
     const forceSync = async () => {
         setSyncing(true);
@@ -78,7 +78,7 @@ export default function WalletSettings() {
         }
 
         return opts;
-    }, [currentUser, activeWallet, balances]);
+    }, [currentUser, activeWallet, balance]);
 
     return (
         <>

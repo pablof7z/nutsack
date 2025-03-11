@@ -35,7 +35,7 @@ function WalletNip60({ wallet }: { wallet: NDKCashuWallet }) {
 export default function WalletScreen() {
     const { ndk } = useNDK();
     const currentUser = useNDKCurrentUser();
-    const { activeWallet, balances } = useNDKWallet();
+    const { activeWallet, balance } = useNDKWallet();
     const mintList = useNDKSessionEventKind<NDKCashuMintList>(NDKCashuMintList, NDKKind.CashuMintList, { create: true });
 
     const isNutzapWallet = useMemo(() => {
@@ -82,7 +82,7 @@ export default function WalletScreen() {
                             </Button>
                         )} */}
                         
-                        {balances.length > 0 && <WalletBalance amount={balances[0].amount} unit={balances[0].unit} onPress={() => {}} />}
+                        {balance && <WalletBalance amount={balance.amount} unit={balance.unit} onPress={() => {}} />}
                         <Footer activeWallet={activeWallet} currentUser={currentUser} />
                         {activeWallet instanceof NDKNWCWallet && <WalletNWC wallet={activeWallet} />}
                         {activeWallet instanceof NDKCashuWallet && <WalletNip60 wallet={activeWallet} />}

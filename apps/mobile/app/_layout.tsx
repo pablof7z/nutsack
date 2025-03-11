@@ -5,7 +5,7 @@ import 'react-native-get-random-values';
 import { PortalHost } from '@rn-primitives/portal';
 import * as SecureStore from 'expo-secure-store';
 import { ThemeProvider as NavThemeProvider } from '@react-navigation/native';
-import { NDKCacheAdapterSqlite, NDKCashuMintList, NDKEventWithFrom, NDKNutzap, useNDK, useNDKCurrentUser, useNDKSession } from '@nostr-dev-kit/ndk-mobile';
+import { NDKCacheAdapterSqlite, NDKCashuMintList, NDKEventWithFrom, NDKNutzap, useNDK, useNDKCurrentUser, useNDKNutzapMonitor, useNDKSession, useNDKSessionInit, useNDKWallet } from '@nostr-dev-kit/ndk-mobile';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -20,9 +20,10 @@ import { useEffect, useRef, useState } from 'react';
 import LoaderScreen from '@/components/LoaderScreen';
 import { appReadyAtom } from '@/atoms/app';
 import { useSetAtom } from 'jotai';
+import { Text } from '@/components/nativewindui/Text';
 
 function NutzapMonitor() {
-    const { nutzapMonitor } = useNDKSession();
+    const { nutzapMonitor } = useNDKNutzapMonitor();
     const connected = useRef(false);
 
     if (!nutzapMonitor) return null;
@@ -84,7 +85,7 @@ export default function RootLayout() {
 
     const { ndk, init: initializeNDK } = useNDK();
     const currentUser = useNDKCurrentUser();
-    const { init: initializeSession } = useNDKSession();
+    const initializeSession = useNDKSessionInit();
 
     const setAppReady = useSetAtom(appReadyAtom);
 
@@ -108,6 +109,7 @@ export default function RootLayout() {
     useEffect(() => {
         if (!ndk || !currentUser) return;
 
+        console.log('initializeSession');
         initializeSession(ndk, currentUser, settingsStore, {
             muteList: true,
             follows: true,
@@ -116,16 +118,23 @@ export default function RootLayout() {
             onReady: () => setAppReady(true)
         });
 
-    }, [ ndk, currentUser?.pubkey, initializeSession ])
+    }, [ndk, currentUser?.pubkey])
+    
+    const { activeWallet } = useNDKWallet();
 
     return (
         <>
             <StatusBar key={`root-status-bar-${isDarkColorScheme ? 'light' : 'dark'}`} style={isDarkColorScheme ? 'light' : 'dark'} />
-            <LoaderScreen>
-                <NutzapMonitor />
-                <GestureHandlerRootView style={{ flex: 1 }}>
-                    <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
-                        <NavThemeProvider value={NAV_THEME[colorScheme]}>
+            {!activeWallet ? (
+                <LoaderScreen>
+                    <Text>Loading...</Text>
+                </LoaderScreen>
+            ) : (
+                <>
+                    <NutzapMonitor />
+                    <GestureHandlerRootView style={{ flex: 1 }}>
+                        <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
+                            <NavThemeProvider value={NAV_THEME[colorScheme]}>
                             <PortalHost />
                             <Stack screenOptions={{
                                 headerShown: true,
@@ -140,9 +149,10 @@ export default function RootLayout() {
                             </Stack>
                         </NavThemeProvider>
                         <Toasts />
-                    </KeyboardProvider>
-                </GestureHandlerRootView>
-            </LoaderScreen>
+                        </KeyboardProvider>
+                        </GestureHandlerRootView>
+                    </>
+            )}
         </>
     );
 }

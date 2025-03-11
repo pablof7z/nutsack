@@ -2,7 +2,7 @@ import { LargeTitleHeader } from "@/components/nativewindui/LargeTitleHeader";
 import { List, ListItem } from "@/components/nativewindui/List";
 import { Platform, StyleSheet } from "react-native";
 import { ActivityIndicator } from "@/components/nativewindui/ActivityIndicator";
-import { CashuPaymentInfo, Hexpubkey, NDKKind, NDKLnUrlData, NDKUser, NDKUserProfile, NDKZapMethodInfo, NDKZapper, useNDK, useNDKSession, useSubscribe, useUserProfile } from "@nostr-dev-kit/ndk-mobile";
+import { CashuPaymentInfo, Hexpubkey, NDKKind, NDKLnUrlData, NDKUser, NDKUserProfile, NDKZapMethodInfo, NDKZapper, useFollows, useNDK, useNDKSession, useNDKWallet, useSubscribe, useUserProfile } from "@nostr-dev-kit/ndk-mobile";
 import { TextInput, TouchableOpacity, View, KeyboardAvoidingView } from "react-native";
 import * as User from "@/components/ui/user"
 import { Text } from "@/components/nativewindui/Text";
@@ -33,7 +33,7 @@ export function UserAsHeader({ pubkey }: { pubkey: Hexpubkey }) {
 
 function SendToUser({ pubkey, onCancel }: { pubkey: Hexpubkey, onCancel: () => void }) {
     const { ndk } = useNDK();
-    const { activeWallet, balances } = useNDKSession();
+    const { activeWallet, balance } = useNDKWallet();
     const inputRef = useRef<TextInput | null>(null);
     const [amount, setAmount] = useState(21);
     const user = useMemo(() => ndk.getUser({ pubkey }), [pubkey]);
@@ -158,7 +158,7 @@ function FollowItem({ index, target, item, onPress }: { index: number, target: L
 
 export default function SendView() {
     const { ndk } = useNDK();
-    const { follows } = useNDKSession();
+    const follows = useFollows();
     const [search, setSearch] = useState('');
     const [selectedPubkey, setSelectedPubkey] = useState<Hexpubkey | null>(null);
     const inset = useSafeAreaInsets();
@@ -166,7 +166,7 @@ export default function SendView() {
 
     const mintlistFilter = useMemo(() => [{ kinds: [0, NDKKind.CashuMintList], authors: Array.from(new Set([...follows, ...myFollows])) }], [follows]);
     const opts = useMemo(() => ({ groupable: false, closeOnEose: true }), []);
-    const { events: mintlistEvents } = useSubscribe({ filters: mintlistFilter, opts });
+    const { events: mintlistEvents } = useSubscribe(mintlistFilter, opts, []);
 
     const usersWithMintlist = useMemo(() => {
         const pubkeysWithKind0 = new Set<Hexpubkey>(

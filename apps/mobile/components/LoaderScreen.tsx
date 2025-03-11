@@ -456,7 +456,6 @@ function CreateNewWallet({ proceedWithoutWallet }: { proceedWithoutWallet: () =>
 
 export default function LoaderScreen({ children }: { children: React.ReactNode }) {
     const currentUser = useNDKCurrentUser();
-    const { ndk } = useNDK();
     const cacheInitialized = useNDKCacheInitialized();
     const { activeWallet, setActiveWallet } = useNDKWallet();
     const [ready, setReady] = useState(false);
@@ -467,7 +466,7 @@ export default function LoaderScreen({ children }: { children: React.ReactNode }
     const [welcome, setWelcome] = useState(false);
     const [forceCreateNewWallet, setForceCreateNewWallet] = useState(false);
 
-    const appReady = useAtomValue(appReadyAtom);    
+    const appReady = useAtomValue(appReadyAtom);
 
     const wallets = useNDKSessionEvents([NDKKind.CashuWallet]);
 
@@ -484,7 +483,7 @@ export default function LoaderScreen({ children }: { children: React.ReactNode }
                 setWalletReady(true);
             });
         }
-    }, [activeWallet])
+    }, [activeWallet?.walletId])
 
     const state = useMemo(() => {
         if (!cacheInitialized) return 'initializing';
@@ -499,7 +498,7 @@ export default function LoaderScreen({ children }: { children: React.ReactNode }
         if (forceCreateNewWallet || (wallets.length === 0 && !activeWallet && !proceedWithoutWallet)) return 'create-new-wallet';
         if (wallets && wallets.length > 0) return 'choose-wallet';
         return 'unhandled ' + !!currentUser + ' ' + JSON.stringify(wallets);
-    }, [cacheInitialized, currentUser, userReady, wallets, activeWallet, welcome, proceedWithoutWallet, walletReady]);
+    }, [cacheInitialized, currentUser, userReady, wallets, activeWallet?.walletId, welcome, proceedWithoutWallet, walletReady]);
 
     const [hadUser, setHadUser] = useState(!!currentUser);
 
@@ -526,7 +525,7 @@ export default function LoaderScreen({ children }: { children: React.ReactNode }
         if (!currentUser && ready) {
             setReady(false);
         }
-    }, [cacheInitialized, currentUser, activeWallet]);
+    }, [cacheInitialized, currentUser?.pubkey, activeWallet?.walletId]);
 
     function handleChooseWallet(wallet: NDKEvent) {
         NDKCashuWallet.from(wallet).then(wallet => {

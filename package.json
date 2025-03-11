@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "olas",
+  "name": "honeypot",
   "scripts": {
     "dev": "turbo dev",
     "dev:mobile": "turbo dev --filter=\"{./apps/mobile}...\"",
@@ -29,11 +29,10 @@
     "trailingComma": "es5"
   },
   "workspaces": [
-    "apps/*",
+    "apps/nutsack-cli",
     "packages/eslint-config",
     "packages/ndk/ndk",
     "packages/ndk/ndk-wallet",
-    "packages/ndk/ndk-mobile",
     "packages/ndk/packages/eslint-config-custom",
     "packages/ndk/packages/tsconfig"
   ]

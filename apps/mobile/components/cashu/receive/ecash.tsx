@@ -5,9 +5,8 @@ import { CameraView, CameraType, useCameraPermissions } from 'expo-camera'; // U
 import * as Clipboard from 'expo-clipboard';
 import { ClipboardPasteButton } from 'expo-clipboard'; // Add this import
 import { Text } from '@/components/nativewindui/Text';
-import Drawer from 'expo-router/drawer';
 import { NDKCashuWallet } from '@nostr-dev-kit/ndk-wallet';
-import { useNDKSession } from "@nostr-dev-kit/ndk-mobile";
+import { useNDKSession, useNDKWallet } from "@nostr-dev-kit/ndk-mobile";
 import { toast } from "@backpackapp-io/react-native-toast";
 
 export default function ReceiveEcash({ onReceived }: { onReceived: () => void }) {

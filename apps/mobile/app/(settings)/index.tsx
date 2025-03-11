@@ -1,4 +1,4 @@
-import { useNDK, useNDKSession } from '@nostr-dev-kit/ndk-mobile';
+import { useNDK, useNDKCurrentUser, useNDKSession, useNDKWallet } from '@nostr-dev-kit/ndk-mobile';
 import { Icon, MaterialIconName } from '@roninoss/icons';
 import { useEffect, useMemo, useState } from 'react';
 import { Platform, View } from 'react-native';
@@ -16,15 +16,16 @@ import { useUserProfile } from '@nostr-dev-kit/ndk-mobile';
 import { formatMoney } from '@/utils/bitcoin';
 
 export default function SettingsIosStyleScreen() {
-    const { currentUser, logout } = useNDK();
+    const { logout } = useNDK();
+    const currentUser = useNDKCurrentUser();
     const { userProfile } = useUserProfile(currentUser?.pubkey);
-    const { activeWallet, balances, setActiveWallet } = useNDKSession();
+    const { activeWallet, balance, setActiveWallet } = useNDKWallet();
 
-    console.log('balances', balances);
+    console.log('balance', balance);
 
     useEffect(() => {
-        console.log('use effect balances', balances);
-    }, [balances]);
+        console.log('use effect balance', balance);
+    }, [balance]);
 
     const appVersion = useMemo(() => {
         return `${Platform.OS} ${Platform.Version}`;
@@ -82,7 +83,7 @@ export default function SettingsIosStyleScreen() {
                 id: '12',
                 title: 'Wallet',
                 leftView: <IconView name="lightning-bolt" className="bg-green-500" />,
-                rightText: balances?.length > 0 ? formatMoney(balances[0]) : activeWallet?.walletId,
+                rightText: balance ? formatMoney(balance) : activeWallet?.walletId,
                 onPress: () => router.push('/(settings)/wallets'),
             });
             
@@ -106,7 +107,7 @@ export default function SettingsIosStyleScreen() {
         });
 
         return opts;
-    }, [currentUser, activeWallet, balances]);
+    }, [currentUser, activeWallet, balance]);
 
     return (
         <>

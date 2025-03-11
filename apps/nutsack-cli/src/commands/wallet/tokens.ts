@@ -8,23 +8,29 @@ export async function listTokens(verbose: boolean = false) {
 
         // print wallet in chalk white
         console.log(chalk.white(wallet.name));
-        for (const token of wallet.tokens) {
-            const { amount, mint, proofs } = token;
-            console.log(
-                "  " +
-                chalk.green(amount),
-                chalk.white(`(${token.id.substring(0, 6)})`),
-                chalk.gray(`(${mint})`),
-                chalk.yellow(` (${proofs.length} proofs)`)
-            );
 
-            if (verbose) {
-                for (const proof of proofs) {
-                    console.log(
-                        chalk.gray(`    ${proof.secret}`),
-                        chalk.white(`    (${proof.amount})`)
-                    )
-                }
+        const tokens = {};
+
+        for (const proof of wallet.state.proofs.values()) {
+            const tokenId = proof.tokenId ?? "no token id";
+            let existing = tokens[tokenId] || [];
+            existing.push(proof);
+            tokens[tokenId] = existing;
+        }
+
+        for (const tokenId in tokens) {
+            const proofs = tokens[tokenId];
+            console.log(chalk.white(`${tokenId}`));
+            for (const proof of proofs) {   
+                const { state, mint} = proof;
+                const { amount, C } = proof.proof;
+                console.log(
+                    "  " +
+                    chalk.green(amount),
+                    chalk.gray(`(${mint})`),
+                    chalk.gray(`${C.substring(0, 6)}`),
+                    state === 'deleted' ? chalk.red(`(${state})`) : chalk.gray(`(${state})`)
+                );
             }
         }
     }

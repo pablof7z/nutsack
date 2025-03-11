@@ -2,7 +2,7 @@ import { useActiveEventStore } from "@/stores";
 import { ScrollView, View } from "react-native";
 import { Text } from "@/components/nativewindui/Text";
 import { useEffect, useState } from "react";
-import { Hexpubkey, NDKEvent, NDKTag, NDKUser, useNDK } from "@nostr-dev-kit/ndk-mobile";
+import { Hexpubkey, NDKEvent, NDKTag, NDKUser, useNDK, useNDKCurrentUser } from "@nostr-dev-kit/ndk-mobile";
 import { NDKWalletChange } from "@nostr-dev-kit/ndk-wallet";
 import { UserAsHeader } from "./send";
 

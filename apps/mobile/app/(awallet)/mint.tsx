@@ -1,4 +1,4 @@
-import { useNDKSession } from "@nostr-dev-kit/ndk-mobile";
+import { useNDKWallet } from "@nostr-dev-kit/ndk-mobile";
 import { NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
 import { List, ListItem } from "@/components/nativewindui/List";
 import { Text } from "@/components/nativewindui/Text";
@@ -11,8 +11,8 @@ import { useColorScheme } from "@/lib/useColorScheme";
 import { FlashList } from "@shopify/flash-list";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export default function Index() {
-    const { activeWallet } = useNDKSession();
+export default function MintScreen() {
+    const { activeWallet } = useNDKWallet();
     const insets = useSafeAreaInsets();
     
     if (!(activeWallet instanceof NDKCashuWallet)) return null;
@@ -28,7 +28,7 @@ export default function Index() {
             <Chart mintBalances={mintBalances} />
             <MintBalances wallet={activeWallet} />
 
-            <Tokens wallet={activeWallet} />
+            {/* <Tokens wallet={activeWallet} /> */}
         </ScrollView>
     )
 }
@@ -111,7 +111,7 @@ function Tokens({ wallet }: { wallet: NDKCashuWallet }) {
     if (!(wallet instanceof NDKCashuWallet)) return null;
     
     const unit = wallet.unit;
-    const tokens = wallet.tokens;
+    const tokens = wallet.state.get;
     let proofCount = 0;
     const proofsByValue = useMemo(() => {
         const values: Record<number, number> = {};

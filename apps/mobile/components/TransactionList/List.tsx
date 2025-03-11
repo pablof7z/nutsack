@@ -1,5 +1,5 @@
 import { useActiveEventStore, useAppStateStore, ZapperWithId } from "@/stores";
-import { useNDK, NDKKind, useSubscribe, NDKEvent, NDKZapSplit, NDKPaymentConfirmation, NDKNutzap } from "@nostr-dev-kit/ndk-mobile";
+import { useNDK, NDKKind, useSubscribe, NDKEvent, NDKZapSplit, NDKPaymentConfirmation, NDKNutzap, useNDKCurrentUser } from "@nostr-dev-kit/ndk-mobile";
 import { NDKCashuDeposit, NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
 import HistoryItem from "./Item";
 import { router } from "expo-router";
@@ -11,7 +11,7 @@ import { toast } from "@backpackapp-io/react-native-toast";
 export default function TransactionHistory({ wallet }: { wallet: NDKCashuWallet }) {
     const currentUser = useNDKCurrentUser();
     const filters = useMemo(() => [{ kinds: [NDKKind.WalletChange], authors: [currentUser?.pubkey] }], [currentUser?.pubkey])
-    const { events: history } = useSubscribe({ filters });
+    const { events: history } = useSubscribe(filters);
     const { setActiveEvent } = useActiveEventStore();
     const { pendingPayments } = useAppStateStore();
 

@@ -6,7 +6,7 @@ import { Button, ButtonState } from "@/components/nativewindui/Button";
 import { View, StyleSheet } from 'react-native';
 import { getBolt11ExpiresAt, NDKCashuWallet } from "@nostr-dev-kit/ndk-wallet";
 import { ClipboardPasteButton } from "expo-clipboard";
-import { useNDKSession } from "@nostr-dev-kit/ndk-mobile";
+import { useNDKWallet } from "@nostr-dev-kit/ndk-mobile";
 import { useState } from "react";
 import { formatMoney } from "@/utils/bitcoin";
 import WalletBalance from "@/components/ui/wallet/WalletBalance";

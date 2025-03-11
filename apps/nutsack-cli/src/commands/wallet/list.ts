@@ -19,9 +19,7 @@ export async function listWallets(all: boolean = false) {
 
             const balance = await wallet.balance();
             if (balance) {
-                for (const b of balance) {
-                    console.log(`  Balance: ${chalk.cyan(`${b.amount} ${b.unit}`)}`);
-                }
+                console.log(`  Balance: ${chalk.cyan(`${balance.amount} ${balance.unit}`)}`);
             }
             console.log();
         }

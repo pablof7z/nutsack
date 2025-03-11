@@ -45,7 +45,7 @@ export default function Beg() {
                 <TextInput
                     value={text}
                     onChangeText={setText}
-                    className="flex-1"
+                    className="flex-1 text-foreground"
                     multiline={true}
                     numberOfLines={4}
                     style={{ height: 100 }}

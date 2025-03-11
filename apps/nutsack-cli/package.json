@@ -1,6 +1,6 @@
 {
   "name": "nutsack",
-  "version": "0.0.69.1",
+  "version": "0.2.1",
   "description": "A CLI tool for Nostr",
   "main": "dist/nutsack.js",
   "bin": {

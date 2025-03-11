@@ -7,7 +7,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, StyleSheet } from "react-native";
 import { TouchableOpacity, View } from "react-native";
 import { TextInput } from "react-native-gesture-handler";
-import { useNDKSession } from "@nostr-dev-kit/ndk-mobile";
+import { useNDKWallet } from "@nostr-dev-kit/ndk-mobile";
 import WalletBalance from "@/components/ui/wallet/WalletBalance";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { Button, ButtonState } from "@/components/nativewindui/Button";

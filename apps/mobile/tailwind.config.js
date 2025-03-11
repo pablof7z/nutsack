@@ -14,8 +14,8 @@ module.exports = {
         background: withOpacity('background'),
         foreground: withOpacity('foreground'),
         primary: {
-          DEFAULT: 'rgb(200, 40, 90)',
-          foreground: '#ffffff',
+          DEFAULT: withOpacity('primary'),
+          foreground: withOpacity('primary-foreground'),
         },
         secondary: {
           DEFAULT: withOpacity('secondary'),
