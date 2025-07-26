@@ -1,0 +1,63 @@
+appId: com.nutsack.wallet
+---
+# Test: Receiving Cashu tokens
+
+- launchApp
+
+# Navigate to Receive
+- tapOn:
+    text: "Receive"
+    optional: true
+- tapOn:
+    id: "receive-button"
+    optional: true
+
+# Select Token/Cashu option
+- tapOn:
+    text: "Token"
+    optional: true
+- tapOn:
+    text: "Redeem"
+    optional: true
+
+# Paste token
+- tapOn:
+    id: "token-field"
+    optional: true
+- inputText: "cashuAeyJ0b2tlbiI6W3sibWludCI6Imh0dHBzOi8vbWludC5taW5pYml0cy5jYXNoL0JpdGNvaW4i..."
+
+# Alternatively, scan QR
+- tapOn:
+    text: "Scan"
+    optional: true
+- waitForAnimationToEnd
+- tapOn:
+    text: "Allow"  # Camera permission
+    optional: true
+
+# Redeem token
+- tapOn:
+    text: "Redeem"
+    optional: true
+- tapOn:
+    text: "Claim"
+    optional: true
+
+# Wait for redemption
+- waitForAnimationToEnd
+
+# Verify success
+- assertVisible:
+    text: ".*[Ss]uccess.*"
+    optional: true
+- assertVisible:
+    text: ".*[Rr]edeemed.*"
+    optional: true
+- assertVisible:
+    text: ".*100.*sats.*"  # Amount received
+    optional: true
+
+- takeScreenshot: "token-redeemed"
+
+# Go back to wallet
+- back

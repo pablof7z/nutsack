@@ -1,0 +1,80 @@
+appId: com.nutsack.wallet
+---
+# Test Authentication Persistence
+# This test verifies that after successful authentication, 
+# the user stays in the main app and doesn't return to login
+
+- launchApp
+
+# Create a new account first
+- tapOn:
+    text: "Create Account"
+
+- tapOn:
+    text: "Display Name"
+- inputText: "Persistence Test User"
+
+- tapOn:
+    text: "Create Account"
+
+# Wait a moment for the action to process
+- waitForAnimationToEnd
+
+# Handle potential error alert (if account creation fails)
+- tapOn: 
+    text: "OK"
+    optional: true
+
+# Wait for account creation - increase timeout
+- extendedWaitUntil:
+    visible:
+      text: "Save Your Private Key"
+    timeout: 15000
+
+# Handle backup key screen
+- assertVisible:
+    text: "Save Your Private Key"
+
+- tapOn:
+    text: "I have saved my private key"
+
+- tapOn:
+    text: "Continue to Wallet"
+
+# Wait for navigation
+- waitForAnimationToEnd
+
+# Now verify we're in the main app and stay there
+- assertVisible:
+    text: "Wallet"
+
+# Wait a bit to ensure no unexpected navigation
+- waitForAnimationToEnd
+
+# Verify we're still in the main app (not back at login)
+- assertVisible:
+    text: "Wallet"
+- assertNotVisible:
+    text: "Create Account"
+- assertNotVisible:
+    text: "Import with nsec"
+
+# Try navigating between tabs to ensure app is stable
+- tapOn:
+    text: "Contacts"
+- assertVisible:
+    text: "Contacts"
+
+- tapOn:
+    text: "Settings"
+- assertVisible:
+    text: "Settings"
+
+- tapOn:
+    text: "Wallet"
+- assertVisible:
+    text: "Wallet"
+
+# Final check - still authenticated
+- assertNotVisible:
+    text: "Lightning-fast payments with Nostr"

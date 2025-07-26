@@ -1,0 +1,116 @@
+appId: io.nutsack.app
+---
+# Test: Add Mint Flow
+# This test verifies that adding a new mint works correctly
+# and that the mint appears in the mint list after adding
+
+- runFlow:
+    file: ../setup/login_test_account.yaml
+
+# Navigate to Settings
+- tapOn:
+    text: "Settings"
+
+# Navigate to Mints
+- tapOn:
+    text: "Mints"
+
+# Wait for mints to load
+- assertVisible:
+    text: "Mints"
+    timeout: 5000
+
+# Take screenshot of initial mint list
+- takeScreenshot: "mint_list_before_add"
+
+# Tap Add Mint button
+- tapOn:
+    text: "Add Mint"
+
+# Wait for Add Mint sheet to appear
+- assertVisible:
+    text: "Mint URL"
+    timeout: 3000
+
+# Take screenshot of add mint sheet
+- takeScreenshot: "add_mint_sheet"
+
+# Clear any existing text first
+- clearText
+
+# Enter a test mint URL
+- inputText: "https://mint.minibits.cash/Bitcoin"
+
+# Take screenshot after entering URL
+- takeScreenshot: "mint_url_entered"
+
+# Tap the Add Mint action button
+- tapOn:
+    text: "Add Mint"
+    index: 1  # Second "Add Mint" is the action button
+
+# Check if error appeared
+- extendedWaitUntil:
+    visible:
+        text: "Failed to add mint"
+    timeout: 2000
+
+# If no error, wait for the sheet to dismiss
+- waitForNotVisible:
+    text: "Mint URL"
+    timeout: 20000
+
+# Wait a bit for the list to update
+- waitForAnimationToEnd
+
+# Pull to refresh the mint list
+- scroll:
+    direction: DOWN
+    duration: 1000
+
+# Wait for refresh to complete
+- waitForAnimationToEnd
+
+# Take screenshot after adding
+- takeScreenshot: "mint_list_after_add"
+
+# Verify the mint was added by checking for its host
+- assertVisible:
+    text: "mint.minibits.cash"
+    timeout: 10000
+
+# Verify we can tap on the mint to see details
+- tapOn:
+    text: "mint.minibits.cash"
+
+# Verify mint detail view opened
+- assertVisible:
+    text: "Mint Information"
+    timeout: 3000
+
+# Take screenshot of mint details
+- takeScreenshot: "mint_details"
+
+# Go back to mints list
+- tapOn:
+    id: ".*back.*|.*Back.*"
+    enabled: true
+
+# Clean up: Remove the mint we just added
+- tapOn:
+    text: "mint.minibits.cash"
+
+- tapOn:
+    text: "Remove Mint"
+
+# Confirm removal
+- tapOn:
+    text: "Remove"
+    index: 1  # The destructive action button
+
+# Verify mint was removed
+- waitForNotVisible:
+    text: "mint.minibits.cash"
+    timeout: 5000
+
+- takeScreenshot: "mint_removed_successfully"

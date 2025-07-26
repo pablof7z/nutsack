@@ -1,0 +1,661 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 54;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		046F9C1180FC8BBC8A09106F /* RelayConnectionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179914F131C3EA8E9C86C2DF /* RelayConnectionViews.swift */; };
+		0A9832B818F26BDED621CDD3 /* NutzapSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9484A8DCD0E6CDFA798237DF /* NutzapSettingsView.swift */; };
+		0F1A9F62377AD0B676CADD1F /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5B505B32D21FBB19FF5CBE /* SplashView.swift */; };
+		15104DA1299C84BFD385F97F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29DD716C975387491C98884E /* ContentView.swift */; };
+		18EAE0508C34755DAC64898B /* DLEQStatusIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC302DE92627A808C4316A97 /* DLEQStatusIndicator.swift */; };
+		2203216B7A95C7061968E7D3 /* MintBalanceLegend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BEE0E04E0712D430ADCD91E /* MintBalanceLegend.swift */; };
+		23B67F4F4DAA880850CD9A2F /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B052F81B7B409EB3A7F20DE /* AppState.swift */; };
+		276233E0707E1C816CA5CFC5 /* WalletEventsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F689EC6224FF420AB39B5C /* WalletEventsView.swift */; };
+		2B958B8F7F7AF6395F8D66BC /* NutsackApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5246359CDA91D9B7847663 /* NutsackApp.swift */; };
+		2BC4F751066C9A3FF8097E62 /* RelayHealthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AFA24434F57D28213E47F35 /* RelayHealthView.swift */; };
+		37A06CA0B6A4D33F210E8FE8 /* ReceivedNutzapsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C0816FCB2308D992EAD2413 /* ReceivedNutzapsView.swift */; };
+		39CD315ACA254FDC07076930 /* ReceiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29823E16BE363E01B66A8DE5 /* ReceiveView.swift */; };
+		3AE0DBFC1CA063A6AC21FD56 /* MintDiscoveryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89F70690BBEA51B2AC1E862F /* MintDiscoveryManager.swift */; };
+		3E17EB5A5226CACB8D750A19 /* WalletEventDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD23BF78658593B392C7FF56 /* WalletEventDetailView.swift */; };
+		517942D2DD49A8AA4473D66A /* SendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7ACD26D8FA1630E42EFEC94 /* SendView.swift */; };
+		541EA1BE0A780695052037D0 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9A0E485A77CC33154C81E180 /* LaunchScreen.storyboard */; };
+		578BFBDCED5863A68DA9A05D /* DiscoveredMintsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C54882260F3096F3402AEE /* DiscoveredMintsView.swift */; };
+		5D8EC63090D54040C7CEB07C /* PlatformHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 322B1C29BAF815D820653E1A /* PlatformHelpers.swift */; };
+		6BA1850F5A5A565895F45E8D /* DataModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 700018D5285AFEF01AAB1679 /* DataModels.swift */; };
+		6C3619BBC1925CD2012C3030 /* NostrManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0474797B3D70A3F5E50DE4E0 /* NostrManager.swift */; };
+		6FCBCB96D05F363442410449 /* PaymentReceivedAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA415E993BB5A7710A803BD9 /* PaymentReceivedAnimation.swift */; };
+		707A32AD80C4C06691C236F0 /* QRScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 962F8D0E61C0A3CED699E5E5 /* QRScannerView.swift */; };
+		70E4645881C5BA0281EDBA16 /* AsyncContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B43D3EE06E7A1612A33CC851 /* AsyncContentView.swift */; };
+		73C1DF0F9317E5F4C2646618 /* TokenConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2AECC01435B809BEFFBCFD6 /* TokenConfirmationView.swift */; };
+		7EA1E6F16B65DDEA250DC8C5 /* MintAllocationPieChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA976807E9192087ECCFF66D /* MintAllocationPieChart.swift */; };
+		8134F6A0203F3D1AE62CE136 /* WalletOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF26FE1BB0C3A4B4F642A11B /* WalletOnboardingView.swift */; };
+		81998AA17B2CB543427F30A5 /* TransactionDetailDrawer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBFB09E012F47FEE3902D70C /* TransactionDetailDrawer.swift */; };
+		85543913BB764490AE12304A /* RelativeTimeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A49674C9600E7CD952A38521 /* RelativeTimeView.swift */; };
+		88FE9EC64A51F5AC21E76510 /* BalanceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C53A61281693438AA3C00939 /* BalanceCard.swift */; };
+		95A1023397C7AECD55F78C73 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2DF5538965B7EB3C64426FB /* SettingsView.swift */; };
+		993E5AEE067897EC76F4F75C /* WalletEventInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D5B9AA3E71133AA8A3EA248 /* WalletEventInfo.swift */; };
+		A123B5F5AB3ABD9DA82BF157 /* NDKSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 8D61774580F270BFA6E25A26 /* NDKSwift */; };
+		A2AA28006473A0599859D159 /* WalletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 389ADC0012575F359B468F0D /* WalletView.swift */; };
+		A30E03D3719F1A46F36595C3 /* UserProfileViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83C0ABB1873A67C266D19106 /* UserProfileViews.swift */; };
+		A3F5D391D9E9635B38003B40 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 54A896A6ACDEC934DB872783 /* Assets.xcassets */; };
+		BC3A58FB067E1416F621A259 /* NutLogoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C796B4EB648B35CC03247468 /* NutLogoView.swift */; };
+		BEDB53B01C4193581EE3E266 /* AppIconGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24C02DDB7EB9EFE554FC52E9 /* AppIconGenerator.swift */; };
+		BFEA02908127F7398C6C37FE /* RelayStatusIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20CD4E4BCD9A73999656B525 /* RelayStatusIndicator.swift */; };
+		C5EC808ACA739B02BF4058EA /* WalletManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 139C4ED82E0344CDED10AAA3 /* WalletManager.swift */; };
+		C96FFE635505C91094E445EA /* NostrDataSources.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82C1BE0D91363F5EBE756682 /* NostrDataSources.swift */; };
+		CF64D284C545411381F0E305 /* NutzapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 055295357886CE289C42C9DD /* NutzapView.swift */; };
+		D044EAC14B431980BDE9CA63 /* MintsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB9DD7CBBD58218E4C4FC34 /* MintsView.swift */; };
+		D546387471DFA74D85055166 /* RecentTransactionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0B1C99B01866B00245F62DE /* RecentTransactionsView.swift */; };
+		D68171CBFD774613B6FC79BD /* WalletSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06737C2A632A68CE0C55183C /* WalletSettingsView.swift */; };
+		DCC506C626DDA40899916653 /* MintDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0091AA5BFE07C9D49369C9FA /* MintDetailView.swift */; };
+		DDFC271E78ACBA1BAE003854 /* ProofManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 816546EBC30AFC0F9FA87E2A /* ProofManagementView.swift */; };
+		DE2555469F21E1A95181AE75 /* ContactsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7260E070B2366527CE8E93CF /* ContactsView.swift */; };
+		E250B976A938B3889A783E00 /* MintView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFD3618F6ACCDFC05E146B73 /* MintView.swift */; };
+		E3F84D954FEDA2D5C0A6C584 /* DebugLoggingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 435DAF7B5D81505B2F8A7B91 /* DebugLoggingView.swift */; };
+		E4A0D437AA3DBDADF802B0A2 /* GenerateAppIcons.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4FCA78F0A064FB06F11BFC2 /* GenerateAppIcons.swift */; };
+		ECA73CB3D96068C574E172A3 /* WalletDataSources.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B713B4C1897F349F1F94E03 /* WalletDataSources.swift */; };
+		EF6089A9C4E89640DE9A7C02 /* AuthenticationFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB17F05E842715866AFCD7A3 /* AuthenticationFlow.swift */; };
+		F33D4EFB5F5A07FED0953D0E /* RelayManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 672C722284F61C8F87DBC9BD /* RelayManagementView.swift */; };
+		F4D2CEAE92BF3D746AE2E29A /* SwapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0118B4914C3C24FF6C27D362 /* SwapView.swift */; };
+		FBB5682704D9E5BE443F114B /* BlacklistedMintsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 767188F85CE491D97A51F102 /* BlacklistedMintsView.swift */; };
+		FE9B372405B563AA3EC15B71 /* QRCodeGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67721329672986338EBD9E47 /* QRCodeGenerator.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0091AA5BFE07C9D49369C9FA /* MintDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MintDetailView.swift; sourceTree = "<group>"; };
+		0118B4914C3C24FF6C27D362 /* SwapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwapView.swift; sourceTree = "<group>"; };
+		0474797B3D70A3F5E50DE4E0 /* NostrManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NostrManager.swift; sourceTree = "<group>"; };
+		055295357886CE289C42C9DD /* NutzapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutzapView.swift; sourceTree = "<group>"; };
+		06737C2A632A68CE0C55183C /* WalletSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletSettingsView.swift; sourceTree = "<group>"; };
+		08FD0B036D231EFF73DF7BAA /* NDKSwift-z94ws0 */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "NDKSwift-z94ws0"; path = ../../..; sourceTree = SOURCE_ROOT; };
+		139C4ED82E0344CDED10AAA3 /* WalletManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletManager.swift; sourceTree = "<group>"; };
+		179914F131C3EA8E9C86C2DF /* RelayConnectionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelayConnectionViews.swift; sourceTree = "<group>"; };
+		20CD4E4BCD9A73999656B525 /* RelayStatusIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelayStatusIndicator.swift; sourceTree = "<group>"; };
+		24C02DDB7EB9EFE554FC52E9 /* AppIconGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIconGenerator.swift; sourceTree = "<group>"; };
+		29823E16BE363E01B66A8DE5 /* ReceiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveView.swift; sourceTree = "<group>"; };
+		29DD716C975387491C98884E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		29F689EC6224FF420AB39B5C /* WalletEventsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletEventsView.swift; sourceTree = "<group>"; };
+		322B1C29BAF815D820653E1A /* PlatformHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformHelpers.swift; sourceTree = "<group>"; };
+		389ADC0012575F359B468F0D /* WalletView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletView.swift; sourceTree = "<group>"; };
+		3AFA24434F57D28213E47F35 /* RelayHealthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelayHealthView.swift; sourceTree = "<group>"; };
+		435DAF7B5D81505B2F8A7B91 /* DebugLoggingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLoggingView.swift; sourceTree = "<group>"; };
+		4A5B505B32D21FBB19FF5CBE /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
+		4B713B4C1897F349F1F94E03 /* WalletDataSources.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletDataSources.swift; sourceTree = "<group>"; };
+		4CB9DD7CBBD58218E4C4FC34 /* MintsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MintsView.swift; sourceTree = "<group>"; };
+		54A896A6ACDEC934DB872783 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		672C722284F61C8F87DBC9BD /* RelayManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelayManagementView.swift; sourceTree = "<group>"; };
+		67721329672986338EBD9E47 /* QRCodeGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeGenerator.swift; sourceTree = "<group>"; };
+		6BEE0E04E0712D430ADCD91E /* MintBalanceLegend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MintBalanceLegend.swift; sourceTree = "<group>"; };
+		700018D5285AFEF01AAB1679 /* DataModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataModels.swift; sourceTree = "<group>"; };
+		7260E070B2366527CE8E93CF /* ContactsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsView.swift; sourceTree = "<group>"; };
+		767188F85CE491D97A51F102 /* BlacklistedMintsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlacklistedMintsView.swift; sourceTree = "<group>"; };
+		7E5246359CDA91D9B7847663 /* NutsackApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutsackApp.swift; sourceTree = "<group>"; };
+		816546EBC30AFC0F9FA87E2A /* ProofManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProofManagementView.swift; sourceTree = "<group>"; };
+		82C1BE0D91363F5EBE756682 /* NostrDataSources.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NostrDataSources.swift; sourceTree = "<group>"; };
+		83C0ABB1873A67C266D19106 /* UserProfileViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileViews.swift; sourceTree = "<group>"; };
+		85C54882260F3096F3402AEE /* DiscoveredMintsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoveredMintsView.swift; sourceTree = "<group>"; };
+		89F70690BBEA51B2AC1E862F /* MintDiscoveryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MintDiscoveryManager.swift; sourceTree = "<group>"; };
+		8B052F81B7B409EB3A7F20DE /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		9484A8DCD0E6CDFA798237DF /* NutzapSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutzapSettingsView.swift; sourceTree = "<group>"; };
+		962F8D0E61C0A3CED699E5E5 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
+		9A0E485A77CC33154C81E180 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		9C0816FCB2308D992EAD2413 /* ReceivedNutzapsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceivedNutzapsView.swift; sourceTree = "<group>"; };
+		9D5B9AA3E71133AA8A3EA248 /* WalletEventInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletEventInfo.swift; sourceTree = "<group>"; };
+		A49674C9600E7CD952A38521 /* RelativeTimeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelativeTimeView.swift; sourceTree = "<group>"; };
+		A9C1DE3157B002CB979102D6 /* NutsackiOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = NutsackiOS.xcconfig; sourceTree = "<group>"; };
+		B43D3EE06E7A1612A33CC851 /* AsyncContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncContentView.swift; sourceTree = "<group>"; };
+		B4FCA78F0A064FB06F11BFC2 /* GenerateAppIcons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenerateAppIcons.swift; sourceTree = "<group>"; };
+		BB17F05E842715866AFCD7A3 /* AuthenticationFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationFlow.swift; sourceTree = "<group>"; };
+		BFD3618F6ACCDFC05E146B73 /* MintView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MintView.swift; sourceTree = "<group>"; };
+		C53A61281693438AA3C00939 /* BalanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceCard.swift; sourceTree = "<group>"; };
+		C796B4EB648B35CC03247468 /* NutLogoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutLogoView.swift; sourceTree = "<group>"; };
+		C9F082EB0BD47AC488F1643F /* NutsackiOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = NutsackiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CC302DE92627A808C4316A97 /* DLEQStatusIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DLEQStatusIndicator.swift; sourceTree = "<group>"; };
+		CD23BF78658593B392C7FF56 /* WalletEventDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletEventDetailView.swift; sourceTree = "<group>"; };
+		D2DF5538965B7EB3C64426FB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		E0B1C99B01866B00245F62DE /* RecentTransactionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentTransactionsView.swift; sourceTree = "<group>"; };
+		EA976807E9192087ECCFF66D /* MintAllocationPieChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MintAllocationPieChart.swift; sourceTree = "<group>"; };
+		F2AECC01435B809BEFFBCFD6 /* TokenConfirmationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenConfirmationView.swift; sourceTree = "<group>"; };
+		F4F5429BC7CCC5AF9DFFF71E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		F7ACD26D8FA1630E42EFEC94 /* SendView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendView.swift; sourceTree = "<group>"; };
+		FA415E993BB5A7710A803BD9 /* PaymentReceivedAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentReceivedAnimation.swift; sourceTree = "<group>"; };
+		FBFB09E012F47FEE3902D70C /* TransactionDetailDrawer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionDetailDrawer.swift; sourceTree = "<group>"; };
+		FF26FE1BB0C3A4B4F642A11B /* WalletOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletOnboardingView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		31474ED03EE58AE32330B7A8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A123B5F5AB3ABD9DA82BF157 /* NDKSwift in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0F5C723A79A2399FD0888DB3 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				08FD0B036D231EFF73DF7BAA /* NDKSwift-z94ws0 */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		3F9A56A4A696A91EC7F21DED /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C9F082EB0BD47AC488F1643F /* NutsackiOS.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		467E487C8CF61695EFC1D79C /* NutsackiOS */ = {
+			isa = PBXGroup;
+			children = (
+				54A896A6ACDEC934DB872783 /* Assets.xcassets */,
+				F4F5429BC7CCC5AF9DFFF71E /* Info.plist */,
+				9A0E485A77CC33154C81E180 /* LaunchScreen.storyboard */,
+				7E5246359CDA91D9B7847663 /* NutsackApp.swift */,
+				A9C1DE3157B002CB979102D6 /* NutsackiOS.xcconfig */,
+				C9B07B0AC5AC5491C3CEF625 /* DataSources */,
+				71B5AF5C50678245B601E60C /* Models */,
+				8DA64FA8832FB83F5A983501 /* Utils */,
+				E0773FDC9C216AB2F6191480 /* Views */,
+			);
+			name = NutsackiOS;
+			path = Sources/NutsackiOS;
+			sourceTree = "<group>";
+		};
+		66B6A69947A0F3D7D75E7898 /* Wallet */ = {
+			isa = PBXGroup;
+			children = (
+				C53A61281693438AA3C00939 /* BalanceCard.swift */,
+				CC302DE92627A808C4316A97 /* DLEQStatusIndicator.swift */,
+				EA976807E9192087ECCFF66D /* MintAllocationPieChart.swift */,
+				6BEE0E04E0712D430ADCD91E /* MintBalanceLegend.swift */,
+				0091AA5BFE07C9D49369C9FA /* MintDetailView.swift */,
+				BFD3618F6ACCDFC05E146B73 /* MintView.swift */,
+				055295357886CE289C42C9DD /* NutzapView.swift */,
+				FA415E993BB5A7710A803BD9 /* PaymentReceivedAnimation.swift */,
+				816546EBC30AFC0F9FA87E2A /* ProofManagementView.swift */,
+				9C0816FCB2308D992EAD2413 /* ReceivedNutzapsView.swift */,
+				29823E16BE363E01B66A8DE5 /* ReceiveView.swift */,
+				E0B1C99B01866B00245F62DE /* RecentTransactionsView.swift */,
+				3AFA24434F57D28213E47F35 /* RelayHealthView.swift */,
+				20CD4E4BCD9A73999656B525 /* RelayStatusIndicator.swift */,
+				F7ACD26D8FA1630E42EFEC94 /* SendView.swift */,
+				0118B4914C3C24FF6C27D362 /* SwapView.swift */,
+				F2AECC01435B809BEFFBCFD6 /* TokenConfirmationView.swift */,
+				FBFB09E012F47FEE3902D70C /* TransactionDetailDrawer.swift */,
+				CD23BF78658593B392C7FF56 /* WalletEventDetailView.swift */,
+				29F689EC6224FF420AB39B5C /* WalletEventsView.swift */,
+				06737C2A632A68CE0C55183C /* WalletSettingsView.swift */,
+				389ADC0012575F359B468F0D /* WalletView.swift */,
+			);
+			path = Wallet;
+			sourceTree = "<group>";
+		};
+		71B5AF5C50678245B601E60C /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				8B052F81B7B409EB3A7F20DE /* AppState.swift */,
+				700018D5285AFEF01AAB1679 /* DataModels.swift */,
+				89F70690BBEA51B2AC1E862F /* MintDiscoveryManager.swift */,
+				0474797B3D70A3F5E50DE4E0 /* NostrManager.swift */,
+				9D5B9AA3E71133AA8A3EA248 /* WalletEventInfo.swift */,
+				139C4ED82E0344CDED10AAA3 /* WalletManager.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		7FC8A45741B3716CB01697F2 /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				A49674C9600E7CD952A38521 /* RelativeTimeView.swift */,
+				179914F131C3EA8E9C86C2DF /* RelayConnectionViews.swift */,
+				83C0ABB1873A67C266D19106 /* UserProfileViews.swift */,
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
+		89D520A27A28FB620595C7DA /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				BB17F05E842715866AFCD7A3 /* AuthenticationFlow.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		8DA64FA8832FB83F5A983501 /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				24C02DDB7EB9EFE554FC52E9 /* AppIconGenerator.swift */,
+				B4FCA78F0A064FB06F11BFC2 /* GenerateAppIcons.swift */,
+				322B1C29BAF815D820653E1A /* PlatformHelpers.swift */,
+				67721329672986338EBD9E47 /* QRCodeGenerator.swift */,
+				962F8D0E61C0A3CED699E5E5 /* QRScannerView.swift */,
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
+		8F7DE8539C0B8DED8494CA2D /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				B43D3EE06E7A1612A33CC851 /* AsyncContentView.swift */,
+			);
+			path = Helpers;
+			sourceTree = "<group>";
+		};
+		B89419047D4D87C5B3DE04E1 = {
+			isa = PBXGroup;
+			children = (
+				467E487C8CF61695EFC1D79C /* NutsackiOS */,
+				0F5C723A79A2399FD0888DB3 /* Packages */,
+				3F9A56A4A696A91EC7F21DED /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		C9B07B0AC5AC5491C3CEF625 /* DataSources */ = {
+			isa = PBXGroup;
+			children = (
+				82C1BE0D91363F5EBE756682 /* NostrDataSources.swift */,
+				4B713B4C1897F349F1F94E03 /* WalletDataSources.swift */,
+			);
+			path = DataSources;
+			sourceTree = "<group>";
+		};
+		E0773FDC9C216AB2F6191480 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				767188F85CE491D97A51F102 /* BlacklistedMintsView.swift */,
+				7260E070B2366527CE8E93CF /* ContactsView.swift */,
+				29DD716C975387491C98884E /* ContentView.swift */,
+				435DAF7B5D81505B2F8A7B91 /* DebugLoggingView.swift */,
+				85C54882260F3096F3402AEE /* DiscoveredMintsView.swift */,
+				4CB9DD7CBBD58218E4C4FC34 /* MintsView.swift */,
+				C796B4EB648B35CC03247468 /* NutLogoView.swift */,
+				9484A8DCD0E6CDFA798237DF /* NutzapSettingsView.swift */,
+				672C722284F61C8F87DBC9BD /* RelayManagementView.swift */,
+				D2DF5538965B7EB3C64426FB /* SettingsView.swift */,
+				4A5B505B32D21FBB19FF5CBE /* SplashView.swift */,
+				FF26FE1BB0C3A4B4F642A11B /* WalletOnboardingView.swift */,
+				89D520A27A28FB620595C7DA /* Auth */,
+				8F7DE8539C0B8DED8494CA2D /* Helpers */,
+				7FC8A45741B3716CB01697F2 /* Utils */,
+				66B6A69947A0F3D7D75E7898 /* Wallet */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		9CDA0F91746A66D57BA0C900 /* NutsackiOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AAC2A55791C392A66167C67C /* Build configuration list for PBXNativeTarget "NutsackiOS" */;
+			buildPhases = (
+				048FC9D8F38F8AB71F6846E5 /* Debug Check */,
+				72E862452103334F25D230AF /* Sources */,
+				32498BE07E97CB34D20184F1 /* Resources */,
+				31474ED03EE58AE32330B7A8 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NutsackiOS;
+			packageProductDependencies = (
+				8D61774580F270BFA6E25A26 /* NDKSwift */,
+			);
+			productName = NutsackiOS;
+			productReference = C9F082EB0BD47AC488F1643F /* NutsackiOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		FA1D957E3F2904E3E1EE69B6 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					9CDA0F91746A66D57BA0C900 = {
+						DevelopmentTeam = 456SHKPP26;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 98383901B72F432DF50A273D /* Build configuration list for PBXProject "NutsackiOS" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = B89419047D4D87C5B3DE04E1;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				9A266D9534540C3B77DC8DA1 /* XCLocalSwiftPackageReference "../../.." */,
+			);
+			preferredProjectObjectVersion = 54;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				9CDA0F91746A66D57BA0C900 /* NutsackiOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		32498BE07E97CB34D20184F1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A3F5D391D9E9635B38003B40 /* Assets.xcassets in Resources */,
+				541EA1BE0A780695052037D0 /* LaunchScreen.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		048FC9D8F38F8AB71F6846E5 /* Debug Check */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Debug Check";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ \"${CONFIGURATION}\" = \"Debug\" ]; then\n  echo \"Debug build\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		72E862452103334F25D230AF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BEDB53B01C4193581EE3E266 /* AppIconGenerator.swift in Sources */,
+				23B67F4F4DAA880850CD9A2F /* AppState.swift in Sources */,
+				70E4645881C5BA0281EDBA16 /* AsyncContentView.swift in Sources */,
+				EF6089A9C4E89640DE9A7C02 /* AuthenticationFlow.swift in Sources */,
+				88FE9EC64A51F5AC21E76510 /* BalanceCard.swift in Sources */,
+				FBB5682704D9E5BE443F114B /* BlacklistedMintsView.swift in Sources */,
+				DE2555469F21E1A95181AE75 /* ContactsView.swift in Sources */,
+				15104DA1299C84BFD385F97F /* ContentView.swift in Sources */,
+				18EAE0508C34755DAC64898B /* DLEQStatusIndicator.swift in Sources */,
+				6BA1850F5A5A565895F45E8D /* DataModels.swift in Sources */,
+				E3F84D954FEDA2D5C0A6C584 /* DebugLoggingView.swift in Sources */,
+				578BFBDCED5863A68DA9A05D /* DiscoveredMintsView.swift in Sources */,
+				E4A0D437AA3DBDADF802B0A2 /* GenerateAppIcons.swift in Sources */,
+				7EA1E6F16B65DDEA250DC8C5 /* MintAllocationPieChart.swift in Sources */,
+				2203216B7A95C7061968E7D3 /* MintBalanceLegend.swift in Sources */,
+				DCC506C626DDA40899916653 /* MintDetailView.swift in Sources */,
+				3AE0DBFC1CA063A6AC21FD56 /* MintDiscoveryManager.swift in Sources */,
+				E250B976A938B3889A783E00 /* MintView.swift in Sources */,
+				D044EAC14B431980BDE9CA63 /* MintsView.swift in Sources */,
+				C96FFE635505C91094E445EA /* NostrDataSources.swift in Sources */,
+				6C3619BBC1925CD2012C3030 /* NostrManager.swift in Sources */,
+				BC3A58FB067E1416F621A259 /* NutLogoView.swift in Sources */,
+				2B958B8F7F7AF6395F8D66BC /* NutsackApp.swift in Sources */,
+				0A9832B818F26BDED621CDD3 /* NutzapSettingsView.swift in Sources */,
+				CF64D284C545411381F0E305 /* NutzapView.swift in Sources */,
+				6FCBCB96D05F363442410449 /* PaymentReceivedAnimation.swift in Sources */,
+				5D8EC63090D54040C7CEB07C /* PlatformHelpers.swift in Sources */,
+				DDFC271E78ACBA1BAE003854 /* ProofManagementView.swift in Sources */,
+				FE9B372405B563AA3EC15B71 /* QRCodeGenerator.swift in Sources */,
+				707A32AD80C4C06691C236F0 /* QRScannerView.swift in Sources */,
+				39CD315ACA254FDC07076930 /* ReceiveView.swift in Sources */,
+				37A06CA0B6A4D33F210E8FE8 /* ReceivedNutzapsView.swift in Sources */,
+				D546387471DFA74D85055166 /* RecentTransactionsView.swift in Sources */,
+				85543913BB764490AE12304A /* RelativeTimeView.swift in Sources */,
+				046F9C1180FC8BBC8A09106F /* RelayConnectionViews.swift in Sources */,
+				2BC4F751066C9A3FF8097E62 /* RelayHealthView.swift in Sources */,
+				F33D4EFB5F5A07FED0953D0E /* RelayManagementView.swift in Sources */,
+				BFEA02908127F7398C6C37FE /* RelayStatusIndicator.swift in Sources */,
+				517942D2DD49A8AA4473D66A /* SendView.swift in Sources */,
+				95A1023397C7AECD55F78C73 /* SettingsView.swift in Sources */,
+				0F1A9F62377AD0B676CADD1F /* SplashView.swift in Sources */,
+				F4D2CEAE92BF3D746AE2E29A /* SwapView.swift in Sources */,
+				73C1DF0F9317E5F4C2646618 /* TokenConfirmationView.swift in Sources */,
+				81998AA17B2CB543427F30A5 /* TransactionDetailDrawer.swift in Sources */,
+				A30E03D3719F1A46F36595C3 /* UserProfileViews.swift in Sources */,
+				ECA73CB3D96068C574E172A3 /* WalletDataSources.swift in Sources */,
+				3E17EB5A5226CACB8D750A19 /* WalletEventDetailView.swift in Sources */,
+				993E5AEE067897EC76F4F75C /* WalletEventInfo.swift in Sources */,
+				276233E0707E1C816CA5CFC5 /* WalletEventsView.swift in Sources */,
+				C5EC808ACA739B02BF4058EA /* WalletManager.swift in Sources */,
+				8134F6A0203F3D1AE62CE136 /* WalletOnboardingView.swift in Sources */,
+				D68171CBFD774613B6FC79BD /* WalletSettingsView.swift in Sources */,
+				A2AA28006473A0599859D159 /* WalletView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		3FF2F19CAD215354B254C0A3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Sources/NutsackiOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_NAME = Nutsack;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		56810219CF401379CF550DAD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 456SHKPP26;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nutsack.wallet;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		9188062600093B48F5D48D8F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Sources/NutsackiOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_NAME = Nutsack;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		B5577AF4283C89871B361241 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 456SHKPP26;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nutsack.wallet;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		98383901B72F432DF50A273D /* Build configuration list for PBXProject "NutsackiOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				56810219CF401379CF550DAD /* Debug */,
+				B5577AF4283C89871B361241 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		AAC2A55791C392A66167C67C /* Build configuration list for PBXNativeTarget "NutsackiOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3FF2F19CAD215354B254C0A3 /* Debug */,
+				9188062600093B48F5D48D8F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		9A266D9534540C3B77DC8DA1 /* XCLocalSwiftPackageReference "../../.." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../..;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		8D61774580F270BFA6E25A26 /* NDKSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = NDKSwift;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = FA1D957E3F2904E3E1EE69B6 /* Project object */;
+}

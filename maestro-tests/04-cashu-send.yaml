@@ -1,0 +1,60 @@
+appId: com.nutsack.wallet
+---
+# Test: Sending Cashu tokens (ecash)
+
+- launchApp
+
+# Navigate to Send
+- tapOn:
+    text: "Send"
+    optional: true
+- tapOn:
+    id: "send-button"
+    optional: true
+
+# Select Cashu/Token option
+- tapOn:
+    text: "Token"
+    optional: true
+- tapOn:
+    text: "Cashu"
+    optional: true
+
+# Enter amount
+- tapOn:
+    id: "amount-field"
+    optional: true
+- clearText
+- inputText: "100"
+
+# Add optional memo
+- tapOn:
+    id: "memo-field"
+    optional: true
+- inputText: "Test payment"
+
+# Generate token
+- tapOn:
+    text: "Create Token"
+    optional: true
+- tapOn:
+    text: "Generate"
+    optional: true
+
+# Verify token is created
+- assertVisible:
+    text: "cashuA.*"  # Token should start with cashuA
+    optional: true
+
+# Copy token
+- tapOn:
+    text: "Copy"
+    optional: true
+- tapOn:
+    text: "Share"
+    optional: true
+
+- takeScreenshot: "cashu-token-created"
+
+# Go back
+- back

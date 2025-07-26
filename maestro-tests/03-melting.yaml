@@ -1,0 +1,67 @@
+appId: com.nutsack.wallet
+---
+# Test: Melting (Withdrawing via Lightning)
+
+- launchApp
+
+# Navigate to Send/Melt
+- tapOn:
+    text: "Send"
+    optional: true
+- tapOn:
+    id: "send-button"
+    optional: true
+- tapOn:
+    text: "Melt"
+    optional: true
+
+# Paste or scan Lightning invoice
+- tapOn:
+    text: "Paste"
+    optional: true
+- tapOn:
+    id: "paste-button"
+    optional: true
+
+# Alternative: Enter invoice manually
+- tapOn:
+    id: "invoice-field"
+    optional: true
+- inputText: "lnbc1000n1..." # Sample invoice
+
+# Verify amount and fees
+- assertVisible:
+    text: ".*[Aa]mount.*"
+- assertVisible:
+    text: ".*[Ff]ee.*"
+    optional: true
+
+# Confirm payment
+- tapOn:
+    text: "Send"
+    optional: true
+- tapOn:
+    text: "Confirm"
+    optional: true
+
+# Handle authentication if required
+- tapOn:
+    id: "authenticate"
+    optional: true
+
+# Wait for payment
+- waitForAnimationToEnd
+
+# Verify success
+- assertVisible:
+    text: ".*[Ss]uccess.*"
+    optional: true
+- assertVisible:
+    text: ".*[Pp]aid.*"
+    optional: true
+
+- takeScreenshot: "payment-success"
+
+# Go back to wallet
+- back
+- back

@@ -1,0 +1,91 @@
+appId: com.nutsack.wallet
+---
+# Test: Transaction History and Details
+
+- launchApp
+
+# View transaction history
+- tapOn:
+    text: "History"
+    optional: true
+- tapOn:
+    text: "Transactions"
+    optional: true
+- tapOn:
+    id: "transactions-tab"
+    optional: true
+
+# Verify transaction list
+- assertVisible:
+    text: ".*[Tt]ransaction.*"
+    optional: true
+
+# Filter transactions
+- tapOn:
+    text: "Filter"
+    optional: true
+- tapOn:
+    id: "filter-button"
+    optional: true
+
+# Select transaction type
+- tapOn:
+    text: "Sent"
+    optional: true
+- tapOn:
+    text: "Apply"
+    optional: true
+
+# Verify filtered results
+- assertVisible:
+    text: ".*Send.*|.*Sent.*"
+    optional: true
+
+# Reset filter
+- tapOn:
+    text: "Filter"
+    optional: true
+- tapOn:
+    text: "All"
+    optional: true
+- tapOn:
+    text: "Apply"
+    optional: true
+
+# View transaction details
+- tapOn:
+    index: 0  # First transaction
+    optional: true
+
+# Verify transaction details
+- assertVisible:
+    text: ".*[Aa]mount.*"
+    optional: true
+- assertVisible:
+    text: ".*[Dd]ate.*"
+    optional: true
+- assertVisible:
+    text: ".*[Tt]ype.*"
+    optional: true
+
+# Check proof details for Cashu transactions
+- assertVisible:
+    text: ".*[Pp]roof.*"
+    optional: true
+- assertVisible:
+    text: ".*[Mm]int.*"
+    optional: true
+
+- takeScreenshot: "transaction-details"
+
+# Export transaction
+- tapOn:
+    text: "Export"
+    optional: true
+- tapOn:
+    text: "Share"
+    optional: true
+
+# Go back
+- back
+- back

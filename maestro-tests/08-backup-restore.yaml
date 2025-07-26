@@ -1,0 +1,119 @@
+appId: com.nutsack.wallet
+---
+# Test: Backup and Restore Wallet
+
+- launchApp
+
+# Navigate to Settings
+- tapOn:
+    text: "Settings"
+    optional: true
+- tapOn:
+    id: "settings-tab"
+    optional: true
+
+# Go to Backup section
+- tapOn:
+    text: "Backup"
+    optional: true
+- tapOn:
+    text: "Export"
+    optional: true
+
+# View recovery phrase
+- tapOn:
+    text: "Show Recovery Phrase"
+    optional: true
+- tapOn:
+    text: "View Seed"
+    optional: true
+
+# Authenticate if required
+- tapOn:
+    id: "authenticate"
+    optional: true
+
+# Verify seed words shown
+- assertVisible:
+    text: ".*word.*"
+    optional: true
+- assertVisible:
+    text: "[1-9]"  # Word numbers
+    optional: true
+
+- takeScreenshot: "recovery-phrase"
+
+# Copy seed phrase
+- tapOn:
+    text: "Copy"
+    optional: true
+
+# Test NIP-60 wallet backup
+- back
+- tapOn:
+    text: "Nostr Backup"
+    optional: true
+- tapOn:
+    text: "Backup to Nostr"
+    optional: true
+
+# Confirm backup
+- tapOn:
+    text: "Backup Now"
+    optional: true
+
+# Wait for backup
+- waitForAnimationToEnd
+
+# Verify backup success
+- assertVisible:
+    text: ".*[Bb]acked up.*"
+    optional: true
+- assertVisible:
+    text: ".*[Ss]uccess.*"
+    optional: true
+
+# Test restore flow
+- back
+- back
+- tapOn:
+    text: "Settings"
+- tapOn:
+    text: "Advanced"
+    optional: true
+- tapOn:
+    text: "Reset Wallet"
+    optional: true
+
+# Confirm reset
+- tapOn:
+    text: "Reset"
+    optional: true
+- tapOn:
+    text: "Confirm"
+    optional: true
+
+# Should return to onboarding
+- assertVisible: "Import with nsec"
+
+# Import from seed
+- tapOn: "Import with nsec"
+- tapOn:
+    id: "nsec-field"
+    optional: true
+- inputText: "nsec1..."  # Would paste actual nsec
+
+# Complete import
+- tapOn:
+    text: "Import"
+    optional: true
+
+# Wait for restore
+- waitForAnimationToEnd
+
+# Verify wallet restored
+- assertVisible:
+    text: ".*[Ww]allet.*"
+    optional: true
+
+- takeScreenshot: "wallet-restored"

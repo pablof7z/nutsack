@@ -1,0 +1,44 @@
+appId: com.nutsack.wallet
+---
+# Test Login Flow with Existing nsec
+
+- launchApp
+
+# Wait for app to initialize
+- assertVisible:
+    text: "Nutsack"
+    
+- assertVisible:
+    text: "Lightning-fast payments with Nostr"
+
+# Click Import with nsec button
+- tapOn:
+    text: "Import with nsec"
+
+# Wait for Import Account screen
+- assertVisible:
+    text: "Private Key"
+
+# Enter a test nsec (this is a dummy key for testing)
+- tapOn:
+    text: "nsec1..."
+- inputText: "nsec1vl029mgpspedva04g90vltkh6fvh240zqtv9k0t9af8935ke9laqsnlfe5"
+
+# Login
+- tapOn:
+    text: "Log In"
+
+# Wait for login to complete
+- waitForAnimationToEnd
+
+# Verify we're in the main app
+- assertVisible:
+    text: "Wallet"
+- assertVisible:
+    id: ".*TabView.*"  # Should see the tab view
+
+# Verify we don't see the authentication screen anymore
+- assertNotVisible:
+    text: "Lightning-fast payments with Nostr"
+- assertNotVisible:
+    text: "Import with nsec"

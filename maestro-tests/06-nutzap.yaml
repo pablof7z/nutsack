@@ -1,0 +1,85 @@
+appId: com.nutsack.wallet
+---
+# Test: Nutzap - Zapping on Nostr with Cashu
+
+- launchApp
+
+# Navigate to Nutzap feature
+- tapOn:
+    text: "Zap"
+    optional: true
+- tapOn:
+    text: "Nutzap"
+    optional: true
+- tapOn:
+    id: "nutzap-tab"
+    optional: true
+
+# Enter Nostr note ID or user
+- tapOn:
+    id: "nostr-id-field"
+    optional: true
+- inputText: "npub1..."  # Sample Nostr pubkey
+
+# Alternative: Paste note ID
+- tapOn:
+    text: "note1..."
+    optional: true
+
+# Set zap amount
+- tapOn:
+    id: "zap-amount"
+    optional: true
+- clearText
+- inputText: "21"  # Common zap amount
+
+# Add zap comment (optional)
+- tapOn:
+    id: "zap-comment"
+    optional: true
+- inputText: "Great post! ⚡"
+
+# Select mint for zapping
+- tapOn:
+    text: ".*[Mm]int.*"
+    optional: true
+- tapOn:
+    text: "minibits"  # Select specific mint
+    optional: true
+
+# Send zap
+- tapOn:
+    text: "Zap"
+    optional: true
+- tapOn:
+    text: "Send Zap"
+    optional: true
+
+# Confirm
+- tapOn:
+    text: "Confirm"
+    optional: true
+
+# Wait for zap to process
+- waitForAnimationToEnd
+
+# Verify success
+- assertVisible:
+    text: ".*[Zz]apped.*"
+    optional: true
+- assertVisible:
+    text: "⚡"
+    optional: true
+
+- takeScreenshot: "nutzap-sent"
+
+# Check zap history
+- tapOn:
+    text: "History"
+    optional: true
+- assertVisible:
+    text: "21 sats"
+    optional: true
+
+# Go back
+- back

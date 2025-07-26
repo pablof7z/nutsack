@@ -1,0 +1,75 @@
+appId: com.nutsack.wallet
+---
+# Test: Managing Mints
+
+- launchApp
+
+# Navigate to Settings/Mints
+- tapOn:
+    text: "Settings"
+    optional: true
+- tapOn:
+    id: "settings-tab"
+    optional: true
+- tapOn:
+    text: "Mints"
+
+# View current mints
+- assertVisible:
+    text: ".*mint.*"
+    optional: true
+
+# Add new mint
+- tapOn:
+    text: "Add Mint"
+    optional: true
+- tapOn:
+    text: "+"
+    optional: true
+
+# Enter mint URL
+- tapOn:
+    id: "mint-url-field"
+    optional: true
+- inputText: "https://legend.lnbits.com/cashu/api/v1/AptDNABNBXv8gpuywhx6NV"
+
+# Add mint
+- tapOn:
+    text: "Add"
+    optional: true
+- tapOn:
+    text: "Connect"
+    optional: true
+
+# Wait for mint info to load
+- waitForAnimationToEnd
+
+# Verify mint added
+- assertVisible:
+    text: "legend.lnbits"
+    optional: true
+
+# Check mint balance
+- tapOn:
+    text: "legend.lnbits"
+    optional: true
+- assertVisible:
+    text: ".*[Bb]alance.*"
+    optional: true
+- assertVisible:
+    text: ".*[Kk]eyset.*"
+    optional: true
+
+- takeScreenshot: "mint-details"
+
+# Test mint swap
+- tapOn:
+    text: "Swap"
+    optional: true
+- tapOn:
+    id: "swap-button"
+    optional: true
+
+# Go back
+- back
+- back

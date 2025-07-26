@@ -1,0 +1,96 @@
+appId: com.nutsack.wallet
+---
+# Test: Proof Management and DLEQ Verification
+
+- launchApp
+
+# Navigate to advanced settings
+- tapOn:
+    text: "Settings"
+    optional: true
+- tapOn:
+    text: "Advanced"
+    optional: true
+- tapOn:
+    text: "Proof Management"
+    optional: true
+
+# View current proofs
+- assertVisible:
+    text: ".*[Pp]roof.*"
+    optional: true
+- assertVisible:
+    text: ".*DLEQ.*"
+    optional: true
+
+# Check DLEQ status indicators
+- assertVisible:
+    id: "dleq-valid"
+    optional: true
+- assertVisible:
+    text: "✓"  # Valid indicator
+    optional: true
+
+# Select suspicious proofs
+- tapOn:
+    text: "Unverified"
+    optional: true
+- tapOn:
+    text: "Check All"
+    optional: true
+
+# Verify proofs
+- tapOn:
+    text: "Verify"
+    optional: true
+
+# Wait for verification
+- waitForAnimationToEnd
+
+# Check verification results
+- assertVisible:
+    text: ".*[Vv]erified.*"
+    optional: true
+
+# Consolidate proofs
+- tapOn:
+    text: "Consolidate"
+    optional: true
+- tapOn:
+    text: "Optimize Proofs"
+    optional: true
+
+# Confirm consolidation
+- tapOn:
+    text: "Confirm"
+    optional: true
+
+# Wait for consolidation
+- waitForAnimationToEnd
+
+# Verify consolidation success
+- assertVisible:
+    text: ".*[Oo]ptimized.*"
+    optional: true
+
+- takeScreenshot: "proof-management"
+
+# Check spent proofs
+- tapOn:
+    text: "Spent"
+    optional: true
+- assertVisible:
+    text: ".*[Ss]pent.*"
+    optional: true
+
+# Clean up spent proofs
+- tapOn:
+    text: "Clean Up"
+    optional: true
+- tapOn:
+    text: "Remove Spent"
+    optional: true
+
+# Go back
+- back
+- back

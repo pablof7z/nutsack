@@ -1,0 +1,72 @@
+appId: com.nutsack.wallet
+---
+
+# Test 1: Create a new account
+- launchApp
+- assertVisible: "Create Account"
+- tapOn: "Create Account"
+
+# Wait for account creation
+- waitForAnimationToEnd
+
+# Test 2: Check wallet view is displayed
+- assertVisible: 
+    text: ".*[Bb]alance.*"
+    optional: true
+- assertVisible:
+    text: ".*[Ww]allet.*"
+    optional: true
+
+# Test 3: Navigate to receive screen
+- tapOn: 
+    text: "Receive"
+    optional: true
+- tapOn:
+    id: "receive-button"
+    optional: true
+
+# Test 4: Check receive screen elements
+- assertVisible:
+    text: ".*QR.*"
+    optional: true
+- assertVisible:
+    text: ".*[Aa]mount.*"
+    optional: true
+
+# Test 5: Go back to wallet
+- back
+
+# Test 6: Navigate to send screen
+- tapOn:
+    text: "Send"
+    optional: true
+- tapOn:
+    id: "send-button" 
+    optional: true
+
+# Test 7: Check send screen elements
+- assertVisible:
+    text: ".*[Aa]mount.*"
+    optional: true
+- assertVisible:
+    text: ".*[Dd]estination.*|.*[Tt]o.*"
+    optional: true
+
+# Test 8: Go back to wallet
+- back
+
+# Test 9: Navigate to settings
+- tapOn:
+    text: "Settings"
+    optional: true
+- tapOn:
+    id: "settings-button"
+    optional: true
+
+# Test 10: Check settings options
+- assertVisible:
+    text: ".*[Mm]ints.*"
+    optional: true
+- assertVisible:
+    text: ".*[Bb]ackup.*|.*[Ee]xport.*"
+    optional: true

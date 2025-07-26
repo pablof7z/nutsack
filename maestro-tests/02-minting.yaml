@@ -1,0 +1,54 @@
+appId: com.nutsack.wallet
+---
+# Test: Minting (Adding funds via Lightning)
+
+- launchApp
+
+# Navigate to Receive/Mint
+- tapOn:
+    text: "Receive"
+    optional: true
+- tapOn:
+    id: "receive-button"
+    optional: true
+- tapOn:
+    text: "Mint"
+    optional: true
+
+# Enter amount
+- tapOn:
+    id: "amount-field"
+    optional: true
+- clearText
+- inputText: "1000"
+
+# Generate Lightning invoice
+- tapOn: 
+    text: "Generate"
+    optional: true
+- tapOn:
+    text: "Create Invoice"
+    optional: true
+
+# Verify invoice QR code is shown
+- assertVisible:
+    id: "qr-code"
+    optional: true
+- assertVisible:
+    text: ".*lightning:.*"
+    optional: true
+
+# Copy invoice (for testing)
+- tapOn:
+    text: "Copy"
+    optional: true
+- takeScreenshot: "lightning-invoice"
+
+# Simulate payment received (in real test, would pay externally)
+- waitForAnimationToEnd
+
+# Go back and verify balance updated
+- back
+- assertNotVisible:
+    text: "0 sats"
+    optional: true

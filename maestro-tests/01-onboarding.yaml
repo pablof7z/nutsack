@@ -1,0 +1,42 @@
+appId: com.nutsack.wallet
+---
+# Test: New User Onboarding Flow
+
+- launchApp
+- clearState
+
+# Verify welcome screen
+- assertVisible: "Nutsack"
+- assertVisible: "Lightning-fast payments with Nostr"
+- assertVisible: "Create Account"
+- assertVisible: "Import with nsec"
+
+# Test creating new account
+- tapOn: "Create Account"
+- waitForAnimationToEnd
+
+# Should show wallet setup
+- assertVisible:
+    text: ".*[Ww]allet.*"
+    optional: true
+
+# Configure mint (if prompted)
+- tapOn:
+    text: ".*[Aa]dd.*[Mm]int.*"
+    optional: true
+- inputText: "https://mint.minibits.cash/Bitcoin"
+- tapOn: 
+    text: "Add"
+    optional: true
+- waitForAnimationToEnd
+
+# Verify wallet is created
+- assertVisible:
+    text: "0"  # Initial balance
+    optional: true
+- assertVisible:
+    text: "sats"
+    optional: true
+
+# Take screenshot for documentation
+- takeScreenshot: "wallet-created"
