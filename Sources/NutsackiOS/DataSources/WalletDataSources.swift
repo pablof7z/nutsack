@@ -80,15 +80,49 @@ public class MintDiscoveryDataSource: ObservableObject {
                 continue
             }
             
+            // Parse the content as JSON according to NIP-87
+            var mintName = ""
+            var mintDescription: String? = nil
+            var mintIconURL: String? = nil
+            var mintWebsite: String? = nil
+            var mintContact: String? = nil
+            
+            if !event.content.isEmpty,
+               let contentData = event.content.data(using: .utf8),
+               let json = try? JSONSerialization.jsonObject(with: contentData) as? [String: Any] {
+                // Extract metadata from JSON content
+                mintName = json["name"] as? String ?? ""
+                mintDescription = json["description"] as? String
+                mintIconURL = json["picture"] as? String ?? json["icon"] as? String
+                mintWebsite = json["website"] as? String
+                mintContact = json["contact"] as? String ?? json["email"] as? String
+            }
+            
+            // Fallback to mint URL if no name provided
+            if mintName.isEmpty {
+                if let url = URL(string: mintUrl), let host = url.host {
+                    mintName = host
+                } else {
+                    mintName = "Unknown Mint"
+                }
+            }
+            
             let mint = DiscoveredMint(
                 url: mintUrl,
-                name: event.content,
+                name: mintName,
                 announcedBy: event.pubkey,
                 announcementId: event.id,
                 announcementCreatedAt: event.createdAt,
                 recommendedBy: [],
-                description: event.tags.first(where: { $0.first == "d" })?.dropFirst().first,
-                pubkey: event.tags.first(where: { $0.first == "p" })?.dropFirst().first
+                description: mintDescription,
+                pubkey: event.tags.first(where: { $0.first == "p" })?.dropFirst().first,
+                metadata: MintMetadata(
+                    name: mintName,
+                    description: mintDescription,
+                    iconURL: mintIconURL,
+                    website: mintWebsite,
+                    contact: mintContact
+                )
             )
             
             mintMap[mintUrl] = mint
@@ -133,109 +167,27 @@ public class MintDiscoveryDataSource: ObservableObject {
     }
 }
 
-// MARK: - Wallet Settings Data Source
-
-/// Data source for wallet-specific settings (NIP-78)
-@MainActor
-public class WalletSettingsDataSource: ObservableObject {
-    @Published public private(set) var settings: WalletSettings?
-    @Published public private(set) var isLoading = false
-    @Published public private(set) var error: Error?
-    
-    private let dataSource: NDKDataSource<NDKEvent>
-    private var cancellables = Set<AnyCancellable>()
-    
-    public init(ndk: NDK, pubkey: String) {
-        self.dataSource = ndk.observe(
-            filter: NDKFilter(
-                authors: [pubkey],
-                kinds: [EventKind.applicationSpecificData],
-                tags: ["d": ["nutsack"]]
-            ),
-            maxAge: 0,  // Real-time updates
-            cachePolicy: .cacheWithNetwork
-        )
-        
-        Task {
-            await observeSettings()
-        }
-    }
-    
-    private func observeSettings() async {
-        dataSource.$data
-            .compactMap { events in
-                events.sorted { $0.createdAt > $1.createdAt }.first
-            }
-            .map { event in
-                self.parseWalletSettings(from: event)
-            }
-            .sink { [weak self] settings in
-                self?.settings = settings
-            }
-            .store(in: &cancellables)
-        
-        dataSource.$isLoading
-            .sink { [weak self] isLoading in
-                self?.isLoading = isLoading
-            }
-            .store(in: &cancellables)
-            
-        dataSource.$error
-            .sink { [weak self] error in
-                self?.error = error
-            }
-            .store(in: &cancellables)
-    }
-    
-    private func parseWalletSettings(from event: NDKEvent) -> WalletSettings? {
-        guard let data = event.content.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return nil
-        }
-        
-        return WalletSettings(
-            defaultMintUrl: json["defaultMintUrl"] as? String,
-            swapToDefaultMint: json["swapToDefaultMint"] as? Bool ?? false,
-            autoBackup: json["autoBackup"] as? Bool ?? true,
-            nutzapSettings: parseNutzapSettings(json["nutzap"] as? [String: Any])
-        )
-    }
-    
-    private func parseNutzapSettings(_ json: [String: Any]?) -> NutzapSettings {
-        guard let json = json else {
-            return NutzapSettings()
-        }
-        
-        return NutzapSettings(
-            defaultMintUrl: json["defaultMintUrl"] as? String,
-            p2pkLocked: json["p2pkLocked"] as? Bool ?? true,
-            includeRefundSecrets: json["includeRefundSecrets"] as? Bool ?? false
-        )
-    }
-}
-
 // MARK: - Supporting Types
 
-public struct WalletSettings {
-    public let defaultMintUrl: String?
-    public let swapToDefaultMint: Bool
-    public let autoBackup: Bool
-    public let nutzapSettings: NutzapSettings
-}
-
-public struct NutzapSettings {
-    public let defaultMintUrl: String?
-    public let p2pkLocked: Bool
-    public let includeRefundSecrets: Bool
+public struct MintMetadata {
+    public let name: String
+    public let description: String?
+    public let iconURL: String?
+    public let website: String?
+    public let contact: String?
     
     public init(
-        defaultMintUrl: String? = nil,
-        p2pkLocked: Bool = true,
-        includeRefundSecrets: Bool = false
+        name: String,
+        description: String? = nil,
+        iconURL: String? = nil,
+        website: String? = nil,
+        contact: String? = nil
     ) {
-        self.defaultMintUrl = defaultMintUrl
-        self.p2pkLocked = p2pkLocked
-        self.includeRefundSecrets = includeRefundSecrets
+        self.name = name
+        self.description = description
+        self.iconURL = iconURL
+        self.website = website
+        self.contact = contact
     }
 }
 
@@ -250,6 +202,7 @@ public struct DiscoveredMint: Identifiable {
     public let description: String?
     public let pubkey: String?
     public var mintInfo: NDKMintInfo?
+    public let metadata: MintMetadata?
     
     public init(
         url: String,
@@ -260,7 +213,8 @@ public struct DiscoveredMint: Identifiable {
         recommendedBy: [String] = [],
         description: String? = nil,
         pubkey: String? = nil,
-        mintInfo: NDKMintInfo? = nil
+        mintInfo: NDKMintInfo? = nil,
+        metadata: MintMetadata? = nil
     ) {
         self.id = url
         self.url = url
@@ -272,5 +226,6 @@ public struct DiscoveredMint: Identifiable {
         self.description = description
         self.pubkey = pubkey
         self.mintInfo = mintInfo
+        self.metadata = metadata
     }
 }
