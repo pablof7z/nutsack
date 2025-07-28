@@ -59,23 +59,12 @@ struct UserDisplayName: View {
             return
         }
         
-        // Load individual profile using declarative data source
-        let profileDataSource = ndk.observe(
-            filter: NDKFilter(
-                authors: [pubkey],
-                kinds: [0]
-            ),
-            maxAge: 3600,
-            cachePolicy: .cacheWithNetwork
-        )
-        
-        for await event in profileDataSource.events {
-            if let fetchedProfile = JSONCoding.safeDecode(NDKUserProfile.self, from: event.content) {
-                await MainActor.run {
-                    self.profile = fetchedProfile
-                }
-                break
+        // Load individual profile using NDK's profile manager
+        for await profile in await ndk.profileManager.observe(for: pubkey, maxAge: TimeConstants.hour) {
+            await MainActor.run {
+                self.profile = profile
             }
+            break // Only need first value
         }
     }
     
@@ -167,23 +156,12 @@ struct UserProfilePicture: View {
             return
         }
         
-        // Load individual profile using declarative data source
-        let profileDataSource = ndk.observe(
-            filter: NDKFilter(
-                authors: [pubkey],
-                kinds: [0]
-            ),
-            maxAge: 3600,
-            cachePolicy: .cacheWithNetwork
-        )
-        
-        for await event in profileDataSource.events {
-            if let fetchedProfile = JSONCoding.safeDecode(NDKUserProfile.self, from: event.content) {
-                await MainActor.run {
-                    self.profile = fetchedProfile
-                }
-                break
+        // Load individual profile using NDK's profile manager
+        for await profile in await ndk.profileManager.observe(for: pubkey, maxAge: TimeConstants.hour) {
+            await MainActor.run {
+                self.profile = profile
             }
+            break // Only need first value
         }
     }
     
@@ -260,23 +238,12 @@ struct UserNIP05: View {
             return
         }
         
-        // Load individual profile using declarative data source
-        let profileDataSource = ndk.observe(
-            filter: NDKFilter(
-                authors: [pubkey],
-                kinds: [0]
-            ),
-            maxAge: 3600,
-            cachePolicy: .cacheWithNetwork
-        )
-        
-        for await event in profileDataSource.events {
-            if let fetchedProfile = JSONCoding.safeDecode(NDKUserProfile.self, from: event.content) {
-                await MainActor.run {
-                    self.profile = fetchedProfile
-                }
-                break
+        // Load individual profile using NDK's profile manager
+        for await profile in await ndk.profileManager.observe(for: pubkey, maxAge: TimeConstants.hour) {
+            await MainActor.run {
+                self.profile = profile
             }
+            break // Only need first value
         }
     }
     

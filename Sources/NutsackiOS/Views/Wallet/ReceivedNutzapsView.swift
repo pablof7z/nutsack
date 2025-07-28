@@ -120,7 +120,7 @@ struct ReceivedNutzapsView: View {
     // MARK: - Methods
     
     private func loadNutzaps() async {
-        guard let wallet = walletManager.activeWallet else { return }
+        guard let wallet = walletManager.wallet else { return }
         self.nutzaps = await wallet.getNutzaps()
     }
     
@@ -129,7 +129,7 @@ struct ReceivedNutzapsView: View {
         defer { isRedeeming.remove(nutzap.eventId) }
         
         do {
-            _ = try await walletManager.activeWallet?.redeemNutzap(nutzap.eventId)
+            _ = try await walletManager.wallet?.redeemNutzap(nutzap.eventId)
             await loadNutzaps()
         } catch let error as NutzapRedemptionError {
             errorMessage = error.userFriendlyMessage
@@ -144,7 +144,7 @@ struct ReceivedNutzapsView: View {
         isRetryingAll = true
         defer { isRetryingAll = false }
         
-        guard let wallet = walletManager.activeWallet else { return }
+        guard let wallet = walletManager.wallet else { return }
         
         let results = await wallet.retryFailedNutzaps()
         

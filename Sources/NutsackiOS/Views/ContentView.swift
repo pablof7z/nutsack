@@ -1,10 +1,8 @@
 import SwiftUI
-import SwiftData
 import NDKSwift
 // import Popovers - Removed for build compatibility
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
     @Environment(NostrManager.self) private var nostrManager
     @Environment(WalletManager.self) private var walletManager
@@ -19,12 +17,30 @@ struct ContentView: View {
         ZStack {
             Color(UIColor.systemBackground).ignoresSafeArea()
             
-            if nostrManager.authManager.isAuthenticated {
+            if !nostrManager.isInitialized {
+                // Show loading while NostrManager initializes
+                ProgressView("Initializing...")
+                    .progressViewStyle(CircularProgressViewStyle())
+                    .foregroundColor(.orange)
+            } else if NDKAuthManager.shared.isAuthenticated {
                 // Main app interface - shown when authenticated
                 WalletView(urlState: $urlState, showScanner: $showScanner)
             } else {
                 // Use SplashView as the authentication screen
                 SplashView()
+            }
+        }
+        .onAppear {
+            print("🔍 [ContentView] onAppear")
+            print("🔍 [ContentView] NostrManager.isInitialized: \(nostrManager.isInitialized)")
+            print("🔍 [ContentView] NDKAuthManager.isAuthenticated: \(NDKAuthManager.shared.isAuthenticated)")
+            print("🔍 [ContentView] NostrManager has signer: \(nostrManager.ndk?.signer != nil)")
+            print("🔍 [ContentView] NostrManager.ndk: \(nostrManager.ndk != nil ? "exists" : "nil")")
+            
+            Task {
+                let isConfigured = await walletManager.isWalletConfigured
+                print("🔍 [ContentView] WalletManager.isWalletConfigured: \(isConfigured)")
+                print("🔍 [ContentView] WalletManager.wallet: \(walletManager.wallet != nil ? "exists" : "nil")")
             }
         }
         .ignoresSafeArea()
@@ -85,7 +101,6 @@ struct LightningInvoicePreviewView: View {
     let invoice: String
     @Environment(\.dismiss) private var dismiss
     @Environment(WalletManager.self) private var walletManager
-    @Environment(\.modelContext) private var modelContext
     
     @State private var decodedAmount: Int64?
     @State private var decodedDescription: String?
@@ -351,7 +366,7 @@ struct LightningInvoicePreviewView: View {
     private func loadBalance() {
         Task {
             do {
-                guard let wallet = walletManager.activeWallet else { return }
+                guard let wallet = walletManager.wallet else { return }
                 let balance = try await wallet.getBalance() ?? 0
                 await MainActor.run {
                     availableBalance = Int(balance)

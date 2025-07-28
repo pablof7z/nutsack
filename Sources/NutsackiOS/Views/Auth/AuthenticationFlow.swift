@@ -79,8 +79,10 @@ struct AuthenticationFlow: View {
                 .environment(walletManager)
                 .onDisappear {
                     // If wallet onboarding completes, dismiss the whole auth flow
-                    if walletManager.isWalletConfigured {
-                        dismiss()
+                    Task {
+                        if await walletManager.isWalletConfigured {
+                            dismiss()
+                        }
                     }
                 }
         }
@@ -90,7 +92,11 @@ struct AuthenticationFlow: View {
     private var authButtons: some View {
         VStack(spacing: 16) {
             Button(action: { 
+                print("🔍 [AuthFlow] New Account clicked")
+                print("🔍 [AuthFlow] NDKAuthManager.isAuthenticated: \(NDKAuthManager.shared.isAuthenticated)")
+                print("🔍 [AuthFlow] NostrManager has signer: \(nostrManager.ndk?.signer != nil)")
                 walletOnboardingAuthMode = .create
+                print("🔍 [AuthFlow] Setting authMode to: .create")
                 showWalletOnboarding = true
             }) {
                 HStack {
@@ -117,7 +123,11 @@ struct AuthenticationFlow: View {
             }
             
             Button(action: { 
+                print("🔍 [AuthFlow] Login clicked")
+                print("🔍 [AuthFlow] NDKAuthManager.isAuthenticated: \(NDKAuthManager.shared.isAuthenticated)")
+                print("🔍 [AuthFlow] NostrManager has signer: \(nostrManager.ndk?.signer != nil)")
                 walletOnboardingAuthMode = .import
+                print("🔍 [AuthFlow] Setting authMode to: .import")
                 showWalletOnboarding = true
             }) {
                 HStack {
@@ -141,6 +151,18 @@ struct AuthenticationFlow: View {
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(Color.white.opacity(0.4))
                 .padding(.top, 8)
+            
+            // Show logout option if authenticated
+            if NDKAuthManager.shared.isAuthenticated {
+                Button(action: {
+                    nostrManager.logout()
+                }) {
+                    Text("Logout from current account")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(Color.white.opacity(0.6))
+                }
+                .padding(.top, 16)
+            }
         }
         .padding(.horizontal, 32)
         .opacity(buttonsOpacity)
@@ -252,15 +274,7 @@ struct AuthenticationFlow: View {
     }
     
     private func checkForExistingUser() {
-        // If user is already authenticated but wallet not configured, 
-        // skip auth selection and go directly to wallet setup
-        if nostrManager.authManager.isAuthenticated && !walletManager.isWalletConfigured {
-            // User has auth but no wallet, go to wallet setup with no auth mode
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                walletOnboardingAuthMode = .none
-                showWalletOnboarding = true
-            }
-        }
+        // Don't do anything here - this entire view shouldn't be shown if authenticated
         checkingExistingUser = false
     }
 }

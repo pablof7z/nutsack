@@ -1,67 +1,58 @@
 import Foundation
 import NDKSwift
 import CashuSwift
-import SwiftData
 import Observation
 
 @MainActor
 @Observable
 class WalletManager {
-    var activeWallet: NIP60Wallet?
+    var wallet: NIP60Wallet?
     var isLoading = false
     var error: Error?
-    private var walletTransactions: [WalletTransaction] = [] {
-        didSet {
-            // Update the public transactions array whenever walletTransactions changes
-            transactions = walletTransactions.map { $0.toTransaction() }
+    /// Get current balance directly from the wallet
+    var currentBalance: Int64 {
+        get async {
+            guard let wallet = wallet else { return 0 }
+            return (try? await wallet.getBalance()) ?? 0
         }
     }
-    var currentBalance: Int64 = 0
     
-    /// Transactions converted for UI compatibility
-    /// This is automatically updated when walletTransactions changes
-    private(set) var transactions: [Transaction] = []
-    
-    /// Stored mint URLs for quick access
-    private(set) var mintURLs: [String] = []
+    /// Get transactions directly from the wallet's transaction history
+    var transactions: [Transaction] {
+        get async {
+            guard let wallet = wallet else { return [] }
+            let walletTransactions = await wallet.getRecentTransactions(limit: 50)
+            return walletTransactions.map { $0.toTransaction() }
+        }
+    }
     
     /// Indicates if the wallet is properly configured with at least one mint
     var isWalletConfigured: Bool {
-        return activeWallet != nil && !mintURLs.isEmpty
+        get async {
+            guard let wallet = wallet else { return false }
+            let mints = await wallet.mints.getMintURLs()
+            return !mints.isEmpty
+        }
     }
     
     // Guard against duplicate initialization
     private var isInitializingWallet = false
     
     private let nostrManager: NostrManager
-    private let modelContext: ModelContext
     private let appState: AppState
     
-    // Task for monitoring wallet events
-    private nonisolated(unsafe) var walletEventTask: Task<Void, Never>?
-    
-    // Task for monitoring transaction updates
-    private nonisolated(unsafe) var transactionMonitorTask: Task<Void, Never>?
-    
-    
-    init(nostrManager: NostrManager, modelContext: ModelContext, appState: AppState) {
+    init(nostrManager: NostrManager, appState: AppState) {
         self.nostrManager = nostrManager
-        self.modelContext = modelContext
         self.appState = appState
     }
     
-    deinit {
-        // Cancel tasks
-        walletEventTask?.cancel()
-        transactionMonitorTask?.cancel()
-    }
     
     // MARK: - Wallet Operations
     
     /// Load wallet for currently authenticated user
     func loadWalletForCurrentUser() async throws {
         print("📖 WalletManager.loadWalletForCurrentUser() called")
-        guard nostrManager.isAuthenticated else {
+        guard NDKAuthManager.shared.isAuthenticated else {
             print("📖 Not authenticated, throwing error")
             throw WalletError.notAuthenticated
         }
@@ -99,20 +90,16 @@ class WalletManager {
         print("📘 Creating NIP60Wallet instance")
         let ndkWallet = try NIP60Wallet(ndk: ndk, cache: nostrManager.cache)
         
-        // Set as active wallet
-        self.activeWallet = ndkWallet
-        print("📘 Active wallet set")
+        // Set the wallet
+        self.wallet = ndkWallet
+        print("📘 Wallet set")
         
         // Register the wallet with the zap manager
         if let zapManager = nostrManager.zapManager {
             await zapManager.register(provider: ndkWallet)
         }
         
-        // Start monitoring wallet events through the wallet itself
-        startWalletEventMonitoring()
         
-        // Start monitoring transaction updates
-        startTransactionMonitoring()
         
         // Load wallet - this will fetch initial config and subscribe to wallet events
         print("📘 Calling ndkWallet.load()")
@@ -120,16 +107,11 @@ class WalletManager {
         print("📘 ndkWallet.load() completed")
         
         // The wallet's load() method will emit a balanceChanged event
-        // which our event monitoring task will catch and update currentBalance
-        
-        // However, we should also fetch the initial balance directly to ensure it's set
-        let initialBalance = try await ndkWallet.getBalance() ?? 0
-        self.currentBalance = initialBalance
-        print("📘 Initial balance fetched: \(initialBalance) sats")
+        // Balance is now accessed directly from the wallet via computed property
+        print("📘 Wallet loaded, balance will be fetched on demand")
         
         // Check if wallet has mints configured
         let fetchedMintURLs = await ndkWallet.mints.getMintURLs()
-        self.mintURLs = fetchedMintURLs
         print("📘 Current mint URLs: \(fetchedMintURLs)")
         if fetchedMintURLs.isEmpty {
             print("⚠️ WalletManager - No mints configured. User needs to add mints in wallet settings.")
@@ -153,8 +135,8 @@ class WalletManager {
         // Ensure wallet exists (creates if needed)
         try await ensureWalletExists()
         
-        guard activeWallet != nil else {
-            print("📗 No active wallet after ensureWalletExists, throwing error")
+        guard wallet != nil else {
+            print("📗 No wallet after ensureWalletExists, throwing error")
             throw WalletError.noActiveWallet
         }
         
@@ -165,115 +147,7 @@ class WalletManager {
         }
     }
     
-    /// Start monitoring wallet configuration changes
-    private func startWalletEventMonitoring() {
-        walletEventTask?.cancel()
-        
-        walletEventTask = Task {
-            guard let wallet = activeWallet else { return }
-            
-            for await event in await wallet.events {
-                switch event.type {
-                case .configurationUpdated(let mints):
-                    print("WalletManager - Configuration updated with \(mints.count) mints")
-                    await MainActor.run {
-                        self.mintURLs = mints
-                    }
-                    
-                case .mintsAdded(let addedMints):
-                    print("WalletManager - Mints added: \(addedMints)")
-                    if let wallet = self.activeWallet {
-                        let updatedMintURLs = await wallet.mints.getMintURLs()
-                        await MainActor.run {
-                            self.mintURLs = updatedMintURLs
-                        }
-                    }
-                    
-                case .mintsRemoved(let removedMints):
-                    print("WalletManager - Mints removed: \(removedMints)")
-                    if let wallet = self.activeWallet {
-                        let updatedMintURLs = await wallet.mints.getMintURLs()
-                        await MainActor.run {
-                            self.mintURLs = updatedMintURLs
-                        }
-                    }
-                    
-                case .balanceChanged(let newBalance):
-                    print("WalletManager - Balance changed: \(newBalance)")
-                    await MainActor.run {
-                        self.currentBalance = newBalance
-                    }
-                    
-                case .nutzapReceived(let amount, let from, let eventId):
-                    print("WalletManager - Nutzap received: \(amount) sats from \(from ?? "unknown"), event: \(eventId)")
-                    // Transaction history will be updated automatically by the wallet
-                    
-                case .transactionAdded(let transaction):
-                    print("WalletManager - New transaction added: \(transaction.displayDescription)")
-                    print("WalletManager - Transaction type: \(transaction.type), amount: \(transaction.amount), status: \(transaction.status)")
-                    await MainActor.run {
-                        // Add transaction if not already present
-                        if !self.walletTransactions.contains(where: { $0.id == transaction.id }) {
-                            print("WalletManager - Adding new transaction to list. Current count: \(self.walletTransactions.count)")
-                            self.walletTransactions.insert(transaction, at: 0)
-                            self.sortTransactions()
-                            print("WalletManager - Transaction added. New count: \(self.walletTransactions.count)")
-                            print("WalletManager - UI transactions count: \(self.transactions.count)")
-                        } else {
-                            print("WalletManager - Transaction already exists, skipping")
-                        }
-                    }
-                    
-                case .transactionUpdated(let transaction):
-                    print("WalletManager - Transaction updated: \(transaction.id)")
-                    await MainActor.run {
-                        // Update existing transaction
-                        if let index = self.walletTransactions.firstIndex(where: { $0.id == transaction.id }) {
-                            self.walletTransactions[index] = transaction
-                            // The didSet on walletTransactions will automatically update the transactions array
-                        }
-                    }
-                }
-            }
-        }
-    }
     
-    /// Start monitoring transaction updates from the wallet
-    private func startTransactionMonitoring() {
-        transactionMonitorTask?.cancel()
-        
-        transactionMonitorTask = Task { [weak self] in
-            guard let self = self else { return }
-            
-            do {
-                guard let wallet = activeWallet else { 
-                    throw WalletError.noActiveWallet
-                }
-                
-                // Get initial transactions (last 50)
-                let initialTransactions = await wallet.getRecentTransactions(limit: 50)
-                
-                await MainActor.run {
-                    self.walletTransactions = initialTransactions
-                    // The didSet on walletTransactions will automatically update the transactions array
-                }
-                
-                print("📊 Loaded \(initialTransactions.count) initial transactions")
-                
-            } catch {
-                print("❌ Transaction monitoring error: \(error)")
-                await MainActor.run {
-                    self.error = error
-                }
-            }
-        }
-    }
-    
-    /// Sort transactions by timestamp (newest first)
-    private func sortTransactions() {
-        walletTransactions.sort { $0.timestamp > $1.timestamp }
-        // The didSet on walletTransactions will automatically update the transactions array
-    }
     
     /// Get relays for wallet configuration
     private func getRelaysForWallet() async -> [String] {
@@ -321,7 +195,7 @@ class WalletManager {
     
     /// Get all unspent proofs grouped by mint for offline sending
     func getUnspentProofsByMint() async throws -> [URL: [CashuSwift.Proof]] {
-        guard let wallet = activeWallet else {
+        guard let wallet = wallet else {
             throw WalletError.noActiveWallet
         }
         
@@ -344,7 +218,7 @@ class WalletManager {
         mint: URL,
         memo: String?
     ) async throws -> (token: String, transactionId: UUID) {
-        guard let wallet = activeWallet else {
+        guard let wallet = wallet else {
             throw WalletError.noActiveWallet
         }
         
@@ -355,28 +229,17 @@ class WalletManager {
             memo: memo
         )
         
-        // Create transaction record with offline token
-        let transaction = Transaction(
-            type: .send,
-            amount: Int(proofs.reduce(0) { $0 + Int64($1.amount) }),
-            memo: memo
-        )
-        transaction.status = .completed
-        transaction.offlineToken = token
+        // Transaction will be tracked by wallet's transaction history
+        let transactionId = UUID()
         
-        modelContext.insert(transaction)
-        try modelContext.save()
-        
-        // Transaction will be added when wallet event is processed
-        
-        return (token: token, transactionId: transaction.transactionID)
+        return (token: token, transactionId: transactionId)
     }
     
     // MARK: - Send Operations
     
     /// Send ecash tokens
     func send(amount: Int64, memo: String?, fromMint: URL?) async throws -> String {
-        guard let wallet = activeWallet else {
+        guard let wallet = wallet else {
             throw WalletError.noActiveWallet
         }
         
@@ -483,7 +346,7 @@ class WalletManager {
     
     /// Receive ecash tokens
     func receive(tokenString: String) async throws -> Int64 {
-        guard let wallet = activeWallet else {
+        guard let wallet = wallet else {
             throw WalletError.noActiveWallet
         }
         
@@ -571,7 +434,7 @@ class WalletManager {
     
     /// Pay a Lightning invoice
     func payLightning(invoice: String, amount: Int64) async throws -> String {
-        guard let wallet = activeWallet else {
+        guard let wallet = wallet else {
             throw WalletError.noActiveWallet
         }
         
@@ -617,8 +480,8 @@ class WalletManager {
     ) async throws {
         print("🚀 WalletManager.sendNutzap called - recipient: \(recipient), amount: \(amount), acceptedMints: \(acceptedMints)")
         
-        guard let wallet = activeWallet else {
-            print("❌ No active wallet!")
+        guard let wallet = wallet else {
+            print("❌ No wallet!")
             throw WalletError.noActiveWallet
         }
         
@@ -668,7 +531,7 @@ class WalletManager {
     
     /// Get mint URLs excluding blacklisted ones
     func getActiveMintsURLs() async -> [String] {
-        guard let wallet = activeWallet else { return [] }
+        guard let wallet = wallet else { return [] }
         let allMints = await wallet.mints.getMintURLs()
         return allMints.filter { !appState.isMintBlacklisted($0) }
     }
@@ -687,7 +550,7 @@ class WalletManager {
         fromMint: URL,
         toMint: URL
     ) async throws -> TransferResult {
-        guard let wallet = activeWallet else {
+        guard let wallet = wallet else {
             throw WalletError.noActiveWallet
         }
         
@@ -704,7 +567,7 @@ class WalletManager {
         fromMint: URL,
         toMint: URL
     ) async throws -> (lightningFee: Int64, inputFee: Int64, totalFee: Int64) {
-        guard activeWallet != nil else {
+        guard wallet != nil else {
             throw WalletError.noActiveWallet
         }
         
@@ -722,7 +585,7 @@ class WalletManager {
     
     /// Check and reconcile proof states
     func reconcileProofStates() async throws {
-        guard let wallet = activeWallet else {
+        guard let wallet = wallet else {
             throw WalletError.noActiveWallet
         }
         
@@ -871,7 +734,7 @@ class WalletManager {
     
     /// Check proof states for specific proofs
     func checkProofStates(for proofs: [CashuSwift.Proof], mint mintURL: String) async throws -> [String: CashuSwift.Proof.ProofState] {
-        guard let wallet = activeWallet else {
+        guard let wallet = wallet else {
             throw WalletError.noActiveWallet
         }
         
@@ -902,7 +765,7 @@ class WalletManager {
     
     /// Get wallet's P2PK pubkey
     func getP2PKPubkey() async throws -> String {
-        guard let wallet = activeWallet else {
+        guard let wallet = wallet else {
             throw WalletError.noActiveWallet
         }
         
@@ -917,44 +780,36 @@ class WalletManager {
     
     /// Clear all wallet data and cancel active subscriptions (called during logout)
     func clearWalletData() {
-        // Cancel active subscriptions
-        walletEventTask?.cancel()
-        walletEventTask = nil
-        
-        // Clear data sources (removed obsolete references)
-        
         // Clear wallet state
-        activeWallet = nil
-        walletTransactions.removeAll()
-        // The didSet on walletTransactions will automatically clear the transactions array
-        currentBalance = 0
+        wallet = nil
         
         print("WalletManager - Cleared all wallet data and cancelled subscriptions")
     }
     
     // MARK: - Health Monitoring
     
-    /// Get wallet reference for health monitoring
-    var wallet: NIP60Wallet? {
-        return activeWallet
-    }
+    // wallet property already exposed at the top
     
     // MARK: - Pending Transactions
     
     /// Calculate total pending amount (outgoing is negative, incoming is positive)
     var pendingAmount: Int64 {
-        walletTransactions
-            .filter { $0.status == .pending || $0.status == .processing }
-            .reduce(0) { sum, transaction in
-                switch transaction.direction {
-                case .incoming:
-                    return sum + transaction.amount
-                case .outgoing:
-                    return sum - transaction.amount
-                case .neutral:
-                    return sum
+        get async {
+            guard let wallet = wallet else { return 0 }
+            let walletTransactions = await wallet.getRecentTransactions(limit: 50)
+            return walletTransactions
+                .filter { $0.status == .pending || $0.status == .processing }
+                .reduce(0) { sum, transaction in
+                    switch transaction.direction {
+                    case .incoming:
+                        return sum + transaction.amount
+                    case .outgoing:
+                        return sum - transaction.amount
+                    case .neutral:
+                        return sum
+                    }
                 }
-            }
+        }
     }
     
     // MARK: - Private Methods
@@ -964,7 +819,7 @@ class WalletManager {
 
 enum WalletError: LocalizedError {
     case ndkNotInitialized
-    case noActiveWallet
+    case noActiveWallet // TODO: rename to noWallet
     case notAuthenticated
     case insufficientBalance
     case invalidToken
@@ -978,7 +833,7 @@ enum WalletError: LocalizedError {
         case .ndkNotInitialized:
             return "NDK is not initialized"
         case .noActiveWallet:
-            return "No active wallet"
+            return "No wallet found"
         case .notAuthenticated:
             return "User not authenticated"
         case .insufficientBalance:

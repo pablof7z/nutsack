@@ -12,6 +12,16 @@ struct ContactsView: View {
     @State private var showQRScanner = false
     @State private var contacts: [String] = []
     
+    // Default users to show when no contacts
+    private let defaultUsers = [
+        // Pablo Fernandez
+        try! Bech32.pubkey(from: "npub1l2vyh47mk2p0qlsku7hg0vn29faehy9hy34ygaclpn66ukqp3afqutajft"),
+        // Jack Dorsey
+        try! Bech32.pubkey(from: "npub1sg6plzptd64u62a878hep2kev88swjh3tw00gjsfl8f237lmu63q0uf63m"),
+        // Calle (Cashu creator)
+        try! Bech32.pubkey(from: "npub12rv5lskctqxxs2c8rf2zlzc7xx3qpvzs3w4etgemauy9thegr43sf485vg")
+    ]
+    
     
     var filteredContacts: [String] {
         if searchText.isEmpty {
@@ -110,23 +120,22 @@ struct ContactsView: View {
                 // Contacts list
                 List {
                     if contacts.isEmpty {
-                        VStack(spacing: 16) {
-                            Image(systemName: "person.2.slash")
-                                .font(.largeTitle)
-                                .foregroundStyle(.secondary)
-                            
-                            Text("No contacts yet")
-                                .font(.headline)
-                                .foregroundStyle(.secondary)
-                            
-                            Text("Follow people on Nostr to see them here")
-                                .font(.subheadline)
-                                .foregroundStyle(.tertiary)
-                                .multilineTextAlignment(.center)
+                        Section {
+                            ForEach(defaultUsers, id: \.self) { pubkey in
+                                ContactRow(pubkey: pubkey)
+                            }
+                        } header: {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Suggested Contacts")
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
+                                Text("Follow people on Nostr to see your contacts here")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .textCase(nil)
+                            .padding(.bottom, 4)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 60)
-                        .listRowBackground(Color.clear)
                     } else {
                         ForEach(filteredContacts, id: \.self) { pubkey in
                             ContactRow(pubkey: pubkey)
@@ -234,6 +243,7 @@ struct ContactsView: View {
         }
     }
     
+    @MainActor
     private func loadContacts() async {
         guard let ndk = nostrManager.ndk else { return }
         

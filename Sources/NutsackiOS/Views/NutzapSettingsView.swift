@@ -66,7 +66,7 @@ struct NutzapSettingsView: View {
         Section {
             AsyncContentView(
                 operation: { 
-                    guard let wallet = walletManager.activeWallet else { return [] }
+                    guard let wallet = walletManager.wallet else { return [] }
                     let mintStrings = await wallet.mints.getMintURLs()
                     let mintURLs = mintStrings.compactMap { URL(string: $0) }
                     return mintURLs.map { MintInfo(url: $0) }

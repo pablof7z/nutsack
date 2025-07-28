@@ -126,7 +126,7 @@ struct MintDetailView: View {
     }
     
     private func loadBalance() async {
-        guard let wallet = walletManager.activeWallet else { return }
+        guard let wallet = walletManager.wallet else { return }
         guard let url = URL(string: mintURL) else { return }
         let mintBalance = await wallet.getBalance(mint: url)
         await MainActor.run {
@@ -135,7 +135,7 @@ struct MintDetailView: View {
     }
     
     private func loadMintInfo() async {
-        guard let wallet = walletManager.activeWallet else { return }
+        guard let wallet = walletManager.wallet else { return }
         guard let url = URL(string: mintURL) else { return }
         
         do {
@@ -172,7 +172,7 @@ struct MintDetailView: View {
     private func loadProofs() async {
         isLoadingProofs = true
         
-        guard let wallet = walletManager.activeWallet else {
+        guard let wallet = walletManager.wallet else {
             await MainActor.run { isLoadingProofs = false }
             return
         }
@@ -186,7 +186,7 @@ struct MintDetailView: View {
     }
     
     private func validateAllProofs() async {
-        guard let wallet = walletManager.activeWallet,
+        guard let wallet = walletManager.wallet,
               let url = URL(string: mintURL) else { return }
         
         do {

@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 import NDKSwift
 
 enum PaymentMethod {
@@ -9,7 +8,6 @@ enum PaymentMethod {
 
 struct NutzapView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
     @Environment(NostrManager.self) private var nostrManager
     @Environment(WalletManager.self) private var walletManager
     
@@ -484,7 +482,7 @@ struct NutzapView: View {
     private func loadBalance() {
         Task {
             do {
-                let balance = try await walletManager.activeWallet?.getBalance() ?? 0
+                let balance = try await walletManager.wallet?.getBalance() ?? 0
                 await MainActor.run {
                     availableBalance = Int(balance)
                 }

@@ -10,12 +10,11 @@ class NostrManager {
     var isConnected = false
     var relayStatus: [String: Bool] = [:]
     var zapManager: NDKZapManager?
+    var isInitialized = false
     
-    private var ndkAuthManager: NDKAuthManager
     var cache: NDKSQLiteCache?
     
     // Declarative data sources
-    private(set) var userProfileDataSource: UserProfileDataSource?
     private(set) var contactsMetadataDataSource: MultipleProfilesDataSource?
     
     // Current user's profile
@@ -30,7 +29,6 @@ class NostrManager {
     
     init(from: String) {
         print("🏚️ [NostrManager] Initializing...", from)
-        self.ndkAuthManager = NDKAuthManager.shared
         Task {
             await setupNDK()
         }
@@ -55,7 +53,9 @@ class NostrManager {
         // Set NDK on auth manager
         if let ndk = ndk {
             print("🏚️ [NostrManager] Setting NDK on auth manager")
-            ndkAuthManager.setNDK(ndk)
+            NDKAuthManager.shared.setNDK(ndk)
+            
+            // Auth manager will restore sessions automatically when needed
             
             // Configure NIP-89 client tags for Nutsack
             ndk.clientTagConfig = NDKClientTagConfig(
@@ -74,11 +74,25 @@ class NostrManager {
             // Initialize zap manager
             zapManager = NDKZapManager(ndk: ndk)
             print("🏚️ [NostrManager] Zap manager initialized")
+            
+            // If authenticated after restore, initialize data sources
+            if NDKAuthManager.shared.isAuthenticated {
+                if let signer = NDKAuthManager.shared.activeSigner {
+                    Task {
+                        let pubkey = try await signer.pubkey
+                        await initializeDataSources(for: pubkey)
+                    }
+                }
+            }
         }
         
         Task {
             await connectToRelays()
         }
+        
+        // Mark as initialized
+        isInitialized = true
+        print("🏚️ [NostrManager] Initialization complete")
     }
     
     func connectToRelays() async {
@@ -98,15 +112,34 @@ class NostrManager {
     }
     
     private func monitorRelayStatus() async {
-        guard ndk != nil else { return }
+        guard let ndk = ndk else { return }
         
-        // Relay status monitoring not available in current API
+        // Monitor relay changes
+        for await change in await ndk.relayChanges {
+            switch change {
+            case .relayConnected(let relay):
+                relayStatus[relay.url] = true
+            case .relayDisconnected(let relay):
+                relayStatus[relay.url] = false
+            case .relayAdded(let relay):
+                relayStatus[relay.url] = false
+            case .relayRemoved(let url):
+                relayStatus.removeValue(forKey: url)
+            }
+        }
     }
     
     func login(with privateKey: String) async throws {
         guard let ndk = ndk else { throw NostrError.ndkNotInitialized }
         
         let signer = try NDKPrivateKeySigner(privateKey: privateKey)
+        
+        // Create session via NDKAuthManager for proper persistence
+        _ = try await NDKAuthManager.shared.createSession(
+            with: signer,
+            requiresBiometric: false,
+            isHardwareBacked: false
+        )
         
         // Start session with mute list support
         try await ndk.startSession(
@@ -116,8 +149,6 @@ class NostrManager {
                 preloadStrategy: .progressive
             )
         )
-        
-        // Zap manager gets signer from NDK automatically
         
         let publicKey = try await signer.pubkey
         print("Logged in with public key: \(publicKey)")
@@ -139,6 +170,13 @@ class NostrManager {
         // Generate new private key
         let signer = try NDKPrivateKeySigner.generate()
         
+        // Create auth session for persistence
+        let session = try await NDKAuthManager.shared.createSession(
+            with: signer,
+            requiresBiometric: false,
+            isHardwareBacked: false
+        )
+        
         // Start session with mute list support
         print("🏚️ [NostrManager] Starting session...")
         try await ndk.startSession(
@@ -149,15 +187,6 @@ class NostrManager {
             )
         )
         
-        // Create auth session for persistence
-        let session = try await ndkAuthManager.createSession(
-            with: signer,
-            requiresBiometric: false,
-            isHardwareBacked: false
-        )
-        
-        // Zap manager gets signer from NDK automatically
-        
         // Create and publish profile
         let metadata = NDKUserProfile(
             name: displayName,
@@ -166,7 +195,7 @@ class NostrManager {
             picture: picture
         )
         
-        if ndkAuthManager.isAuthenticated {
+        if NDKAuthManager.shared.isAuthenticated {
             print("🏚️ [NostrManager] User is authenticated, publishing metadata...")
             // Create metadata event
             let metadataContent = try JSONCoding.encodeToString(metadata)
@@ -178,7 +207,7 @@ class NostrManager {
             _ = try await ndk.publish(metadataEvent)
             
             // Update session with profile
-            try await ndkAuthManager.updateActiveSessionProfile(metadata)
+            try await NDKAuthManager.shared.updateActiveSessionProfile(metadata)
         }
         
         // Initialize declarative data sources
@@ -195,7 +224,6 @@ class NostrManager {
         currentUserProfile = nil
         
         // Clean up data sources
-        userProfileDataSource = nil
         contactsMetadataDataSource = nil
         
         // Clear all cached data and sessions
@@ -206,13 +234,13 @@ class NostrManager {
             }
             
             // Clear all sessions from keychain to prevent "Welcome back" scenario
-            for session in ndkAuthManager.availableSessions {
-                try? await ndkAuthManager.deleteSession(session)
+            for session in NDKAuthManager.shared.availableSessions {
+                try? await NDKAuthManager.shared.deleteSession(session)
             }
         }
         
         // Clear active authentication state
-        ndkAuthManager.logout()
+        NDKAuthManager.shared.logout()
         
         // Clear NDK signer
         ndk?.signer = nil
@@ -227,12 +255,7 @@ class NostrManager {
     
     /// Check if user is authenticated via NDKAuth
     var isAuthenticated: Bool {
-        ndkAuthManager.isAuthenticated
-    }
-    
-    /// Get auth manager for use in UI
-    var authManager: NDKAuthManager {
-        return ndkAuthManager
+        NDKAuthManager.shared.isAuthenticated
     }
     
     /// Create account using existing nsec
@@ -242,6 +265,13 @@ class NostrManager {
         
         let signer = try NDKPrivateKeySigner(nsec: nsec)
         
+        // Create auth session for persistence
+        let session = try await NDKAuthManager.shared.createSession(
+            with: signer,
+            requiresBiometric: false,
+            isHardwareBacked: false
+        )
+        
         // Start session with mute list support
         try await ndk.startSession(
             signer: signer,
@@ -250,15 +280,6 @@ class NostrManager {
                 preloadStrategy: .progressive
             )
         )
-        
-        // Create auth session for persistence
-        let session = try await ndkAuthManager.createSession(
-            with: signer,
-            requiresBiometric: false,
-            isHardwareBacked: false
-        )
-        
-        // Zap manager gets signer from NDK automatically
         
         // Initialize declarative data sources
         await initializeDataSources(for: session.pubkey)
@@ -270,8 +291,8 @@ class NostrManager {
     /// Get current user from auth manager
     var currentUser: NDKUser? {
         get async {
-            guard ndkAuthManager.isAuthenticated else { return nil }
-            return try? await ndkAuthManager.activeSigner?.user()
+            guard NDKAuthManager.shared.isAuthenticated else { return nil }
+            return try? await NDKAuthManager.shared.activeSigner?.user()
         }
     }
     
@@ -293,8 +314,6 @@ class NostrManager {
             }
         }
         
-        // Initialize user profile data source (kept for compatibility)
-        userProfileDataSource = UserProfileDataSource(ndk: ndk, pubkey: pubkey)
         
         // Load contacts and initialize metadata data source
         Task {
@@ -346,7 +365,7 @@ class NostrManager {
     
     /// Perform startup sync after wallet has loaded
     func performStartupSync() async {
-        guard let ndk = ndk, isAuthenticated else {
+        guard let ndk = ndk, NDKAuthManager.shared.isAuthenticated else {
             print("NostrManager - Cannot perform startup sync: NDK not ready or user not authenticated")
             return
         }
@@ -458,13 +477,19 @@ class NostrManager {
     }
     
     /// Add a user relay and persist it
-    func addUserRelay(_ relayURL: String) {
+    func addUserRelay(_ relayURL: String) async {
+        guard let ndk = ndk else { return }
+        
         var userRelays = getUserAddedRelays()
         guard !userRelays.contains(relayURL) && !defaultRelays.contains(relayURL) else {
             print("NostrManager - Relay \(relayURL) already exists")
             return
         }
         
+        // Add relay via NDK
+        await ndk.addRelayAndConnect(relayURL)
+        
+        // Persist to UserDefaults for app restarts
         userRelays.append(relayURL)
         UserDefaults.standard.set(userRelays, forKey: Self.userRelaysKey)
         print("NostrManager - Added user relay: \(relayURL)")
@@ -472,7 +497,19 @@ class NostrManager {
     }
     
     /// Remove a user relay and persist the change
-    func removeUserRelay(_ relayURL: String) {
+    func removeUserRelay(_ relayURL: String) async {
+        guard let ndk = ndk else { return }
+        
+        // Don't remove default relays
+        guard !defaultRelays.contains(relayURL) else {
+            print("NostrManager - Cannot remove default relay: \(relayURL)")
+            return
+        }
+        
+        // Remove relay via NDK
+        await ndk.removeRelay(relayURL)
+        
+        // Update UserDefaults
         var userRelays = getUserAddedRelays()
         userRelays.removeAll(value: relayURL)
         UserDefaults.standard.set(userRelays, forKey: Self.userRelaysKey)

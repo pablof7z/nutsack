@@ -1,12 +1,10 @@
 import SwiftUI
-import SwiftData
 import NDKSwift
 
 struct ReceiveView: View {
     let tokenString: String?
     
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
     @Environment(WalletManager.self) private var walletManager
     
     @State private var inputToken = ""

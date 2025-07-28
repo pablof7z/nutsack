@@ -24,7 +24,7 @@ struct WalletSettingsView: View {
         NavigationStack {
             Form {
                 // Wallet Configuration Warning
-                if !hasWalletInfo && walletManager.activeWallet != nil {
+                if !hasWalletInfo && walletManager.wallet != nil {
                     Section {
                         HStack {
                             Image(systemName: "exclamationmark.triangle")
@@ -237,7 +237,7 @@ struct WalletSettingsView: View {
         print("DEBUG: loadCurrentSettings() called")
         
         // Load current configuration directly from the wallet
-        if let wallet = walletManager.activeWallet {
+        if let wallet = walletManager.wallet {
             // Get mints from the wallet's mint manager, filtering out blacklisted ones
             let mintURLs = await wallet.mints.getMintURLs()
             print("DEBUG: Loaded mint URLs from wallet: \(mintURLs)")
@@ -285,7 +285,7 @@ struct WalletSettingsView: View {
     
     private func fetchMintInfo(url: URL) async throws -> MintInfo {
         // Use wallet's mint manager to fetch proper mint info
-        if let wallet = walletManager.activeWallet {
+        if let wallet = walletManager.wallet {
             do {
                 let ndkMintInfo = try await wallet.mints.getMintInfo(url: url)
                 // Convert NDKMintInfo to local MintInfo
@@ -307,7 +307,7 @@ struct WalletSettingsView: View {
         isSaving = true
         
         do {
-            guard let wallet = walletManager.activeWallet else {
+            guard let wallet = walletManager.wallet else {
                 throw WalletError.noActiveWallet
             }
             
@@ -356,10 +356,9 @@ struct WalletSettingsView: View {
         
         // Start new discovery task
         discoveryTask = Task {
-            guard let ndk = nostrManager.ndk else { return }
+            guard nostrManager.ndk != nil else { return }
             
-            let discoveryManager = MintDiscoveryManager(ndk: ndk)
-            _ = discoveryManager.discoverMintsStream() // Start the stream
+            // Just show the sheet - the DiscoveredMintsSheet will handle the discovery
         }
         
         // Show the sheet immediately
@@ -435,7 +434,7 @@ struct MintSettingsRow: View {
     }
     
     private func updateBalance() async {
-        guard let wallet = walletManager.activeWallet else { return }
+        guard let wallet = walletManager.wallet else { return }
         let mintBalance = await wallet.getBalance(mint: mintInfo.url)
         await MainActor.run {
             balance = mintBalance
@@ -619,7 +618,7 @@ struct AddMintSheet: View {
                         .autocapitalization(.none)
                         #endif
                         .autocorrectionDisabled()
-                        .onChange(of: mintURL) { _ in
+                        .onChange(of: mintURL) { _, _ in
                             validationError = ""
                         }
                 } header: {
@@ -736,14 +735,25 @@ struct DiscoveredMintsSheet: View {
         guard let ndk = nostrManager.ndk else { return }
         
         streamTask = Task {
-            let discoveryManager = MintDiscoveryManager(ndk: ndk)
-            
-            for await mints in discoveryManager.discoverMintsStream() {
-                if Task.isCancelled { break }
-                
-                await MainActor.run {
-                    discoveredMints = mints
+            // Get user's followed pubkeys for mint recommendations
+            var followedPubkeys: [String] = []
+            if let user = await nostrManager.currentUser {
+                let contactList = try? await user.fetchContactList()
+                if let contactList = contactList {
+                    // NDKContactList has a contacts property that contains NDKContactEntry objects
+                    followedPubkeys = contactList.contacts.map { $0.user.pubkey }
                 }
+            }
+            
+            // Create discovery data source
+            let discoveryDataSource = MintDiscoveryDataSource(ndk: ndk, followedPubkeys: followedPubkeys)
+            
+            // Observe discovered mints
+            while !Task.isCancelled {
+                await MainActor.run {
+                    self.discoveredMints = discoveryDataSource.discoveredMints
+                }
+                try? await Task.sleep(nanoseconds: 1_000_000_000) // Update every second
             }
         }
     }

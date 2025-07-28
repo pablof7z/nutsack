@@ -1,14 +1,10 @@
 import SwiftUI
-import SwiftData
 import NDKSwift
 
 struct RecentTransactionsView: View {
     @Environment(WalletManager.self) private var walletManager
     
-    // Use reactive transactions from wallet manager
-    private var recentTransactions: [Transaction] {
-        Array(walletManager.transactions.prefix(5))
-    }
+    @State private var recentTransactions: [Transaction] = []
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -50,6 +46,14 @@ struct RecentTransactionsView: View {
                 .cornerRadius(12)
             }
         }
+        .task {
+            await loadTransactions()
+        }
+    }
+    
+    private func loadTransactions() async {
+        let transactions = await walletManager.transactions
+        self.recentTransactions = Array(transactions.prefix(5))
     }
 }
 
@@ -302,7 +306,7 @@ struct TransactionRow: View {
             
             // Fetch mint info if we have a mint URL
             if let mintURL = transaction.mintURL,
-               let wallet = walletManager.activeWallet,
+               let wallet = walletManager.wallet,
                let url = URL(string: mintURL) {
                 
                 do {
@@ -321,6 +325,7 @@ struct TransactionHistoryView: View {
     @Environment(WalletManager.self) private var walletManager
     
     @State private var selectedFilter: TransactionFilter = .all
+    @State private var allTransactions: [Transaction] = []
     
     enum TransactionFilter: String, CaseIterable {
         case all = "All"
@@ -337,7 +342,7 @@ struct TransactionHistoryView: View {
     }
     
     var filteredTransactions: [Transaction] {
-        walletManager.transactions
+        allTransactions
             .filter { selectedFilter.matches($0) }
             .sorted { $0.createdAt > $1.createdAt }
     }
@@ -362,6 +367,13 @@ struct TransactionHistoryView: View {
         .navigationTitle("Transaction History")
         .platformNavigationBarTitleDisplayMode(inline: true)
         .listStyle(.plain)
+        .task {
+            await loadTransactions()
+        }
+    }
+    
+    private func loadTransactions() async {
+        allTransactions = await walletManager.transactions
     }
 }
 
@@ -440,7 +452,7 @@ struct TransactionDetailRow: View {
         .task {
             // Fetch mint info if we have a mint URL
             if let mintURL = transaction.mintURL,
-               let wallet = walletManager.activeWallet,
+               let wallet = walletManager.wallet,
                let url = URL(string: mintURL) {
                 
                 do {

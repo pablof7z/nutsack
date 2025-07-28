@@ -183,7 +183,7 @@ struct ProofManagementView: View {
     private func loadAllProofs() async {
         isLoading = true
         
-        guard let wallet = walletManager.activeWallet else {
+        guard let wallet = walletManager.wallet else {
             await MainActor.run { isLoading = false }
             return
         }
@@ -209,7 +209,7 @@ struct ProofManagementView: View {
         isValidating = true
         validationResults.removeAll()
         
-        guard let wallet = walletManager.activeWallet else {
+        guard let wallet = walletManager.wallet else {
             await MainActor.run { isValidating = false }
             return
         }
@@ -237,7 +237,7 @@ struct ProofManagementView: View {
         isDeleting = true
         deleteError = nil
         
-        guard let wallet = walletManager.activeWallet else {
+        guard let wallet = walletManager.wallet else {
             await MainActor.run { isDeleting = false }
             return
         }

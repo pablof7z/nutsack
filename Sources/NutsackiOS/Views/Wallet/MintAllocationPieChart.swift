@@ -227,7 +227,7 @@ struct MintAllocationPieChart: View {
         isLoading = true
         defer { isLoading = false }
         
-        guard let wallet = walletManager.activeWallet else { return }
+        guard let wallet = walletManager.wallet else { return }
         
         // Get balances grouped by mint directly
         let balancesByMint = await wallet.getBalancesByMint()

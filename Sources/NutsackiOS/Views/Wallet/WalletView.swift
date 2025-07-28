@@ -1,10 +1,8 @@
 import SwiftUI
-import SwiftData
 import NDKSwift
 // import Popovers - Removed for build compatibility
 
 struct WalletView: View {
-    @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
     @Environment(NostrManager.self) private var nostrManager
     @Environment(WalletManager.self) private var walletManager
@@ -19,6 +17,7 @@ struct WalletView: View {
     @State private var showWalletSettings = false
     @State private var showSettings = false
     @State private var showWalletOnboarding = false
+    @State private var isWalletConfigured = false
     
     enum WalletDestination: Identifiable, Hashable {
         case mint
@@ -52,7 +51,7 @@ struct WalletView: View {
     var body: some View {
         NavigationStack {
             VStack {
-                if !walletManager.isWalletConfigured {
+                if !isWalletConfigured {
                     EmptyWalletView(showWalletOnboarding: $showWalletOnboarding)
                 } else {
                     ScrollView {
@@ -102,7 +101,7 @@ struct WalletView: View {
                     }
                 }
                 
-                if walletManager.activeWallet != nil {
+                if walletManager.wallet != nil {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button(action: { showWalletSettings = true }) {
                             Image(systemName: "gearshape")
@@ -152,10 +151,15 @@ struct WalletView: View {
             }
             .onAppear {
                 print("🟢 WalletView - onAppear called at \(Date())")
-                print("🟢 WalletView - activeWallet exists: \(walletManager.activeWallet != nil)")
-                print("🟢 WalletView - isAuthenticated: \(nostrManager.isAuthenticated)")
+                print("🟢 WalletView - activeWallet exists: \(walletManager.wallet != nil)")
+                print("🟢 WalletView - isAuthenticated: \(NDKAuthManager.shared.isAuthenticated)")
                 print("🟢 WalletView - signer available: \(nostrManager.ndk?.signer != nil)")
                 loadWalletIfNeeded()
+                
+                // Check wallet configuration
+                Task {
+                    isWalletConfigured = await walletManager.isWalletConfigured
+                }
             }
             .onChange(of: urlState) { oldValue, newValue in
                 if let newValue {
@@ -163,8 +167,8 @@ struct WalletView: View {
                     urlState = nil
                 }
             }
-            .onChange(of: nostrManager.isAuthenticated) { oldValue, newValue in
-                if newValue && walletManager.activeWallet == nil {
+            .onChange(of: NDKAuthManager.shared.isAuthenticated) { oldValue, newValue in
+                if newValue && walletManager.wallet == nil {
                     loadWalletIfNeeded()
                 }
             }
@@ -175,6 +179,9 @@ struct WalletView: View {
                     .onDisappear {
                         // Reload wallet after onboarding
                         Task {
+                            isWalletConfigured = await walletManager.isWalletConfigured
+                        }
+                        Task {
                             try? await walletManager.loadWalletForCurrentUser()
                         }
                     }
@@ -183,7 +190,7 @@ struct WalletView: View {
                 print("🔵 WalletView - Task started at \(Date())")
                 // Monitor for signer availability when authenticated
                 var attempts = 0
-                while nostrManager.isAuthenticated && walletManager.activeWallet == nil {
+                while NDKAuthManager.shared.isAuthenticated && walletManager.wallet == nil {
                     attempts += 1
                     print("🔵 WalletView - Task checking signer (attempt \(attempts))")
                     if nostrManager.ndk?.signer != nil {
@@ -201,11 +208,11 @@ struct WalletView: View {
     
     private func loadWalletIfNeeded() {
         print("🟡 loadWalletIfNeeded called from \(Thread.current)")
-        guard nostrManager.isAuthenticated else {
+        guard NDKAuthManager.shared.isAuthenticated else {
             print("🟡 loadWalletIfNeeded - Not authenticated, skipping")
             return
         }
-        guard walletManager.activeWallet == nil else {
+        guard walletManager.wallet == nil else {
             print("🟡 loadWalletIfNeeded - Wallet already active, skipping")
             return
         }
@@ -250,7 +257,18 @@ struct EmptyWalletView: View {
     var body: some View {
         Color.clear
             .onAppear {
-                showWalletOnboarding = true
+                print("🔍 [EmptyWalletView] Detected authenticated user with no wallet")
+                print("🔍 [EmptyWalletView] NostrManager has signer: \(nostrManager.ndk?.signer != nil)")
+                print("🔍 [EmptyWalletView] NDKAuthManager.isAuthenticated: \(NDKAuthManager.shared.isAuthenticated)")
+                
+                // If we have auth state but no signer, clear the lingering auth state
+                if nostrManager.ndk?.signer == nil && NDKAuthManager.shared.isAuthenticated {
+                    print("🔍 [EmptyWalletView] Clearing lingering auth state - no signer found")
+                    nostrManager.logout()
+                    // Don't show wallet onboarding, let ContentView handle showing AuthenticationFlow
+                } else {
+                    showWalletOnboarding = true
+                }
             }
     }
 }
@@ -366,11 +384,22 @@ struct ContactsScrollView: View {
     @State private var contacts: [NDKUser] = []
     @State private var scrollOffset: CGFloat = 0
     
+    // Default users to show when no contacts
+    private let defaultUsers = [
+        // Pablo Fernandez
+        NDKUser(pubkey: try! Bech32.pubkey(from: "npub1l2vyh47mk2p0qlsku7hg0vn29faehy9hy34ygaclpn66ukqp3afqutajft")),
+        // Jack Dorsey
+        NDKUser(pubkey: try! Bech32.pubkey(from: "npub1sg6plzptd64u62a878hep2kev88swjh3tw00gjsfl8f237lmu63q0uf63m")),
+        // Calle (Cashu creator)
+        NDKUser(pubkey: try! Bech32.pubkey(from: "npub12rv5lskctqxxs2c8rf2zlzc7xx3qpvzs3w4etgemauy9thegr43sf485vg"))
+    ]
+    
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 16) {
-                    ForEach(contacts, id: \.pubkey) { contact in
+                    // Show default users if no contacts, otherwise show contacts
+                    ForEach(contacts.isEmpty ? defaultUsers : contacts, id: \.pubkey) { contact in
                         ContactAvatarView(user: contact) {
                             navigationDestination = .nutzap(pubkey: contact.pubkey)
                         }
@@ -406,7 +435,7 @@ struct ContactsScrollView: View {
                 })
             }
             .coordinateSpace(name: "scroll")
-            .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
+            .onPreferenceChange(ScrollOffsetPreferenceKey.self) { @MainActor value in
                 scrollOffset = value
                 // If scrolled far enough to the right (view all button visible)
                 if value < -UIScreen.main.bounds.width {
@@ -419,6 +448,7 @@ struct ContactsScrollView: View {
         }
     }
     
+    @MainActor
     private func loadContacts() async {
         guard let ndk = nostrManager.ndk else { return }
         
@@ -554,7 +584,7 @@ struct ContactAvatarView: View {
 }
 
 struct ScrollOffsetPreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
+    static let defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
     }

@@ -37,8 +37,10 @@ struct DebugLoggingView: View {
             Section {
                 Toggle("Log Network Traffic", isOn: $logNetworkTraffic)
                     .onChange(of: logNetworkTraffic) {
-                        NDKLogger.logNetworkTraffic = logNetworkTraffic
-                        hasChanges = true
+                        Task { @MainActor in
+                            NDKLogger.logNetworkTraffic = logNetworkTraffic
+                            hasChanges = true
+                        }
                     }
                 
                 Toggle("Pretty Print Messages", isOn: $prettyPrintNetworkMessages)

@@ -61,7 +61,7 @@ struct BlacklistedMintsView: View {
     }
     
     private func loadAvailableMints() async {
-        guard let wallet = walletManager.activeWallet else { return }
+        guard let wallet = walletManager.wallet else { return }
         let mintURLs = await wallet.mints.getMintURLs()
         await MainActor.run {
             availableMints = mintURLs

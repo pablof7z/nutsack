@@ -19,7 +19,6 @@
 		2BC4F751066C9A3FF8097E62 /* RelayHealthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AFA24434F57D28213E47F35 /* RelayHealthView.swift */; };
 		37A06CA0B6A4D33F210E8FE8 /* ReceivedNutzapsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C0816FCB2308D992EAD2413 /* ReceivedNutzapsView.swift */; };
 		39CD315ACA254FDC07076930 /* ReceiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29823E16BE363E01B66A8DE5 /* ReceiveView.swift */; };
-		3AE0DBFC1CA063A6AC21FD56 /* MintDiscoveryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89F70690BBEA51B2AC1E862F /* MintDiscoveryManager.swift */; };
 		3E17EB5A5226CACB8D750A19 /* WalletEventDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD23BF78658593B392C7FF56 /* WalletEventDetailView.swift */; };
 		517942D2DD49A8AA4473D66A /* SendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7ACD26D8FA1630E42EFEC94 /* SendView.swift */; };
 		541EA1BE0A780695052037D0 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9A0E485A77CC33154C81E180 /* LaunchScreen.storyboard */; };
@@ -71,7 +70,6 @@
 		0474797B3D70A3F5E50DE4E0 /* NostrManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NostrManager.swift; sourceTree = "<group>"; };
 		055295357886CE289C42C9DD /* NutzapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutzapView.swift; sourceTree = "<group>"; };
 		06737C2A632A68CE0C55183C /* WalletSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletSettingsView.swift; sourceTree = "<group>"; };
-		08FD0B036D231EFF73DF7BAA /* NDKSwift-z94ws0 */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "NDKSwift-z94ws0"; path = ../../..; sourceTree = SOURCE_ROOT; };
 		139C4ED82E0344CDED10AAA3 /* WalletManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletManager.swift; sourceTree = "<group>"; };
 		179914F131C3EA8E9C86C2DF /* RelayConnectionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelayConnectionViews.swift; sourceTree = "<group>"; };
 		20CD4E4BCD9A73999656B525 /* RelayStatusIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelayStatusIndicator.swift; sourceTree = "<group>"; };
@@ -98,7 +96,6 @@
 		82C1BE0D91363F5EBE756682 /* NostrDataSources.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NostrDataSources.swift; sourceTree = "<group>"; };
 		83C0ABB1873A67C266D19106 /* UserProfileViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileViews.swift; sourceTree = "<group>"; };
 		85C54882260F3096F3402AEE /* DiscoveredMintsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoveredMintsView.swift; sourceTree = "<group>"; };
-		89F70690BBEA51B2AC1E862F /* MintDiscoveryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MintDiscoveryManager.swift; sourceTree = "<group>"; };
 		8B052F81B7B409EB3A7F20DE /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		9484A8DCD0E6CDFA798237DF /* NutzapSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutzapSettingsView.swift; sourceTree = "<group>"; };
 		962F8D0E61C0A3CED699E5E5 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
@@ -139,14 +136,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		0F5C723A79A2399FD0888DB3 /* Packages */ = {
-			isa = PBXGroup;
-			children = (
-				08FD0B036D231EFF73DF7BAA /* NDKSwift-z94ws0 */,
-			);
-			name = Packages;
-			sourceTree = "<group>";
-		};
 		3F9A56A4A696A91EC7F21DED /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -206,7 +195,6 @@
 			children = (
 				8B052F81B7B409EB3A7F20DE /* AppState.swift */,
 				700018D5285AFEF01AAB1679 /* DataModels.swift */,
-				89F70690BBEA51B2AC1E862F /* MintDiscoveryManager.swift */,
 				0474797B3D70A3F5E50DE4E0 /* NostrManager.swift */,
 				9D5B9AA3E71133AA8A3EA248 /* WalletEventInfo.swift */,
 				139C4ED82E0344CDED10AAA3 /* WalletManager.swift */,
@@ -256,7 +244,6 @@
 			isa = PBXGroup;
 			children = (
 				467E487C8CF61695EFC1D79C /* NutsackiOS */,
-				0F5C723A79A2399FD0888DB3 /* Packages */,
 				3F9A56A4A696A91EC7F21DED /* Products */,
 			);
 			sourceTree = "<group>";
@@ -343,7 +330,7 @@
 			mainGroup = B89419047D4D87C5B3DE04E1;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				9A266D9534540C3B77DC8DA1 /* XCLocalSwiftPackageReference "../../.." */,
+				493972121BA0A86A5B95DCC1 /* XCRemoteSwiftPackageReference "NDKSwift" */,
 			);
 			preferredProjectObjectVersion = 54;
 			projectDirPath = "";
@@ -408,7 +395,6 @@
 				7EA1E6F16B65DDEA250DC8C5 /* MintAllocationPieChart.swift in Sources */,
 				2203216B7A95C7061968E7D3 /* MintBalanceLegend.swift in Sources */,
 				DCC506C626DDA40899916653 /* MintDetailView.swift in Sources */,
-				3AE0DBFC1CA063A6AC21FD56 /* MintDiscoveryManager.swift in Sources */,
 				E250B976A938B3889A783E00 /* MintView.swift in Sources */,
 				D044EAC14B431980BDE9CA63 /* MintsView.swift in Sources */,
 				C96FFE635505C91094E445EA /* NostrDataSources.swift in Sources */,
@@ -465,6 +451,7 @@
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -553,6 +540,7 @@
 				SDKROOT = iphoneos;
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -643,16 +631,21 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		9A266D9534540C3B77DC8DA1 /* XCLocalSwiftPackageReference "../../.." */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../../..;
+/* Begin XCRemoteSwiftPackageReference section */
+		493972121BA0A86A5B95DCC1 /* XCRemoteSwiftPackageReference "NDKSwift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pablof7z/NDKSwift";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
 		};
-/* End XCLocalSwiftPackageReference section */
+/* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		8D61774580F270BFA6E25A26 /* NDKSwift */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 493972121BA0A86A5B95DCC1 /* XCRemoteSwiftPackageReference "NDKSwift" */;
 			productName = NDKSwift;
 		};
 /* End XCSwiftPackageProductDependency section */

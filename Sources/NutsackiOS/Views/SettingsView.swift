@@ -1,9 +1,7 @@
 import SwiftUI
-import SwiftData
 import NDKSwift
 
 struct SettingsView: View {
-    @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
     @Environment(NostrManager.self) private var nostrManager
     @Environment(WalletManager.self) private var walletManager
@@ -318,7 +316,7 @@ struct AccountDetailView: View {
     }
     
     private func loadPrivateKey() {
-        guard let signer = nostrManager.authManager.activeSigner as? NDKPrivateKeySigner else {
+        guard let signer = NDKAuthManager.shared.activeSigner as? NDKPrivateKeySigner else {
             nsecKey = nil
             return
         }
@@ -501,16 +499,15 @@ struct UnpublishedEventsView: View {
     @State private var lastRetryTime: Date?
     @State private var showRetrySuccess = false
     @State private var retriedCount = 0
+    @State private var selectedEvent: NDKEvent?
+    @State private var showingEventDetails = false
     
     var body: some View {
-        NavigationView {
-            List {
-                // Status Section
+        List {
+            // Status Section
                 Section {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Unpublished Events")
-                                .font(.headline)
                             if isLoading {
                                 Text("Checking...")
                                     .font(.caption)
@@ -560,6 +557,10 @@ struct UnpublishedEventsView: View {
                                 targetRelays: eventInfo.targetRelays,
                                 onRetry: {
                                     retryEvent(at: index)
+                                },
+                                onTap: {
+                                    selectedEvent = eventInfo.event
+                                    showingEventDetails = true
                                 }
                             )
                         }
@@ -589,22 +590,26 @@ struct UnpublishedEventsView: View {
                     }
                 }
             }
-            .navigationTitle("Unpublished Events")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .refreshable {
+        .navigationTitle("Unpublished Events")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.large)
+        #endif
+        .refreshable {
+            await loadUnpublishedEvents()
+        }
+        .onAppear {
+            Task {
                 await loadUnpublishedEvents()
             }
-            .onAppear {
-                Task {
-                    await loadUnpublishedEvents()
-                }
-            }
-            .alert("Retry Successful", isPresented: $showRetrySuccess) {
-                Button("OK") { }
-            } message: {
-                Text("Successfully retried \(retriedCount) events")
+        }
+        .alert("Retry Successful", isPresented: $showRetrySuccess) {
+            Button("OK") { }
+        } message: {
+            Text("Successfully retried \(retriedCount) events")
+        }
+        .sheet(isPresented: $showingEventDetails) {
+            if let event = selectedEvent {
+                UnpublishedEventDetailView(event: event)
             }
         }
     }
@@ -673,62 +678,69 @@ struct UnpublishedEventRow: View {
     let event: NDKEvent
     let targetRelays: Set<String>
     let onRetry: () -> Void
+    let onTap: () -> Void
     
     @State private var isRetrying = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Event content preview
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(eventKindName)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+        HStack {
+            VStack(alignment: .leading, spacing: 8) {
+                // Event content preview
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(eventKindName)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        
+                        if !event.content.isEmpty {
+                            Text(event.content)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(3)
+                        }
+                    }
                     
-                    if !event.content.isEmpty {
-                        Text(event.content)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(3)
-                    }
+                    Spacer()
                 }
                 
-                Spacer()
-                
-                Button(action: retryEvent) {
-                    if isRetrying {
-                        ProgressView()
-                            .scaleEffect(0.7)
-                    } else {
-                        Image(systemName: "arrow.clockwise")
-                            .foregroundColor(.orange)
-                    }
+                // Metadata
+                HStack {
+                    Text("Created: \(Date(timeIntervalSince1970: TimeInterval(event.createdAt)), style: .relative)")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    
+                    Spacer()
+                    
+                    Text("\(targetRelays.count) relays")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
                 }
-                .disabled(isRetrying)
-                .buttonStyle(.plain)
+                
+                // Target relays (abbreviated)
+                if !targetRelays.isEmpty {
+                    Text("Targets: \(abbreviatedRelayList)")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                }
             }
             
-            // Metadata
-            HStack {
-                Text("Created: \(Date(timeIntervalSince1970: TimeInterval(event.createdAt)), style: .relative)")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                
-                Spacer()
-                
-                Text("\(targetRelays.count) relays")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
+            Spacer()
             
-            // Target relays (abbreviated)
-            if !targetRelays.isEmpty {
-                Text("Targets: \(abbreviatedRelayList)")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
+            Button(action: retryEvent) {
+                if isRetrying {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                } else {
+                    Image(systemName: "arrow.clockwise")
+                        .foregroundColor(.orange)
+                }
             }
+            .disabled(isRetrying)
+            .buttonStyle(.plain)
         }
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onTap)
         .padding(.vertical, 4)
     }
     
@@ -1027,6 +1039,8 @@ struct CacheStatsView: View {
     }
 }
 
+#endif
+
 // MARK: - Cache Statistics Extensions
 extension CacheStatistics {
     var sortedEventKinds: [EventKindStatistic] {
@@ -1046,4 +1060,199 @@ struct EventKindStatistic {
     let count: Int
 }
 
-#endif
+// MARK: - Unpublished Event Detail View
+struct UnpublishedEventDetailView: View {
+    let event: NDKEvent
+    @Environment(\.dismiss) private var dismiss
+    @State private var copiedToClipboard = false
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Event Metadata
+                    VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("Event ID")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                            }
+                            Text(event.id)
+                                .font(.system(.caption, design: .monospaced))
+                                .textSelection(.enabled)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("Kind")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                            }
+                            Text("\(event.kind)")
+                                .font(.system(.body, design: .monospaced))
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("Created At")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                            }
+                            Text("\(Date(timeIntervalSince1970: TimeInterval(event.createdAt)), formatter: DateFormatter.fullDateTimeFormatter)")
+                                .font(.system(.caption, design: .monospaced))
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("Author")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                            }
+                            Text(NDKUser(pubkey: event.pubkey).npub)
+                                .font(.system(.caption, design: .monospaced))
+                                .textSelection(.enabled)
+                        }
+                    .padding()
+                    .background(Color(UIColor.secondarySystemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    
+                    // Tags
+                    if !event.tags.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                                Text("Tags")
+                                    .font(.headline)
+                                    .padding(.bottom, 4)
+                                
+                                ForEach(Array(event.tags.enumerated()), id: \.offset) { index, tag in
+                                    HStack(alignment: .top, spacing: 8) {
+                                        Text("\(index)")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .frame(width: 20, alignment: .trailing)
+                                        
+                                        Text(tag.joined(separator: ", "))
+                                            .font(.system(.caption, design: .monospaced))
+                                            .textSelection(.enabled)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    .padding(.vertical, 2)
+                                }
+                        }
+                        .padding()
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
+                    
+                    // Content
+                    if !event.content.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                                Text("Content")
+                                    .font(.headline)
+                                    .padding(.bottom, 4)
+                                
+                                Text(event.content)
+                                    .font(.system(.caption, design: .monospaced))
+                                    .textSelection(.enabled)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .padding()
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
+                    
+                    // Raw JSON
+                    VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("Raw Event JSON")
+                                    .font(.headline)
+                                Spacer()
+                                Button(action: copyRawJSON) {
+                                    Label(
+                                        copiedToClipboard ? "Copied!" : "Copy",
+                                        systemImage: copiedToClipboard ? "checkmark.circle.fill" : "doc.on.doc"
+                                    )
+                                    .font(.caption)
+                                    .foregroundColor(copiedToClipboard ? .green : .accentColor)
+                                }
+                            }
+                            .padding(.bottom, 4)
+                            
+                            ScrollView(.horizontal) {
+                                Text(formattedJSON)
+                                    .font(.system(.caption, design: .monospaced))
+                                    .textSelection(.enabled)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                    }
+                    .padding()
+                    .background(Color(UIColor.secondarySystemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+                .padding()
+            }
+            .navigationTitle("Event Details")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+    
+    private var formattedJSON: String {
+        let eventDict: [String: Any] = [
+            "id": event.id,
+            "pubkey": event.pubkey,
+            "created_at": event.createdAt,
+            "kind": event.kind,
+            "tags": event.tags,
+            "content": event.content,
+            "sig": event.sig
+        ]
+        
+        if let jsonData = try? JSONSerialization.data(withJSONObject: eventDict, options: [.prettyPrinted, .sortedKeys]),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            return jsonString
+        }
+        
+        return "Failed to format JSON"
+    }
+    
+    private func copyRawJSON() {
+        #if os(iOS)
+        UIPasteboard.general.string = formattedJSON
+        #else
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(formattedJSON, forType: .string)
+        #endif
+        
+        withAnimation {
+            copiedToClipboard = true
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            withAnimation {
+                copiedToClipboard = false
+            }
+        }
+    }
+}
+
+// MARK: - Date Formatter Extension
+extension DateFormatter {
+    static let fullDateTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .medium
+        return formatter
+    }()
+}

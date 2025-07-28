@@ -1,6 +1,6 @@
 import SwiftUI
 import NDKSwift
-import SwiftData
+import Combine
 
 struct WalletOnboardingView: View {
     @Environment(\.dismiss) private var dismiss
@@ -37,7 +37,8 @@ struct WalletOnboardingView: View {
     // Mint discovery
     @State private var discoveredMints: [DiscoveredMint] = []
     @State private var isDiscoveringMints = true // Start as true since we begin discovery immediately
-    @State private var mintDiscoveryTask: Task<Void, Never>?
+    @State private var mintDiscoveryDataSource: MintDiscoveryDataSource?
+    @State private var cancellables = Set<AnyCancellable>()
     
     // Auth form states
     @State private var displayName = ""
@@ -55,8 +56,13 @@ struct WalletOnboardingView: View {
     
     init(authMode: AuthMode = .none) {
         self.authMode = authMode
-        // If authMode is .none, skip auth and go to step 1
-        self._currentStep = State(initialValue: authMode == .none ? 1 : 0)
+        // Start at step 0 for import/create, step 1 for none (already authenticated)
+        let initialStep = authMode == .none ? 1 : 0
+        self._currentStep = State(initialValue: initialStep)
+        
+        print("🔍 [WalletOnboarding] Init with authMode: \(authMode)")
+        print("🔍 [WalletOnboarding] Setting initial step to: \(initialStep)")
+        print("🔍 [WalletOnboarding] Step 0 = REGISTER/LOGIN, Step 1 = SETUP")
     }
     
     private var currentTitle: String {
@@ -305,62 +311,106 @@ struct WalletOnboardingView: View {
                         
                         // Logout button
                         Button(action: {
-                            Task {
-                                await nostrManager.logout()
-                                dismiss()
-                            }
+                            nostrManager.logout()
+                            dismiss()
                         }) {
                             Text("Logout")
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundColor(Color.white.opacity(0.6))
                         }
                     } else if currentStep == 2 {
-                        // Next button for relay selection
-                        Button(action: {
-                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                                currentStep = 3
-                            }
-                        }) {
-                            HStack {
-                                Text("Next: Select Mints")
+                        // Next button for relay selection with back arrow
+                        HStack(spacing: 12) {
+                            Button(action: {
+                                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                                    currentStep = 1
+                                }
+                            }) {
+                                Image(systemName: "arrow.left")
                                     .font(.system(size: 18, weight: .semibold))
-                                Image(systemName: "arrow.right")
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(width: 56, height: 56)
+                                    .background(Color.white.opacity(0.1))
+                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                                    )
                             }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        selectedRelays.isEmpty ? Color.gray : Color.orange,
-                                        selectedRelays.isEmpty ? Color.gray.opacity(0.8) : Color(red: 0.9, green: 0.5, blue: 0.1)
-                                    ]),
-                                    startPoint: .leading,
-                                    endPoint: .trailing
+                            
+                            Button(action: {
+                                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                                    currentStep = 3
+                                }
+                            }) {
+                                HStack {
+                                    Text("Next: Select Mints")
+                                        .font(.system(size: 18, weight: .semibold))
+                                    Image(systemName: "arrow.right")
+                                        .font(.system(size: 16, weight: .semibold))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 56)
+                                .background(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            selectedRelays.isEmpty ? Color.gray : Color.orange,
+                                            selectedRelays.isEmpty ? Color.gray.opacity(0.8) : Color(red: 0.9, green: 0.5, blue: 0.1)
+                                        ]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
                                 )
-                            )
-                            .foregroundColor(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                            .shadow(color: selectedRelays.isEmpty ? Color.clear : Color.orange.opacity(0.3), radius: 10, x: 0, y: 4)
-                        }
-                        .disabled(selectedRelays.isEmpty)
-                        
-                        // Back button
-                        Button(action: {
-                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                                currentStep = 1
+                                .foregroundColor(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                                .shadow(color: selectedRelays.isEmpty ? Color.clear : Color.orange.opacity(0.3), radius: 10, x: 0, y: 4)
                             }
-                        }) {
-                            Text("Back")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(Color.white.opacity(0.6))
+                            .disabled(selectedRelays.isEmpty)
                         }
                     } else if currentStep == 3 {
-                        // Setup wallet button
-                        Button(action: setupWallet) {
-                            if isSettingUpWallet {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        // Setup wallet button with back arrow
+                        HStack(spacing: 12) {
+                            Button(action: {
+                                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                                    currentStep = 2
+                                }
+                            }) {
+                                Image(systemName: "arrow.left")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(width: 56, height: 56)
+                                    .background(Color.white.opacity(0.1))
+                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                                    )
+                            }
+                            
+                            Button(action: setupWallet) {
+                                if isSettingUpWallet {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 56)
+                                        .background(
+                                            LinearGradient(
+                                                gradient: Gradient(colors: [
+                                                    Color.orange,
+                                                    Color(red: 0.9, green: 0.5, blue: 0.1)
+                                                ]),
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                        )
+                                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                                } else {
+                                    HStack {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.system(size: 20))
+                                        Text("Complete Setup")
+                                            .font(.system(size: 18, weight: .semibold))
+                                    }
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 56)
                                     .background(
@@ -373,42 +423,12 @@ struct WalletOnboardingView: View {
                                             endPoint: .trailing
                                         )
                                     )
+                                    .foregroundColor(.white)
                                     .clipShape(RoundedRectangle(cornerRadius: 16))
-                            } else {
-                                HStack {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.system(size: 20))
-                                    Text("Complete Setup")
-                                        .font(.system(size: 18, weight: .semibold))
+                                    .shadow(color: Color.orange.opacity(0.3), radius: 10, x: 0, y: 4)
                                 }
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 56)
-                                .background(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color.orange,
-                                            Color(red: 0.9, green: 0.5, blue: 0.1)
-                                        ]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .foregroundColor(.white)
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
-                                .shadow(color: Color.orange.opacity(0.3), radius: 10, x: 0, y: 4)
                             }
-                        }
-                        .disabled(selectedRelays.isEmpty || isSettingUpWallet)
-                        
-                        // Back button
-                        Button(action: {
-                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                                currentStep = 2
-                            }
-                        }) {
-                            Text("Back")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(Color.white.opacity(0.7))
+                            .disabled(selectedRelays.isEmpty || isSettingUpWallet)
                         }
                     }
                 }
@@ -419,13 +439,17 @@ struct WalletOnboardingView: View {
             }
         }
         .onAppear {
+            print("🔍 [WalletOnboarding] onAppear - authMode: \(authMode), currentStep: \(currentStep)")
+            print("🔍 [WalletOnboarding] NostrManager has signer: \(nostrManager.ndk?.signer != nil)")
+            print("🔍 [WalletOnboarding] NDKAuthManager.isAuthenticated: \(NDKAuthManager.shared.isAuthenticated)")
+            
             animateOnboarding()
             // Start mint discovery immediately when view appears
             startMintDiscovery()
         }
         .onDisappear {
-            // Cancel mint discovery when view disappears
-            mintDiscoveryTask?.cancel()
+            // Clean up subscriptions when view disappears
+            cancellables.removeAll()
         }
         .alert("Setup Error", isPresented: $showError) {
             Button("OK") { }
@@ -483,28 +507,40 @@ struct WalletOnboardingView: View {
     
     private func startMintDiscovery() {
         // Start mint discovery immediately, even before authentication
-        mintDiscoveryTask = Task {
+        Task {
             // Wait for NDK to be available (should be almost immediate)
-            while nostrManager.ndk == nil && !Task.isCancelled {
+            while nostrManager.ndk == nil {
                 try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
             }
             
-            guard let ndk = nostrManager.ndk, !Task.isCancelled else { return }
+            guard let ndk = nostrManager.ndk else { return }
             
-            // Use MintDiscoveryManager to get mints
-            let discoveryManager = MintDiscoveryManager(ndk: ndk)
+            // Use the existing working MintDiscoveryDataSource
+            let dataSource = MintDiscoveryDataSource(ndk: ndk)
+            await MainActor.run {
+                self.mintDiscoveryDataSource = dataSource
+            }
             
-            // Create an async stream to collect discovered mints
-            for await mints in discoveryManager.discoverMintsStream() {
-                guard !Task.isCancelled else { break }
-                
-                await MainActor.run {
-                    self.discoveredMints = mints
-                    // After first batch of mints, we're no longer "discovering"
-                    if !mints.isEmpty && self.isDiscoveringMints {
-                        self.isDiscoveringMints = false
+            // Observe changes from the data source
+            await MainActor.run {
+                dataSource.$discoveredMints
+                    .sink { mints in
+                        print("🎯 [WalletOnboarding] Received \(mints.count) mints from data source")
+                        self.discoveredMints = mints
+                        
+                        // After first batch of mints, we're no longer "discovering"
+                        if !mints.isEmpty && self.isDiscoveringMints {
+                            self.isDiscoveringMints = false
+                            print("🎯 [WalletOnboarding] Set isDiscoveringMints to false")
+                        }
                     }
-                }
+                    .store(in: &cancellables)
+                
+                dataSource.$isLoading
+                    .sink { isLoading in
+                        self.isDiscoveringMints = isLoading && self.discoveredMints.isEmpty
+                    }
+                    .store(in: &cancellables)
             }
         }
     }
@@ -517,8 +553,11 @@ struct WalletOnboardingView: View {
         
         Task {
             do {
-                guard let wallet = walletManager.activeWallet else {
-                    throw NSError(domain: "WalletOnboarding", code: 0, userInfo: [NSLocalizedDescriptionKey: "No active wallet found"])
+                // First ensure the wallet exists (this creates the NIP60Wallet instance)
+                try await walletManager.loadWalletForCurrentUser()
+                
+                guard let wallet = walletManager.wallet else {
+                    throw NSError(domain: "WalletOnboarding", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to create wallet"])
                 }
                 
                 // Setup wallet with selected relays and mints
@@ -903,7 +942,6 @@ struct WalletOnboardingView: View {
                 }
                 
                 // Also fetch profile while we're at it
-                var displayName = "Nostr User"
                 let profileDataSource = ndk.observe(
                     filter: NDKFilter(
                         authors: [pubkey],
@@ -915,8 +953,8 @@ struct WalletOnboardingView: View {
                 
                 for await event in profileDataSource.events {
                     if let profileData = event.content.data(using: .utf8),
-                       let profile = JSONCoding.safeDecode(NDKUserProfile.self, from: profileData) {
-                        displayName = profile.displayName ?? profile.name ?? "Nostr User"
+                       let _ = JSONCoding.safeDecode(NDKUserProfile.self, from: profileData) {
+                        // Profile loaded successfully
                         break
                     }
                 }
@@ -1151,8 +1189,10 @@ struct MintSelectionView: View {
     var sortedMints: [DiscoveredMint] {
         discoveredMints.sorted { first, second in
             // Sort by presence of icon first (mints with icons come first)
-            if (first.mintInfo?.iconURL != nil) != (second.mintInfo?.iconURL != nil) {
-                return first.mintInfo?.iconURL != nil
+            let firstHasIcon = (first.metadata?.iconURL != nil || first.mintInfo?.iconURL != nil)
+            let secondHasIcon = (second.metadata?.iconURL != nil || second.mintInfo?.iconURL != nil)
+            if firstHasIcon != secondHasIcon {
+                return firstHasIcon
             }
             // Then by recommendation count
             if first.recommendedBy.count != second.recommendedBy.count {
@@ -1554,7 +1594,7 @@ struct CustomMintRowView: View {
     
     private func loadMintInfo() async {
         guard mintInfo == nil,
-              let wallet = walletManager.activeWallet,
+              let wallet = walletManager.wallet,
               let url = URL(string: mintURL) else { return }
         
         do {
@@ -1589,13 +1629,9 @@ struct MintRowView: View {
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white)
                     
-                    if let description = mint.description, !description.isEmpty {
+                    if let description = mint.metadata?.description ?? mint.description ?? mintInfo?.description, 
+                       !description.isEmpty {
                         Text(description)
-                            .font(.system(size: 14))
-                            .foregroundColor(Color.white.opacity(0.7))
-                            .lineLimit(2)
-                    } else if let mintDescription = mintInfo?.description, !mintDescription.isEmpty {
-                        Text(mintDescription)
                             .font(.system(size: 14))
                             .foregroundColor(Color.white.opacity(0.7))
                             .lineLimit(2)
@@ -1628,7 +1664,7 @@ struct MintRowView: View {
     
     private func loadMintInfo() async {
         guard mintInfo == nil,
-              let wallet = walletManager.activeWallet,
+              let wallet = walletManager.wallet,
               let url = URL(string: mint.url) else { return }
         
         do {
@@ -1663,7 +1699,7 @@ struct MintIconView: View {
                 )
                 .frame(width: 48, height: 48)
             
-            if let iconURL = mintInfo?.iconURL,
+            if let iconURL = mint.metadata?.iconURL ?? mintInfo?.iconURL,
                !iconURL.isEmpty,
                let url = URL(string: iconURL),
                !hasError {
@@ -1707,7 +1743,6 @@ struct WalletOnboardingView_Previews: PreviewProvider {
         WalletOnboardingView()
             .environment(WalletManager(
                 nostrManager: NostrManager(from: "Preview"),
-                modelContext: try! ModelContainer(for: Transaction.self).mainContext,
                 appState: AppState()
             ))
             .environment(NostrManager(from: "Preview"))

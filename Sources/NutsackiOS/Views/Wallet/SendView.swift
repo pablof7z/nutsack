@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 import NDKSwift
 import CashuSwift
 #if os(iOS)
@@ -10,7 +9,6 @@ import AppKit
 
 struct SendView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
     @Environment(WalletManager.self) private var walletManager
     
     @State private var amount = ""
@@ -461,14 +459,14 @@ struct SendView: View {
     private func updateAvailableBalance() {
         Task {
             if let mintURL = selectedMintURL {
-                let balance = await walletManager.activeWallet?.getBalance(mint: mintURL) ?? 0
+                let balance = await walletManager.wallet?.getBalance(mint: mintURL) ?? 0
                 await MainActor.run {
                     availableBalance = Int(balance)
                 }
             } else {
                 // Get total balance
                 do {
-                    let totalBalance = try await walletManager.activeWallet?.getBalance() ?? 0
+                    let totalBalance = try await walletManager.wallet?.getBalance() ?? 0
                     await MainActor.run {
                         availableBalance = Int(totalBalance)
                     }
@@ -481,7 +479,7 @@ struct SendView: View {
     
     private func loadMints() {
         Task {
-            guard let wallet = walletManager.activeWallet else { return }
+            guard let wallet = walletManager.wallet else { return }
             
             // Get balances for all mints (this gives us the full list like the pie chart)
             let balancesByMint = await wallet.getBalancesByMint()

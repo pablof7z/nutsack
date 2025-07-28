@@ -1,6 +1,5 @@
 import SwiftUI
 import NDKSwift
-import SwiftData
 
 struct RelayHealthView: View {
     @Environment(WalletManager.self) private var walletManager
@@ -228,7 +227,7 @@ struct RelayHealthView: View {
     // MARK: - Actions
     
     private func refreshHealth() async {
-        guard let wallet = walletManager.activeWallet else { return }
+        guard let wallet = walletManager.wallet else { return }
         
         isLoading = true
         defer { isLoading = false }
@@ -422,7 +421,7 @@ struct RelayRepairSheet: View {
     }
     
     private func performRepair() {
-        guard let wallet = walletManager.activeWallet else { return }
+        guard let wallet = walletManager.wallet else { return }
         
         Task {
             isRepairing = true
@@ -450,11 +449,7 @@ struct RelayRepairSheet: View {
 #Preview {
     // Create mock objects for preview
     let nostrManager = NostrManager(from: "Health")
-    let schema = Schema([Transaction.self])
-    let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: schema, configurations: [modelConfiguration])
-    let context = container.mainContext
     
     RelayHealthView()
-        .environment(WalletManager(nostrManager: nostrManager, modelContext: context, appState: AppState()))
+        .environment(WalletManager(nostrManager: nostrManager, appState: AppState()))
 }

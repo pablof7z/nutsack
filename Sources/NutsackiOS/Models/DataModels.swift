@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 import NDKSwift
 
 // MARK: - MintInfo
@@ -25,9 +24,9 @@ struct MintInfo: Identifiable, Equatable, Hashable {
 // References to NIP60Wallet.MintInfo should be changed to just MintInfo
 
 // MARK: - Transaction
-@Model
-final class Transaction {
-    @Attribute(.unique)
+// UI model for displaying transactions (no longer a SwiftData @Model)
+struct Transaction: Identifiable {
+    let id = UUID()
     var transactionID: UUID
     
     var type: TransactionType
@@ -106,7 +105,7 @@ import NDKSwift
 extension WalletTransaction {
     /// Convert WalletTransaction to app's Transaction model for UI compatibility
     func toTransaction() -> Transaction {
-        let transaction = Transaction(
+        var transaction = Transaction(
             type: mapTransactionType(),
             amount: Int(amount),
             memo: memo ?? displayDescription

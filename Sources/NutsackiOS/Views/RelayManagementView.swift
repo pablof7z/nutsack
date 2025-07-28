@@ -366,7 +366,7 @@ struct RelayDetailView: View {
             await relay.disconnect()
             
             // Remove from persistent storage
-            nostrManager.removeUserRelay(relay.url)
+            await nostrManager.removeUserRelay(relay.url)
             
             await MainActor.run {
                 dismiss()
@@ -492,7 +492,7 @@ struct AddRelayView: View {
                 }
                 
                 // Persist the relay for future app launches
-                nostrManager.addUserRelay(relayURL)
+                await nostrManager.addUserRelay(relayURL)
                 
                 await MainActor.run {
                     dismiss()

@@ -1,10 +1,8 @@
 import SwiftUI
-import SwiftData
 import NDKSwift
 import CashuSwift
 
 struct MintsView: View {
-    @Environment(\.modelContext) private var modelContext
     @Environment(WalletManager.self) private var walletManager
     @EnvironmentObject private var appState: AppState
     
@@ -100,7 +98,7 @@ struct MintsView: View {
     }
     
     private func loadMints() async {
-        guard walletManager.activeWallet != nil else { 
+        guard walletManager.wallet != nil else { 
             await MainActor.run {
                 isLoading = false
             }
@@ -169,7 +167,7 @@ struct MintRow: View {
     }
     
     private func updateBalance() async {
-        guard let wallet = walletManager.activeWallet else { return }
+        guard let wallet = walletManager.wallet else { return }
         let mintBalance = await wallet.getBalance(mint: mintInfo.url)
         await MainActor.run {
             balance = mintBalance
@@ -276,7 +274,7 @@ struct MintInfoDetailView: View {
     }
     
     private func updateBalance() async {
-        guard let wallet = walletManager.activeWallet else { return }
+        guard let wallet = walletManager.wallet else { return }
         let mintBalance = await wallet.getBalance(mint: mintInfo.url)
         await MainActor.run {
             balance = mintBalance
@@ -288,7 +286,7 @@ struct MintInfoDetailView: View {
         
         Task {
             do {
-                try await walletManager.activeWallet?.mints.refreshMintKeysets(url: mintInfo.url)
+                try await walletManager.wallet?.mints.refreshMintKeysets(url: mintInfo.url)
                 
                 await MainActor.run {
                     isSyncing = false

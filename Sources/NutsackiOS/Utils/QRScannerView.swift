@@ -18,6 +18,7 @@ struct QRScannerView: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: QRScannerViewController, context: Context) {}
 }
 
+@MainActor
 class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
     var captureSession: AVCaptureSession!
     var previewLayer: AVCaptureVideoPreviewLayer!
@@ -167,14 +168,16 @@ class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsD
         }
     }
     
-    func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
-        captureSession.stopRunning()
-        
-        if let metadataObject = metadataObjects.first {
-            guard let readableObject = metadataObject as? AVMetadataMachineReadableCodeObject else { return }
-            guard let stringValue = readableObject.stringValue else { return }
-            AudioServicesPlaySystemSound(SystemSoundID(kSystemSoundID_Vibrate))
-            found(code: stringValue)
+    nonisolated func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
+        Task { @MainActor in
+            captureSession.stopRunning()
+            
+            if let metadataObject = metadataObjects.first {
+                guard let readableObject = metadataObject as? AVMetadataMachineReadableCodeObject else { return }
+                guard let stringValue = readableObject.stringValue else { return }
+                AudioServicesPlaySystemSound(SystemSoundID(kSystemSoundID_Vibrate))
+                found(code: stringValue)
+            }
         }
     }
     

@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 import NDKSwift
 
 struct SwapView: View {
@@ -307,7 +306,7 @@ struct SwapView: View {
     
     private func loadMintBalances() {
         Task {
-            guard let wallet = walletManager.activeWallet else { return }
+            guard let wallet = walletManager.wallet else { return }
             
             // Get balances by mint from the wallet
             let balancesByMint = await wallet.getBalancesByMint()

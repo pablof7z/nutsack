@@ -407,7 +407,7 @@ struct TransactionDetailDrawer: View {
         
         // Load mint info
         if let mintURL = transaction.mintURL,
-           let wallet = walletManager.activeWallet,
+           let wallet = walletManager.wallet,
            let url = URL(string: mintURL) {
             
             do {

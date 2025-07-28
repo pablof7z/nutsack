@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 import NDKSwift
 import CashuSwift
 #if os(iOS)
@@ -85,7 +84,7 @@ struct MintView: View {
     }
     
     private func loadMints() async {
-        guard let wallet = walletManager.activeWallet else { return }
+        guard let wallet = walletManager.wallet else { return }
         let mintURLs = await wallet.mints.getMintURLs()
         let mints = mintURLs.compactMap { urlString -> MintInfo? in
             guard let url = URL(string: urlString) else { return nil }
@@ -299,7 +298,7 @@ struct MintView: View {
         Task {
             do {
                 // Request mint quote from the wallet
-                guard let wallet = walletManager.activeWallet else {
+                guard let wallet = walletManager.wallet else {
                     throw WalletError.noActiveWallet
                 }
                 let quote = try await wallet.requestMint(
@@ -335,7 +334,7 @@ struct MintView: View {
         
         depositTask = Task {
             do {
-                guard let wallet = walletManager.activeWallet else { return }
+                guard let wallet = walletManager.wallet else { return }
                 let depositSequence = await wallet.monitorDeposit(
                     quote: quote,
                     manualCheckTrigger: triggerStream
