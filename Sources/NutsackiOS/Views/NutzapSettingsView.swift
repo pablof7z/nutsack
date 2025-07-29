@@ -4,12 +4,12 @@ import NDKSwift
 struct NutzapSettingsView: View {
     @Environment(WalletManager.self) private var walletManager
     @Environment(NostrManager.self) private var nostrManager
-    
+
     @State private var p2pkPubkey: String = ""
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var copiedToClipboard = false
-    
+
     var body: some View {
         Form {
             publicKeySection
@@ -26,23 +26,23 @@ struct NutzapSettingsView: View {
             await loadP2PKPubkey()
         }
     }
-    
+
     private var publicKeySection: some View {
         Section {
             VStack(alignment: .leading, spacing: 12) {
                 Label("P2PK Public Key", systemImage: "key")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                
+
                 HStack {
                     Text(p2pkPubkey.isEmpty ? "Loading..." : p2pkPubkey)
                         .font(.system(.caption, design: .monospaced))
                         .lineLimit(3)
                         .multilineTextAlignment(.leading)
                         .textSelection(.enabled)
-                    
+
                     Spacer()
-                    
+
                     #if os(iOS)
                     Button(action: copyPubkey) {
                         Image(systemName: copiedToClipboard ? "checkmark" : "doc.on.doc")
@@ -61,22 +61,22 @@ struct NutzapSettingsView: View {
             Text("This is your wallet's P2PK public key. Others need this to send you zaps.")
         }
     }
-    
+
     private var mintsSection: some View {
         Section {
             AsyncContentView(
-                operation: { 
+                operation: {
                     guard let wallet = walletManager.wallet else { return [] }
                     let mintStrings = await wallet.mints.getMintURLs()
                     let mintURLs = mintStrings.compactMap { URL(string: $0) }
                     return mintURLs.map { MintInfo(url: $0) }
                 }
             ) { (mints: [MintInfo]) in
-                ForEach(Array(mints.enumerated()), id: \.offset) { (index, mint) in
+                ForEach(Array(mints.enumerated()), id: \.offset) { (_, mint) in
                     HStack {
                         Image(systemName: "building.columns")
                             .foregroundColor(.orange)
-                        
+
                         VStack(alignment: .leading) {
                             Text(mint.url.host ?? mint.url.absoluteString)
                                 .font(.subheadline)
@@ -93,8 +93,7 @@ struct NutzapSettingsView: View {
             Text("People can only send you zaps using these mints")
         }
     }
-    
-    
+
     private func loadP2PKPubkey() async {
         do {
             let pubkey = try await walletManager.getP2PKPubkey()
@@ -108,16 +107,15 @@ struct NutzapSettingsView: View {
             }
         }
     }
-    
-    
+
     #if os(iOS)
     private func copyPubkey() {
         UIPasteboard.general.string = p2pkPubkey
-        
+
         withAnimation(.easeInOut(duration: 0.2)) {
             copiedToClipboard = true
         }
-        
+
         // Reset after 2 seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             withAnimation {
@@ -126,10 +124,4 @@ struct NutzapSettingsView: View {
         }
     }
     #endif
-}
-
-#Preview {
-    NavigationStack {
-        NutzapSettingsView()
-    }
 }

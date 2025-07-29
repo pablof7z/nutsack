@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		046F9C1180FC8BBC8A09106F /* RelayConnectionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179914F131C3EA8E9C86C2DF /* RelayConnectionViews.swift */; };
 		0A9832B818F26BDED621CDD3 /* NutzapSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9484A8DCD0E6CDFA798237DF /* NutzapSettingsView.swift */; };
 		0F1A9F62377AD0B676CADD1F /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5B505B32D21FBB19FF5CBE /* SplashView.swift */; };
 		15104DA1299C84BFD385F97F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29DD716C975387491C98884E /* ContentView.swift */; };
@@ -53,9 +52,9 @@
 		DCC506C626DDA40899916653 /* MintDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0091AA5BFE07C9D49369C9FA /* MintDetailView.swift */; };
 		DDFC271E78ACBA1BAE003854 /* ProofManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 816546EBC30AFC0F9FA87E2A /* ProofManagementView.swift */; };
 		DE2555469F21E1A95181AE75 /* ContactsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7260E070B2366527CE8E93CF /* ContactsView.swift */; };
+		E0D37A0D4C15CEB64FBA9149 /* NDKSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 225544B9B9DE9A0D924012EA /* NDKSwiftUI */; };
 		E250B976A938B3889A783E00 /* MintView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFD3618F6ACCDFC05E146B73 /* MintView.swift */; };
 		E3F84D954FEDA2D5C0A6C584 /* DebugLoggingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 435DAF7B5D81505B2F8A7B91 /* DebugLoggingView.swift */; };
-		E4A0D437AA3DBDADF802B0A2 /* GenerateAppIcons.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4FCA78F0A064FB06F11BFC2 /* GenerateAppIcons.swift */; };
 		ECA73CB3D96068C574E172A3 /* WalletDataSources.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B713B4C1897F349F1F94E03 /* WalletDataSources.swift */; };
 		EF6089A9C4E89640DE9A7C02 /* AuthenticationFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB17F05E842715866AFCD7A3 /* AuthenticationFlow.swift */; };
 		F33D4EFB5F5A07FED0953D0E /* RelayManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 672C722284F61C8F87DBC9BD /* RelayManagementView.swift */; };
@@ -71,7 +70,6 @@
 		055295357886CE289C42C9DD /* NutzapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutzapView.swift; sourceTree = "<group>"; };
 		06737C2A632A68CE0C55183C /* WalletSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletSettingsView.swift; sourceTree = "<group>"; };
 		139C4ED82E0344CDED10AAA3 /* WalletManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletManager.swift; sourceTree = "<group>"; };
-		179914F131C3EA8E9C86C2DF /* RelayConnectionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelayConnectionViews.swift; sourceTree = "<group>"; };
 		20CD4E4BCD9A73999656B525 /* RelayStatusIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelayStatusIndicator.swift; sourceTree = "<group>"; };
 		24C02DDB7EB9EFE554FC52E9 /* AppIconGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIconGenerator.swift; sourceTree = "<group>"; };
 		29823E16BE363E01B66A8DE5 /* ReceiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveView.swift; sourceTree = "<group>"; };
@@ -105,7 +103,6 @@
 		A49674C9600E7CD952A38521 /* RelativeTimeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelativeTimeView.swift; sourceTree = "<group>"; };
 		A9C1DE3157B002CB979102D6 /* NutsackiOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = NutsackiOS.xcconfig; sourceTree = "<group>"; };
 		B43D3EE06E7A1612A33CC851 /* AsyncContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncContentView.swift; sourceTree = "<group>"; };
-		B4FCA78F0A064FB06F11BFC2 /* GenerateAppIcons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GenerateAppIcons.swift; sourceTree = "<group>"; };
 		BB17F05E842715866AFCD7A3 /* AuthenticationFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationFlow.swift; sourceTree = "<group>"; };
 		BFD3618F6ACCDFC05E146B73 /* MintView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MintView.swift; sourceTree = "<group>"; };
 		C53A61281693438AA3C00939 /* BalanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceCard.swift; sourceTree = "<group>"; };
@@ -130,6 +127,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A123B5F5AB3ABD9DA82BF157 /* NDKSwift in Frameworks */,
+				E0D37A0D4C15CEB64FBA9149 /* NDKSwiftUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -206,7 +204,6 @@
 			isa = PBXGroup;
 			children = (
 				A49674C9600E7CD952A38521 /* RelativeTimeView.swift */,
-				179914F131C3EA8E9C86C2DF /* RelayConnectionViews.swift */,
 				83C0ABB1873A67C266D19106 /* UserProfileViews.swift */,
 			);
 			path = Utils;
@@ -224,7 +221,6 @@
 			isa = PBXGroup;
 			children = (
 				24C02DDB7EB9EFE554FC52E9 /* AppIconGenerator.swift */,
-				B4FCA78F0A064FB06F11BFC2 /* GenerateAppIcons.swift */,
 				322B1C29BAF815D820653E1A /* PlatformHelpers.swift */,
 				67721329672986338EBD9E47 /* QRCodeGenerator.swift */,
 				962F8D0E61C0A3CED699E5E5 /* QRScannerView.swift */,
@@ -299,6 +295,7 @@
 			name = NutsackiOS;
 			packageProductDependencies = (
 				8D61774580F270BFA6E25A26 /* NDKSwift */,
+				225544B9B9DE9A0D924012EA /* NDKSwiftUI */,
 			);
 			productName = NutsackiOS;
 			productReference = C9F082EB0BD47AC488F1643F /* NutsackiOS.app */;
@@ -391,7 +388,6 @@
 				6BA1850F5A5A565895F45E8D /* DataModels.swift in Sources */,
 				E3F84D954FEDA2D5C0A6C584 /* DebugLoggingView.swift in Sources */,
 				578BFBDCED5863A68DA9A05D /* DiscoveredMintsView.swift in Sources */,
-				E4A0D437AA3DBDADF802B0A2 /* GenerateAppIcons.swift in Sources */,
 				7EA1E6F16B65DDEA250DC8C5 /* MintAllocationPieChart.swift in Sources */,
 				2203216B7A95C7061968E7D3 /* MintBalanceLegend.swift in Sources */,
 				DCC506C626DDA40899916653 /* MintDetailView.swift in Sources */,
@@ -412,7 +408,6 @@
 				37A06CA0B6A4D33F210E8FE8 /* ReceivedNutzapsView.swift in Sources */,
 				D546387471DFA74D85055166 /* RecentTransactionsView.swift in Sources */,
 				85543913BB764490AE12304A /* RelativeTimeView.swift in Sources */,
-				046F9C1180FC8BBC8A09106F /* RelayConnectionViews.swift in Sources */,
 				2BC4F751066C9A3FF8097E62 /* RelayHealthView.swift in Sources */,
 				F33D4EFB5F5A07FED0953D0E /* RelayManagementView.swift in Sources */,
 				BFEA02908127F7398C6C37FE /* RelayStatusIndicator.swift in Sources */,
@@ -643,6 +638,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		225544B9B9DE9A0D924012EA /* NDKSwiftUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 493972121BA0A86A5B95DCC1 /* XCRemoteSwiftPackageReference "NDKSwift" */;
+			productName = NDKSwiftUI;
+		};
 		8D61774580F270BFA6E25A26 /* NDKSwift */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 493972121BA0A86A5B95DCC1 /* XCRemoteSwiftPackageReference "NDKSwift" */;

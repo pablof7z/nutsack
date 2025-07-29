@@ -6,19 +6,19 @@ struct RelayStatusIndicator: View {
     @Environment(WalletManager.self) private var walletManager
     @State private var relayHealth: [WalletHealthMonitor.RelayHealth] = []
     @State private var isLoading = false
-    
+
     private var healthyRelayCount: Int {
         relayHealth.filter { $0.isHealthy }.count
     }
-    
+
     private var totalRelayCount: Int {
         relayHealth.count
     }
-    
+
     private var hasIssues: Bool {
         relayHealth.contains { !$0.isHealthy }
     }
-    
+
     private var statusColor: Color {
         if relayHealth.isEmpty {
             return .secondary
@@ -28,7 +28,7 @@ struct RelayStatusIndicator: View {
             return .green
         }
     }
-    
+
     private var statusIcon: String {
         if relayHealth.isEmpty {
             return "antenna.radiowaves.left.and.right.slash"
@@ -38,7 +38,7 @@ struct RelayStatusIndicator: View {
             return "checkmark.circle.fill"
         }
     }
-    
+
     private var statusText: String {
         if relayHealth.isEmpty {
             return "No wallet relays"
@@ -48,7 +48,7 @@ struct RelayStatusIndicator: View {
             return "All \(totalRelayCount) relays healthy"
         }
     }
-    
+
     var body: some View {
         HStack(spacing: 8) {
             // Status icon
@@ -61,12 +61,12 @@ struct RelayStatusIndicator: View {
                     .foregroundColor(statusColor)
                     .font(.caption)
             }
-            
+
             // Status text
             Text(statusText)
                 .font(.caption)
                 .foregroundColor(.secondary)
-            
+
             Spacer()
         }
         .padding(.horizontal, 16)
@@ -79,13 +79,13 @@ struct RelayStatusIndicator: View {
             }
         }
     }
-    
+
     private func refreshHealth() async {
         guard let wallet = walletManager.wallet else { return }
-        
+
         isLoading = true
         defer { isLoading = false }
-        
+
         let health = await wallet.getRelayHealth()
         await MainActor.run {
             self.relayHealth = health
@@ -96,7 +96,7 @@ struct RelayStatusIndicator: View {
 #Preview {
     // Create mock objects for preview
     let nostrManager = NostrManager(from: "Status")
-    
+
     RelayStatusIndicator()
         .environment(WalletManager(nostrManager: nostrManager, appState: AppState()))
         .padding()

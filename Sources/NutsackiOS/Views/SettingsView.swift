@@ -5,10 +5,10 @@ struct SettingsView: View {
     @EnvironmentObject private var appState: AppState
     @Environment(NostrManager.self) private var nostrManager
     @Environment(WalletManager.self) private var walletManager
-    
+
     @State private var currentUser: NDKUser?
     @State private var copiedNpub = false
-    
+
     var body: some View {
         NavigationStack {
             List {
@@ -26,16 +26,16 @@ struct SettingsView: View {
                                             .foregroundColor(.white)
                                     )
                                     .frame(width: 50, height: 50)
-                                
+
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(nostrManager.currentUserProfile?.displayName ?? nostrManager.currentUserProfile?.name ?? "Nostr User")
                                         .font(.headline)
-                                    
+
                                     HStack(spacing: 4) {
                                         Text(String(currentUser.npub.prefix(16)) + "...")
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
-                                        
+
                                         Button(action: { copyNpub(currentUser.npub) }) {
                                             Image(systemName: copiedNpub ? "checkmark.circle.fill" : "doc.on.doc")
                                                 .font(.caption)
@@ -44,9 +44,9 @@ struct SettingsView: View {
                                         .buttonStyle(.plain)
                                     }
                                 }
-                                
+
                                 Spacer()
-                                
+
                                 Image(systemName: "chevron.right")
                                     .font(.caption)
                                     .foregroundStyle(.tertiary)
@@ -59,7 +59,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Account")
                 }
-                
+
                 // Preferences
                 Section {
                     Picker("Theme", selection: $appState.themeMode) {
@@ -67,21 +67,21 @@ struct SettingsView: View {
                             Text(mode.displayName).tag(mode)
                         }
                     }
-                    
+
                     Picker("Currency", selection: $appState.preferredConversionUnit) {
                         ForEach(CurrencyUnit.allCases, id: \.self) { unit in
                             Text(unit.symbol).tag(unit)
                         }
                     }
-                    
+
                     NavigationLink(destination: RelayManagementView()) {
                         Label("Relays", systemImage: "network")
                     }
-                    
+
                     NavigationLink(destination: BackupView()) {
                         Label("Backup", systemImage: "lock.shield")
                     }
-                    
+
                     NavigationLink(destination: UnpublishedEventsView()) {
                         HStack {
                             Label("Unpublished Events", systemImage: "clock.arrow.circlepath")
@@ -92,7 +92,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Preferences")
                 }
-                
+
                 // Blacklisted Mints Section
                 Section {
                     NavigationLink(destination: BlacklistedMintsView()) {
@@ -115,25 +115,25 @@ struct SettingsView: View {
                 } footer: {
                     Text("Manage mints that are blocked from being used in your wallet")
                 }
-                
+
                 // Nutzap Settings
                 Section {
                     NavigationLink(destination: NutzapSettingsView()) {
                         Label("Zap Settings", systemImage: "bolt.heart")
                     }
-                    
+
                     NavigationLink(destination: WalletEventsView()) {
                         Label("Wallet Events", systemImage: "list.bullet.rectangle")
                     }
-                    
+
                     NavigationLink(destination: RelayHealthView()) {
                         Label("Relay Health", systemImage: "antenna.radiowaves.left.and.right")
                     }
-                    
+
                     NavigationLink(destination: ProofManagementView()) {
                         Label("Manage Proofs", systemImage: "key")
                     }
-                    
+
                     NavigationLink(destination: ReceivedNutzapsView(walletManager: walletManager)) {
                         Label("Received Zaps", systemImage: "bolt.fill")
                     }
@@ -142,9 +142,7 @@ struct SettingsView: View {
                 } footer: {
                     Text("Configure how others can send zaps to your wallet")
                 }
-                
-                
-                
+
                 // Debug section
                 #if DEBUG
                 Section {
@@ -157,7 +155,7 @@ struct SettingsView: View {
                     Text("Debug tools and cache statistics")
                 }
                 #endif
-                
+
                 // Danger zone
                 Section {
                     Button(role: .destructive, action: logout) {
@@ -178,11 +176,18 @@ struct SettingsView: View {
                     .background(Color(UIColor.systemGroupedBackground))
             }
             .task {
-                currentUser = await nostrManager.currentUser
+                guard let ndk = nostrManager.ndk,
+                      let signer = ndk.signer else { return }
+                do {
+                    let pubkey = try await signer.pubkey
+                    currentUser = NDKUser(pubkey: pubkey)
+                } catch {
+                    print("Failed to get current user: \(error)")
+                }
             }
         }
     }
-    
+
     private func copyNpub(_ npub: String) {
         #if os(iOS)
         UIPasteboard.general.string = npub
@@ -193,24 +198,23 @@ struct SettingsView: View {
         withAnimation {
             copiedNpub = true
         }
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             withAnimation {
                 copiedNpub = false
             }
         }
     }
-    
+
     private func logout() {
         // Clear wallet data and cancel subscriptions
         walletManager.clearWalletData()
-        
+
         // Clear authentication data
         nostrManager.logout()
-        
+
     }
 }
-
 
 // MARK: - Account Detail View
 struct AccountDetailView: View {
@@ -221,41 +225,41 @@ struct AccountDetailView: View {
     @State private var copiedKey = false
     @State private var copiedNpub = false
     @State private var nsecKey: String?
-    
+
     var npub: String {
         user.npub
     }
-    
+
     var body: some View {
         List {
             Section {
                 LabeledContent("Display Name", value: profile?.displayName ?? profile?.name ?? "Nostr User")
-                
+
                 if let about = profile?.about {
                     LabeledContent("About") {
                         Text(about)
                             .font(.caption)
                     }
                 }
-                
+
                 if let nip05 = profile?.nip05 {
                     LabeledContent("NIP-05", value: nip05)
                 }
             } header: {
                 Text("Profile")
             }
-            
+
             Section {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text("Public Key (npub)")
                         Spacer()
                     }
-                    
+
                     Text(npub)
                         .font(.caption)
                         .textSelection(.enabled)
-                    
+
                     Button(action: copyPublicKey) {
                         Label(
                             copiedNpub ? "Copied!" : "Copy npub",
@@ -266,7 +270,7 @@ struct AccountDetailView: View {
                     .controlSize(.small)
                     .tint(copiedNpub ? .green : .blue)
                 }
-                
+
                 if let nsecKey = nsecKey {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
@@ -277,12 +281,12 @@ struct AccountDetailView: View {
                             }
                             .buttonStyle(.plain)
                         }
-                        
+
                         if showPrivateKey {
                             Text(nsecKey)
                                 .font(.caption)
                                 .textSelection(.enabled)
-                            
+
                             Button(action: copyPrivateKey) {
                                 Label(
                                     copiedKey ? "Copied!" : "Copy Private Key",
@@ -314,13 +318,13 @@ struct AccountDetailView: View {
             loadPrivateKey()
         }
     }
-    
+
     private func loadPrivateKey() {
         guard let signer = NDKAuthManager.shared.activeSigner as? NDKPrivateKeySigner else {
             nsecKey = nil
             return
         }
-        
+
         Task {
             do {
                 let nsec = try signer.nsec
@@ -335,13 +339,13 @@ struct AccountDetailView: View {
             }
         }
     }
-    
+
     private func togglePrivateKey() {
         withAnimation {
             showPrivateKey.toggle()
         }
     }
-    
+
     private func copyPublicKey() {
         #if os(iOS)
         UIPasteboard.general.string = npub
@@ -352,14 +356,14 @@ struct AccountDetailView: View {
         withAnimation {
             copiedNpub = true
         }
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             withAnimation {
                 copiedNpub = false
             }
         }
     }
-    
+
     private func copyPrivateKey() {
         guard let nsec = nsecKey else { return }
         #if os(iOS)
@@ -371,7 +375,7 @@ struct AccountDetailView: View {
         withAnimation {
             copiedKey = true
         }
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             withAnimation {
                 copiedKey = false
@@ -379,7 +383,6 @@ struct AccountDetailView: View {
         }
     }
 }
-
 
 // MARK: - Backup View
 struct BackupView: View {
@@ -411,30 +414,30 @@ struct AboutView: View {
                     .font(.system(size: 80))
                     .foregroundStyle(.orange.gradient)
                     .padding(.top, 40)
-                
+
                 Text("Nutsack")
                     .font(.largeTitle)
                     .fontWeight(.bold)
-                
+
                 Text("Lightning-fast payments with Nostr")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-                
+
                 // Description
                 VStack(alignment: .leading, spacing: 16) {
                     Text("About")
                         .font(.headline)
-                    
+
                     Text("""
                     Nutsack is a Cashu ecash wallet that integrates seamlessly with Nostr. It implements NIP-60 for wallet backup and NIP-61 for nutzaps.
-                    
+
                     Built with NDKSwift, this wallet showcases the power of combining ecash with the Nostr protocol for a truly decentralized payment experience.
                     """)
                     .font(.body)
                     .foregroundStyle(.secondary)
                 }
                 .padding(.horizontal)
-                
+
                 Spacer(minLength: 40)
             }
         }
@@ -450,7 +453,7 @@ struct UnpublishedEventsBadge: View {
     @Environment(NostrManager.self) private var nostrManager
     @State private var unpublishedCount = 0
     @State private var timer: Timer?
-    
+
     var body: some View {
         Group {
             if unpublishedCount > 0 {
@@ -472,7 +475,7 @@ struct UnpublishedEventsBadge: View {
             timer = nil
         }
     }
-    
+
     private func updateUnpublishedCount() {
         Task {
             guard let cache = nostrManager.cache else { return }
@@ -482,7 +485,7 @@ struct UnpublishedEventsBadge: View {
             }
         }
     }
-    
+
     private func startPeriodicUpdate() {
         timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in
             updateUnpublishedCount()
@@ -501,7 +504,7 @@ struct UnpublishedEventsView: View {
     @State private var retriedCount = 0
     @State private var selectedEvent: NDKEvent?
     @State private var showingEventDetails = false
-    
+
     var body: some View {
         List {
             // Status Section
@@ -518,9 +521,9 @@ struct UnpublishedEventsView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
-                        
+
                         Spacer()
-                        
+
                         if isLoading {
                             ProgressView()
                                 .scaleEffect(0.8)
@@ -538,7 +541,7 @@ struct UnpublishedEventsView: View {
                         }
                     }
                     .padding(.vertical, 4)
-                    
+
                     if let lastRetryTime = lastRetryTime {
                         Text("Last retry: \(lastRetryTime, style: .relative)")
                             .font(.caption)
@@ -547,7 +550,7 @@ struct UnpublishedEventsView: View {
                 } header: {
                     Text("Status")
                 }
-                
+
                 // Events List
                 if !unpublishedEvents.isEmpty {
                     Section {
@@ -575,11 +578,11 @@ struct UnpublishedEventsView: View {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.system(size: 48))
                                 .foregroundColor(.green)
-                            
+
                             Text("All events published successfully!")
                                 .font(.headline)
                                 .multilineTextAlignment(.center)
-                            
+
                             Text("Your events have been confirmed by the relays.")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
@@ -613,27 +616,27 @@ struct UnpublishedEventsView: View {
             }
         }
     }
-    
+
     private func loadUnpublishedEvents() async {
-        guard let cache = nostrManager.cache else { 
+        guard let cache = nostrManager.cache else {
             await MainActor.run {
                 isLoading = false
             }
-            return 
+            return
         }
-        
+
         let events = await cache.getUnpublishedEvents(maxAge: 3600, limit: nil)
         await MainActor.run {
             unpublishedEvents = events
             isLoading = false
         }
     }
-    
+
     private func retryAllEvents() {
         guard let ndk = nostrManager.ndk else { return }
-        
+
         isRetrying = true
-        
+
         Task {
             do {
                 let retriedEvents = try await ndk.retryUnpublishedEvents(maxAge: 3600, limit: nil)
@@ -643,7 +646,7 @@ struct UnpublishedEventsView: View {
                     retriedCount = retriedEvents.count
                     showRetrySuccess = true
                 }
-                
+
                 // Reload the list
                 await loadUnpublishedEvents()
             } catch {
@@ -654,16 +657,16 @@ struct UnpublishedEventsView: View {
             }
         }
     }
-    
+
     private func retryEvent(at index: Int) {
         guard let ndk = nostrManager.ndk, index < unpublishedEvents.count else { return }
-        
+
         let eventInfo = unpublishedEvents[index]
-        
+
         Task {
             do {
                 _ = try await ndk.publish(eventInfo.event)
-                
+
                 // Reload the list
                 await loadUnpublishedEvents()
             } catch {
@@ -679,9 +682,9 @@ struct UnpublishedEventRow: View {
     let targetRelays: Set<String>
     let onRetry: () -> Void
     let onTap: () -> Void
-    
+
     @State private var isRetrying = false
-    
+
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 8) {
@@ -691,7 +694,7 @@ struct UnpublishedEventRow: View {
                         Text(eventKindName)
                             .font(.subheadline)
                             .fontWeight(.medium)
-                        
+
                         if !event.content.isEmpty {
                             Text(event.content)
                                 .font(.caption)
@@ -699,23 +702,23 @@ struct UnpublishedEventRow: View {
                                 .lineLimit(3)
                         }
                     }
-                    
+
                     Spacer()
                 }
-                
+
                 // Metadata
                 HStack {
                     Text("Created: \(Date(timeIntervalSince1970: TimeInterval(event.createdAt)), style: .relative)")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
-                    
+
                     Spacer()
-                    
+
                     Text("\(targetRelays.count) relays")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }
-                
+
                 // Target relays (abbreviated)
                 if !targetRelays.isEmpty {
                     Text("Targets: \(abbreviatedRelayList)")
@@ -724,9 +727,9 @@ struct UnpublishedEventRow: View {
                         .lineLimit(1)
                 }
             }
-            
+
             Spacer()
-            
+
             Button(action: retryEvent) {
                 if isRetrying {
                     ProgressView()
@@ -743,7 +746,7 @@ struct UnpublishedEventRow: View {
         .onTapGesture(perform: onTap)
         .padding(.vertical, 4)
     }
-    
+
     private var eventKindName: String {
         switch event.kind {
         case 0: return "Profile"
@@ -757,7 +760,7 @@ struct UnpublishedEventRow: View {
         default: return "Event \(event.kind)"
         }
     }
-    
+
     private var abbreviatedRelayList: String {
         let sorted = targetRelays.sorted()
         if sorted.count <= 2 {
@@ -767,18 +770,18 @@ struct UnpublishedEventRow: View {
             return first.joined(separator: ", ") + " +\(sorted.count - 2)"
         }
     }
-    
+
     private func shortRelayName(_ url: String) -> String {
         guard let host = URL(string: url)?.host else { return url }
         // Remove common prefixes and show just the domain
         return host.replacingOccurrences(of: "www.", with: "")
             .replacingOccurrences(of: "relay.", with: "")
     }
-    
+
     private func retryEvent() {
         isRetrying = true
         onRetry()
-        
+
         // Reset retry state after a delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             isRetrying = false
@@ -794,7 +797,7 @@ struct DebugView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var lastUpdateTime: Date?
-    
+
     var body: some View {
         NavigationStack {
             List {
@@ -819,7 +822,7 @@ struct DebugView: View {
                         Text("View detailed cache statistics and event counts")
                     }
                 }
-                
+
                 // Quick Stats Overview
                 if let stats = cacheStats {
                     Section {
@@ -830,7 +833,7 @@ struct DebugView: View {
                                 Text("Cache Overview")
                                     .font(.headline)
                             }
-                            
+
                             Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
                                 GridRow {
                                     Text("Total Events:")
@@ -838,14 +841,14 @@ struct DebugView: View {
                                     Text("\(stats.totalEvents)")
                                         .fontWeight(.medium)
                                 }
-                                
+
                                 GridRow {
                                     Text("Event Types:")
                                         .foregroundStyle(.secondary)
                                     Text("\(stats.eventsByKind.count) kinds")
                                         .fontWeight(.medium)
                                 }
-                                
+
                                 GridRow {
                                     Text("Most Common:")
                                         .foregroundStyle(.secondary)
@@ -860,7 +863,7 @@ struct DebugView: View {
                         Text("Quick Stats")
                     }
                 }
-                
+
                 // Error Display
                 if let error = errorMessage {
                     Section {
@@ -886,7 +889,7 @@ struct DebugView: View {
             }
         }
     }
-    
+
     private func loadCacheStats() async {
         guard let cache = nostrManager.cache else {
             await MainActor.run {
@@ -895,12 +898,12 @@ struct DebugView: View {
             }
             return
         }
-        
+
         await MainActor.run {
             isLoading = true
             errorMessage = nil
         }
-        
+
         do {
             let stats = try await cache.getStatistics()
             await MainActor.run {
@@ -923,7 +926,7 @@ struct CacheStatsView: View {
     @State private var cacheStats: CacheStatistics?
     @State private var isLoading = true
     @State private var errorMessage: String?
-    
+
     var body: some View {
         List {
             // Total Events Section
@@ -960,7 +963,7 @@ struct CacheStatsView: View {
             } header: {
                 Text("Overview")
             }
-            
+
             // Events by Kind Section
             if let stats = cacheStats, !stats.eventsByKind.isEmpty {
                 Section {
@@ -969,9 +972,9 @@ struct CacheStatsView: View {
                             Text("Kind \(kindStat.kind)")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
-                            
+
                             Spacer()
-                            
+
                             Text("\(kindStat.count)")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
@@ -984,7 +987,7 @@ struct CacheStatsView: View {
                     Text("Breakdown of events stored in the cache by Nostr event kind")
                 }
             }
-            
+
             // Error Display
             if let error = errorMessage {
                 Section {
@@ -1009,7 +1012,7 @@ struct CacheStatsView: View {
             }
         }
     }
-    
+
     private func loadCacheStats() async {
         guard let cache = nostrManager.cache else {
             await MainActor.run {
@@ -1018,12 +1021,12 @@ struct CacheStatsView: View {
             }
             return
         }
-        
+
         await MainActor.run {
             isLoading = true
             errorMessage = nil
         }
-        
+
         do {
             let stats = try await cache.getStatistics()
             await MainActor.run {
@@ -1048,7 +1051,7 @@ extension CacheStatistics {
             EventKindStatistic(kind: kind, count: count)
         }.sorted { $0.count > $1.count }
     }
-    
+
     var mostCommonKind: String {
         guard let mostCommon = sortedEventKinds.first else { return "None" }
         return "Kind \(mostCommon.kind) (\(mostCommon.count))"
@@ -1065,7 +1068,7 @@ struct UnpublishedEventDetailView: View {
     let event: NDKEvent
     @Environment(\.dismiss) private var dismiss
     @State private var copiedToClipboard = false
-    
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -1082,7 +1085,7 @@ struct UnpublishedEventDetailView: View {
                                 .font(.system(.caption, design: .monospaced))
                                 .textSelection(.enabled)
                         }
-                        
+
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Text("Kind")
@@ -1093,7 +1096,7 @@ struct UnpublishedEventDetailView: View {
                             Text("\(event.kind)")
                                 .font(.system(.body, design: .monospaced))
                         }
-                        
+
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Text("Created At")
@@ -1104,7 +1107,7 @@ struct UnpublishedEventDetailView: View {
                             Text("\(Date(timeIntervalSince1970: TimeInterval(event.createdAt)), formatter: DateFormatter.fullDateTimeFormatter)")
                                 .font(.system(.caption, design: .monospaced))
                         }
-                        
+
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Text("Author")
@@ -1119,21 +1122,21 @@ struct UnpublishedEventDetailView: View {
                     .padding()
                     .background(Color(UIColor.secondarySystemBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
-                    
+
                     // Tags
                     if !event.tags.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                                 Text("Tags")
                                     .font(.headline)
                                     .padding(.bottom, 4)
-                                
+
                                 ForEach(Array(event.tags.enumerated()), id: \.offset) { index, tag in
                                     HStack(alignment: .top, spacing: 8) {
                                         Text("\(index)")
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                             .frame(width: 20, alignment: .trailing)
-                                        
+
                                         Text(tag.joined(separator: ", "))
                                             .font(.system(.caption, design: .monospaced))
                                             .textSelection(.enabled)
@@ -1146,14 +1149,14 @@ struct UnpublishedEventDetailView: View {
                         .background(Color(UIColor.secondarySystemBackground))
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
-                    
+
                     // Content
                     if !event.content.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                                 Text("Content")
                                     .font(.headline)
                                     .padding(.bottom, 4)
-                                
+
                                 Text(event.content)
                                     .font(.system(.caption, design: .monospaced))
                                     .textSelection(.enabled)
@@ -1163,7 +1166,7 @@ struct UnpublishedEventDetailView: View {
                         .background(Color(UIColor.secondarySystemBackground))
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
-                    
+
                     // Raw JSON
                     VStack(alignment: .leading, spacing: 8) {
                             HStack {
@@ -1180,7 +1183,7 @@ struct UnpublishedEventDetailView: View {
                                 }
                             }
                             .padding(.bottom, 4)
-                            
+
                             ScrollView(.horizontal) {
                                 Text(formattedJSON)
                                     .font(.system(.caption, design: .monospaced))
@@ -1207,7 +1210,7 @@ struct UnpublishedEventDetailView: View {
             }
         }
     }
-    
+
     private var formattedJSON: String {
         let eventDict: [String: Any] = [
             "id": event.id,
@@ -1218,15 +1221,15 @@ struct UnpublishedEventDetailView: View {
             "content": event.content,
             "sig": event.sig
         ]
-        
+
         if let jsonData = try? JSONSerialization.data(withJSONObject: eventDict, options: [.prettyPrinted, .sortedKeys]),
            let jsonString = String(data: jsonData, encoding: .utf8) {
             return jsonString
         }
-        
+
         return "Failed to format JSON"
     }
-    
+
     private func copyRawJSON() {
         #if os(iOS)
         UIPasteboard.general.string = formattedJSON
@@ -1234,11 +1237,11 @@ struct UnpublishedEventDetailView: View {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(formattedJSON, forType: .string)
         #endif
-        
+
         withAnimation {
             copiedToClipboard = true
         }
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             withAnimation {
                 copiedToClipboard = false

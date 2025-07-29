@@ -7,10 +7,10 @@ struct DebugLoggingView: View {
     @AppStorage("ndkLogNetworkTraffic") private var logNetworkTraffic = true
     @AppStorage("ndkPrettyPrintNetworkMessages") private var prettyPrintNetworkMessages = true
     @AppStorage("ndkEnabledCategories") private var enabledCategoriesData: Data = Data()
-    
+
     @State private var enabledCategories: Set<NDKLogCategory> = Set(NDKLogCategory.allCases)
     @State private var hasChanges = false
-    
+
     var body: some View {
         List {
             // Log Level Section
@@ -32,7 +32,7 @@ struct DebugLoggingView: View {
             } footer: {
                 Text("Higher levels include all lower levels. Debug and Trace provide the most detail.")
             }
-            
+
             // Network Logging Section
             Section {
                 Toggle("Log Network Traffic", isOn: $logNetworkTraffic)
@@ -42,7 +42,7 @@ struct DebugLoggingView: View {
                             hasChanges = true
                         }
                     }
-                
+
                 Toggle("Pretty Print Messages", isOn: $prettyPrintNetworkMessages)
                     .disabled(!logNetworkTraffic)
                     .onChange(of: prettyPrintNetworkMessages) {
@@ -54,7 +54,7 @@ struct DebugLoggingView: View {
             } footer: {
                 Text("Network logging shows raw Nostr messages sent and received from relays.")
             }
-            
+
             // Categories Section
             Section {
                 ForEach(sortedCategories, id: \.self) { category in
@@ -88,21 +88,21 @@ struct DebugLoggingView: View {
             } footer: {
                 Text("Enable or disable logging for specific parts of the system.")
             }
-            
+
             // Quick Presets Section
             Section {
                 Button(action: applyProductionPreset) {
                     Label("Production Settings", systemImage: "shippingbox")
                 }
-                
+
                 Button(action: applyDebugPreset) {
                     Label("Debug Settings", systemImage: "ladybug")
                 }
-                
+
                 Button(action: applyNetworkDebugPreset) {
                     Label("Network Debug", systemImage: "network")
                 }
-                
+
                 Button(action: applyWalletDebugPreset) {
                     Label("Wallet Debug", systemImage: "creditcard")
                 }
@@ -111,7 +111,7 @@ struct DebugLoggingView: View {
             } footer: {
                 Text("Quickly apply common logging configurations.")
             }
-            
+
             // Current Status
             if hasChanges {
                 Section {
@@ -135,13 +135,13 @@ struct DebugLoggingView: View {
             loadSettings()
         }
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private var sortedCategories: [NDKLogCategory] {
         NDKLogCategory.allCases.sorted { displayName(for: $0) < displayName(for: $1) }
     }
-    
+
     private func displayName(for category: NDKLogCategory) -> String {
         switch category {
         case .network: return "Network"
@@ -162,7 +162,7 @@ struct DebugLoggingView: View {
         case .signature: return "Signature"
         }
     }
-    
+
     private func emojiForCategory(_ category: NDKLogCategory) -> String {
         switch category {
         case .network: return "📡"
@@ -183,15 +183,15 @@ struct DebugLoggingView: View {
         case .signature: return "✅"
         }
     }
-    
+
     private func loadSettings() {
         // Load log level
         NDKLogger.logLevel = NDKLogLevel(rawValue: logLevel) ?? .debug
-        
+
         // Load network settings
         NDKLogger.logNetworkTraffic = logNetworkTraffic
         NDKLogger.prettyPrintNetworkMessages = prettyPrintNetworkMessages
-        
+
         // Load enabled categories
         if let categories = JSONCoding.safeDecode(Set<String>.self, from: enabledCategoriesData) {
             enabledCategories = Set(categories.compactMap { rawValue in
@@ -200,24 +200,24 @@ struct DebugLoggingView: View {
         } else {
             enabledCategories = Set(NDKLogCategory.allCases)
         }
-        
+
         NDKLogger.enabledCategories = enabledCategories
     }
-    
+
     private func applyLogLevel() {
         NDKLogger.logLevel = NDKLogLevel(rawValue: logLevel) ?? .debug
     }
-    
+
     private func applyCategories() {
         NDKLogger.enabledCategories = enabledCategories
-        
+
         // Save to UserDefaults
         let categoryStrings = enabledCategories.map { $0.rawValue }
         if let data = try? JSONCoding.encode(categoryStrings) {
             enabledCategoriesData = data
         }
     }
-    
+
     private func toggleAllCategories() {
         if enabledCategories.count == NDKLogCategory.allCases.count {
             // Disable all
@@ -229,54 +229,54 @@ struct DebugLoggingView: View {
         applyCategories()
         hasChanges = true
     }
-    
+
     // MARK: - Presets
-    
+
     private func applyProductionPreset() {
         logLevel = NDKLogLevel.warning.rawValue
         logNetworkTraffic = false
         prettyPrintNetworkMessages = false
         enabledCategories = [.general, .security]
-        
+
         applyLogLevel()
         applyCategories()
         NDKLogger.logNetworkTraffic = logNetworkTraffic
         NDKLogger.prettyPrintNetworkMessages = prettyPrintNetworkMessages
         hasChanges = true
     }
-    
+
     private func applyDebugPreset() {
         logLevel = NDKLogLevel.debug.rawValue
         logNetworkTraffic = true
         prettyPrintNetworkMessages = true
         enabledCategories = Set(NDKLogCategory.allCases)
-        
+
         applyLogLevel()
         applyCategories()
         NDKLogger.logNetworkTraffic = logNetworkTraffic
         NDKLogger.prettyPrintNetworkMessages = prettyPrintNetworkMessages
         hasChanges = true
     }
-    
+
     private func applyNetworkDebugPreset() {
         logLevel = NDKLogLevel.trace.rawValue
         logNetworkTraffic = true
         prettyPrintNetworkMessages = true
         enabledCategories = [.network, .relay, .connection, .performance]
-        
+
         applyLogLevel()
         applyCategories()
         NDKLogger.logNetworkTraffic = logNetworkTraffic
         NDKLogger.prettyPrintNetworkMessages = prettyPrintNetworkMessages
         hasChanges = true
     }
-    
+
     private func applyWalletDebugPreset() {
         logLevel = NDKLogLevel.trace.rawValue
         logNetworkTraffic = false
         prettyPrintNetworkMessages = false
         enabledCategories = [.wallet, .event, .cache, .sync]
-        
+
         applyLogLevel()
         applyCategories()
         NDKLogger.logNetworkTraffic = logNetworkTraffic
@@ -284,13 +284,3 @@ struct DebugLoggingView: View {
         hasChanges = true
     }
 }
-
-#if DEBUG
-struct DebugLoggingView_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationStack {
-            DebugLoggingView()
-        }
-    }
-}
-#endif

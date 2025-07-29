@@ -4,7 +4,7 @@ import NDKSwift
 struct SwapView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(WalletManager.self) private var walletManager
-    
+
     @State private var sourceMint: MintBalance?
     @State private var destinationMint: MintBalance?
     @State private var isSwapping = false
@@ -12,19 +12,19 @@ struct SwapView: View {
     @State private var errorMessage = ""
     @State private var showSuccess = false
     @State private var transferResult: TransferResult?
-    
+
     @State private var mintBalances: [MintBalance] = []
-    
+
     // Allocation slider
     @State private var allocationPercentage: Double = 50.0
-    
+
     var transferAmount: Int64 {
         guard let source = sourceMint, let destination = destinationMint else { return 0 }
         let totalBalance = source.balance + destination.balance
         let targetSourceBalance = Int64(Double(totalBalance) * (allocationPercentage / 100.0))
         return source.balance - targetSourceBalance
     }
-    
+
     var canSwap: Bool {
         guard let source = sourceMint else { return false }
         guard let destination = destinationMint else { return false }
@@ -34,7 +34,7 @@ struct SwapView: View {
         guard !isSwapping else { return false }
         return true
     }
-    
+
     @ViewBuilder
     var allocationSection: some View {
         if let source = sourceMint, let destination = destinationMint {
@@ -55,9 +55,9 @@ struct SwapView: View {
                                 .font(.title2)
                                 .fontWeight(.bold)
                         }
-                        
+
                         Spacer()
-                        
+
                         // Flow arrow
                         VStack {
                             Image(systemName: "arrow.right")
@@ -67,9 +67,9 @@ struct SwapView: View {
                                 .font(.caption)
                                 .foregroundStyle(.orange)
                         }
-                        
+
                         Spacer()
-                        
+
                         VStack(alignment: .trailing, spacing: 4) {
                             HStack {
                                 Text(destination.displayName)
@@ -84,7 +84,7 @@ struct SwapView: View {
                                 .fontWeight(.bold)
                         }
                     }
-                    
+
                     // Allocation slider
                     VStack(spacing: 8) {
                         HStack {
@@ -100,7 +100,7 @@ struct SwapView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                        
+
                         Slider(value: $allocationPercentage, in: 0...100, step: 1)
                             .tint(.orange)
                     }
@@ -116,7 +116,7 @@ struct SwapView: View {
             }
         }
     }
-    
+
     @ViewBuilder
     var mintPickerSection: some View {
         Section {
@@ -154,7 +154,7 @@ struct SwapView: View {
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.plain)
-                
+
                 // Swap button
                 Button(action: swapMints) {
                     Image(systemName: "arrow.left.arrow.right")
@@ -162,7 +162,7 @@ struct SwapView: View {
                         .foregroundStyle(.secondary)
                 }
                 .disabled(sourceMint == nil || destinationMint == nil)
-                
+
                 // Destination mint selector
                 Menu {
                     ForEach(mintBalances, id: \.url) { mintBalance in
@@ -202,8 +202,7 @@ struct SwapView: View {
             Text("Select Mints")
         }
     }
-    
-    
+
     @ViewBuilder
     var actionSection: some View {
         Section {
@@ -219,7 +218,7 @@ struct SwapView: View {
             .disabled(!canSwap)
         }
     }
-    
+
     var body: some View {
         Form {
             mintPickerSection
@@ -255,14 +254,13 @@ struct SwapView: View {
             loadMintBalances()
         }
     }
-    
-    
+
     private func swapMints() {
         let temp = sourceMint
         sourceMint = destinationMint
         destinationMint = temp
     }
-    
+
     private func updateAllocationPercentage() {
         guard let source = sourceMint, let destination = destinationMint else { return }
         let totalBalance = source.balance + destination.balance
@@ -270,17 +268,16 @@ struct SwapView: View {
             allocationPercentage = Double(source.balance) / Double(totalBalance) * 100.0
         }
     }
-    
-    
+
     private func performSwap() {
         guard canSwap else { return }
-        
+
         let actualTransferAmount = abs(transferAmount)
         let actualSource = transferAmount > 0 ? sourceMint! : destinationMint!
         let actualDestination = transferAmount > 0 ? destinationMint! : sourceMint!
-        
+
         isSwapping = true
-        
+
         Task {
             do {
                 let result = try await walletManager.transferBetweenMints(
@@ -288,7 +285,7 @@ struct SwapView: View {
                     fromMint: actualSource.url,
                     toMint: actualDestination.url
                 )
-                
+
                 await MainActor.run {
                     transferResult = result
                     showSuccess = true
@@ -303,22 +300,22 @@ struct SwapView: View {
             }
         }
     }
-    
+
     private func loadMintBalances() {
         Task {
             guard let wallet = walletManager.wallet else { return }
-            
+
             // Get balances by mint from the wallet
             let balancesByMint = await wallet.getBalancesByMint()
-            
+
             // Create MintBalance objects
             let loadedMintBalances = balancesByMint.map { (mintUrl, balance) in
                 MintBalance(url: URL(string: mintUrl)!, balance: balance)
             }.sorted { $0.balance > $1.balance } // Sort by balance descending
-            
+
             await MainActor.run {
                 mintBalances = loadedMintBalances
-                
+
                 // Auto-select the two mints with highest balances
                 if mintBalances.count >= 2 {
                     sourceMint = mintBalances[0]
@@ -336,9 +333,8 @@ struct SwapView: View {
 struct MintBalance: Hashable {
     let url: URL
     let balance: Int64
-    
+
     var displayName: String {
         url.host ?? url.absoluteString
     }
 }
-

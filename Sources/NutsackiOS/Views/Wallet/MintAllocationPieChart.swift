@@ -7,14 +7,14 @@ struct MintAllocationPieChart: View {
     @State private var selectedSlice: String?
     @State private var animationProgress: Double = 0
     @State private var isLoading = true
-    
+
     // Customizable properties
     var chartSize: CGFloat = 240
     var showTitle: Bool = true
     var showLegend: Bool = true
     var expansionProgress: CGFloat = 1.0
     var onBalancesLoaded: ([(mint: String, balance: Int64, percentage: Double)]) -> Void = { _ in }
-    
+
     private var innerRadius: CGFloat {
         if expansionProgress < 0.5 {
             return 0 // Solid circle when small
@@ -22,7 +22,7 @@ struct MintAllocationPieChart: View {
             return chartSize * 0.3 * ((expansionProgress - 0.5) * 2) // Gradually hollow out
         }
     }
-    
+
     // Beautiful color palette for the pie chart
     private let mintColors: [Color] = [
         Color(red: 0.98, green: 0.54, blue: 0.13), // Orange
@@ -34,13 +34,13 @@ struct MintAllocationPieChart: View {
         Color(red: 0.00, green: 0.74, blue: 0.83), // Cyan
         Color(red: 1.00, green: 0.60, blue: 0.00)  // Deep Orange
     ]
-    
+
     var body: some View {
         VStack(spacing: 20) {
             if showTitle {
                 titleView
             }
-            
+
             if mintBalances.isEmpty && !isLoading {
                 // Don't show empty state for embedded usage
                 if showTitle {
@@ -65,16 +65,16 @@ struct MintAllocationPieChart: View {
             }
         }
     }
-    
+
     private var titleView: some View {
         HStack {
             Text("Mint Allocation")
                 .font(.title3)
                 .fontWeight(.semibold)
                 .foregroundColor(.white)
-            
+
             Spacer()
-            
+
             if isLoading {
                 ProgressView()
                     .scaleEffect(0.8)
@@ -82,34 +82,34 @@ struct MintAllocationPieChart: View {
             }
         }
     }
-    
+
     private var emptyStateView: some View {
         VStack(spacing: 12) {
             Image(systemName: "chart.pie")
                 .font(.system(size: 50))
                 .foregroundColor(.gray)
-            
+
             Text("No funds distributed yet")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
         }
         .frame(height: chartSize)
     }
-    
+
     private var chartAndLegendView: some View {
         HStack(spacing: 30) {
             chartView
             legendView
         }
     }
-    
+
     private var chartView: some View {
         ZStack {
             // Background circle
             Circle()
                 .fill(Color.gray.opacity(0.1))
                 .frame(width: chartSize, height: chartSize)
-            
+
             // Pie slices
             ForEach(Array(mintBalances.enumerated()), id: \.element.mint) { index, item in
                 PieSlice(
@@ -129,13 +129,13 @@ struct MintAllocationPieChart: View {
                     }
                 }
             }
-            
+
             // Center hole with total
             centerTotalView
         }
         .frame(width: chartSize, height: chartSize)
     }
-    
+
     private var centerTotalView: some View {
         Group {
             if expansionProgress > 0.5 && showLegend {
@@ -143,12 +143,12 @@ struct MintAllocationPieChart: View {
                     Text("Total")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    
+
                     Text(formatSats(mintBalances.reduce(0) { $0 + $1.balance }))
                         .font(.headline)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
-                    
+
                     Text("sats")
                         .font(.caption2)
                         .foregroundColor(.secondary)
@@ -168,7 +168,7 @@ struct MintAllocationPieChart: View {
             }
         }
     }
-    
+
     private var legendView: some View {
         VStack(alignment: .leading, spacing: 12) {
             ForEach(Array(mintBalances.enumerated()), id: \.element.mint) { index, item in
@@ -177,7 +177,7 @@ struct MintAllocationPieChart: View {
         }
         .frame(maxWidth: .infinity)
     }
-    
+
     private func legendItem(for item: (mint: String, balance: Int64, percentage: Double), at index: Int) -> some View {
         HStack(spacing: 8) {
             // Color indicator
@@ -188,32 +188,32 @@ struct MintAllocationPieChart: View {
                     RoundedRectangle(cornerRadius: 4)
                         .stroke(selectedSlice == item.mint ? Color(.label) : Color.clear, lineWidth: 2)
                 )
-            
+
             VStack(alignment: .leading, spacing: 2) {
                 Text(formatMintName(item.mint))
                     .font(.caption)
                     .fontWeight(selectedSlice == item.mint ? .semibold : .regular)
                     .foregroundColor(.white)
                     .lineLimit(1)
-                
+
                 HStack(spacing: 4) {
                     Text("\(formatSats(item.balance)) sats")
                         .font(.caption2)
                         .foregroundColor(.secondary)
-                    
+
                     Text("(\(Int(item.percentage))%)")
                         .font(.caption2)
                         .foregroundColor(.secondary.opacity(0.8))
                 }
             }
-            
+
             Spacer()
         }
         .opacity(selectedSlice == nil || selectedSlice == item.mint ? 1.0 : 0.5)
         .scaleEffect(selectedSlice == item.mint ? 1.05 : 1.0)
         .animation(.easeInOut(duration: 0.2), value: selectedSlice)
     }
-    
+
     private var backgroundView: some View {
         RoundedRectangle(cornerRadius: 16)
             .fill(Color(.secondarySystemBackground))
@@ -222,19 +222,19 @@ struct MintAllocationPieChart: View {
                     .stroke(Color.gray.opacity(0.3), lineWidth: 1)
             )
     }
-    
+
     private func loadMintBalances() async {
         isLoading = true
         defer { isLoading = false }
-        
+
         guard let wallet = walletManager.wallet else { return }
-        
+
         // Get balances grouped by mint directly
         let balancesByMint = await wallet.getBalancesByMint()
-        
+
         var balances: [(mint: String, balance: Int64, percentage: Double)] = []
         let totalBalance = balancesByMint.values.reduce(0, +)
-        
+
         // Calculate percentages
         if totalBalance > 0 {
             for (mint, balance) in balancesByMint {
@@ -242,62 +242,62 @@ struct MintAllocationPieChart: View {
                 balances.append((mint: mint, balance: balance, percentage: percentage))
             }
         }
-        
+
         // Sort by balance (largest first)
         balances.sort { $0.balance > $1.balance }
-        
+
         await MainActor.run {
             self.mintBalances = balances
             self.onBalancesLoaded(balances)
         }
     }
-    
+
     private func startAngle(for index: Int) -> Angle {
         guard index > 0 else { return .degrees(-90) }
-        
+
         let previousAngles = mintBalances[0..<index].reduce(0.0) { sum, item in
             sum + (item.percentage / 100.0 * 360.0)
         }
-        
+
         return .degrees(previousAngles - 90)
     }
-    
+
     private func endAngle(for index: Int) -> Angle {
         // For the last slice, ensure it closes perfectly at 270 degrees (top of circle)
         if index == mintBalances.count - 1 {
             return .degrees(270) // Ensure perfect closure at top
         }
-        
+
         let cumulativeAngle = mintBalances[0...index].reduce(0.0) { sum, item in
             sum + (item.percentage / 100.0 * 360.0)
         }
-        
+
         return .degrees(cumulativeAngle - 90)
     }
-    
+
     private func formatSats(_ sats: Int64) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.groupingSeparator = ","
         return formatter.string(from: NSNumber(value: sats)) ?? String(sats)
     }
-    
+
     private func formatMintName(_ urlString: String) -> String {
         guard let url = URL(string: urlString),
               let host = url.host else {
             return urlString
         }
-        
+
         // Remove common prefixes
         let cleanHost = host
             .replacingOccurrences(of: "www.", with: "")
             .replacingOccurrences(of: "mint.", with: "")
-        
+
         // Truncate if too long
         if cleanHost.count > 20 {
             return String(cleanHost.prefix(17)) + "..."
         }
-        
+
         return cleanHost
     }
 }
@@ -311,7 +311,7 @@ struct PieSlice: View {
     let color: Color
     let isSelected: Bool
     let animationProgress: Double
-    
+
     var body: some View {
         ZStack {
             // Shadow for selected slice
@@ -325,7 +325,7 @@ struct PieSlice: View {
                 .fill(color.opacity(0.3))
                 .blur(radius: 8)
             }
-            
+
             // Main slice
             PieSliceShape(
                 startAngle: startAngle,
@@ -343,7 +343,7 @@ struct PieSlice: View {
                     endPoint: .bottomTrailing
                 )
             )
-            
+
             // Highlight edge
             PieSliceShape(
                 startAngle: startAngle,
@@ -362,11 +362,11 @@ struct PieSliceShape: Shape {
     let endAngle: Angle
     let innerRadius: CGFloat
     let outerRadius: CGFloat
-    
+
     func path(in rect: CGRect) -> Path {
         var path = Path()
         let center = CGPoint(x: rect.midX, y: rect.midY)
-        
+
         // If it's a full circle (360 degrees), draw it specially to avoid gaps
         let angleDifference = endAngle.degrees - startAngle.degrees
         if abs(angleDifference - 360.0) < 0.01 || abs(angleDifference - (-360.0)) < 0.01 {
@@ -396,14 +396,14 @@ struct PieSliceShape: Shape {
             }
         } else {
             // Regular pie slice
-            
+
             // Start point on outer radius
             let outerStartPoint = CGPoint(
                 x: center.x + outerRadius * Foundation.cos(startAngle.radians),
                 y: center.y + outerRadius * Foundation.sin(startAngle.radians)
             )
             path.move(to: outerStartPoint)
-            
+
             // Outer arc
             path.addArc(
                 center: center,
@@ -412,7 +412,7 @@ struct PieSliceShape: Shape {
                 endAngle: endAngle,
                 clockwise: false
             )
-            
+
             // Line to inner arc (or center if innerRadius is 0)
             if innerRadius > 0 {
                 let innerEndPoint = CGPoint(
@@ -420,7 +420,7 @@ struct PieSliceShape: Shape {
                     y: center.y + innerRadius * Foundation.sin(endAngle.radians)
                 )
                 path.addLine(to: innerEndPoint)
-                
+
                 // Inner arc (reversed)
                 path.addArc(
                     center: center,
@@ -433,11 +433,11 @@ struct PieSliceShape: Shape {
                 // Line to center for solid pie slice
                 path.addLine(to: center)
             }
-            
+
             // Close the path
             path.closeSubpath()
         }
-        
+
         return path
     }
 }

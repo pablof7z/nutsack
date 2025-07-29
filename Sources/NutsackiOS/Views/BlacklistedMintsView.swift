@@ -14,7 +14,7 @@ struct BlacklistedMintsView: View {
     @Environment(WalletManager.self) private var walletManager
     @State private var showAddMintSheet = false
     @State private var availableMints: [String] = []
-    
+
     var body: some View {
         List {
             if appState.blacklistedMints.isEmpty {
@@ -36,7 +36,7 @@ struct BlacklistedMintsView: View {
                     Text("These mints are blocked from being used in your wallet")
                 }
             }
-            
+
             Section {
                 Button(action: { showAddMintSheet = true }) {
                     Label("Add to Blacklist", systemImage: "plus.circle")
@@ -59,7 +59,7 @@ struct BlacklistedMintsView: View {
             await loadAvailableMints()
         }
     }
-    
+
     private func loadAvailableMints() async {
         guard let wallet = walletManager.wallet else { return }
         let mintURLs = await wallet.mints.getMintURLs()
@@ -73,13 +73,13 @@ struct BlacklistedMintsView: View {
 struct BlacklistedMintRowSettings: View {
     let mintURL: String
     let onUnblock: () -> Void
-    
+
     var body: some View {
         HStack {
             Image(systemName: "xmark.shield.fill")
                 .foregroundColor(.red)
                 .frame(width: 40, height: 40)
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(URL(string: mintURL)?.host ?? "Unknown Mint")
                     .font(.headline)
@@ -88,9 +88,9 @@ struct BlacklistedMintRowSettings: View {
                     .foregroundColor(.secondary)
                     .lineLimit(1)
             }
-            
+
             Spacer()
-            
+
             Button("Unblock") {
                 onUnblock()
             }
@@ -108,11 +108,11 @@ struct AddToBlacklistSheet: View {
     let blacklistedMints: Set<String>
     let onBlock: (String) -> Void
     @State private var manualMintURL = ""
-    
+
     var availableMintsToBlock: [String] {
         currentMints.filter { !blacklistedMints.contains($0) }
     }
-    
+
     var body: some View {
         NavigationStack {
             List {
@@ -128,9 +128,9 @@ struct AddToBlacklistSheet: View {
                                         .foregroundColor(.secondary)
                                         .lineLimit(1)
                                 }
-                                
+
                                 Spacer()
-                                
+
                                 Button("Block") {
                                     onBlock(mintURL)
                                     dismiss()
@@ -143,7 +143,7 @@ struct AddToBlacklistSheet: View {
                         }
                     }
                 }
-                
+
                 Section {
                     TextField("https://mint.example.com", text: $manualMintURL)
                         .textContentType(.URL)
@@ -151,7 +151,7 @@ struct AddToBlacklistSheet: View {
                         .autocapitalization(.none)
                         #endif
                         .autocorrectionDisabled()
-                    
+
                     Button("Add to Blacklist") {
                         if !manualMintURL.isEmpty {
                             onBlock(manualMintURL)

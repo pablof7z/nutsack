@@ -1,0 +1,46 @@
+# SwiftLint Configuration
+
+# Rules to disable
+disabled_rules:
+  - inclusive_language  # Disable the inclusive language rule
+  - identifier_name     # Allow short variable names like 'i', 'nm', 'wm'
+
+# Rules to enable (opt-in rules)
+opt_in_rules:
+  - empty_count
+  - missing_docs
+
+# File length limits
+file_length:
+  warning: 500
+  error: 800
+
+# Function body length limits
+function_body_length:
+  warning: 60
+  error: 100
+
+# Type body length limits
+type_body_length:
+  warning: 400
+  error: 600
+
+# Line length limits
+line_length:
+  warning: 120
+  error: 150
+
+# Cyclomatic complexity limits
+cyclomatic_complexity:
+  warning: 15
+  error: 25
+
+# Paths to exclude from linting
+excluded:
+  - .build
+  - Packages
+  - .git
+  - .swiftpm
+
+# Reporter type
+reporter: "xcode"

@@ -5,7 +5,7 @@ import CashuSwift
 struct ProofManagementView: View {
     @Environment(WalletManager.self) private var walletManager
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var allProofEntries: [ProofStateManager.ProofEntry] = []
     @State private var mintBalances: [String: Int64] = [:]
     @State private var isLoading = true
@@ -15,21 +15,21 @@ struct ProofManagementView: View {
     @State private var showDeleteConfirmation = false
     @State private var isDeleting = false
     @State private var deleteError: Error?
-    
+
     var groupedProofs: [String: [ProofStateManager.ProofEntry]] {
         Dictionary(grouping: allProofEntries) { $0.mint }
     }
-    
+
     var selectedProofCount: Int {
         selectedProofs.count
     }
-    
+
     var selectedProofAmount: Int64 {
         allProofEntries
             .filter { selectedProofs.contains($0.proof.C) }
             .reduce(0) { $0 + Int64($1.proof.amount) }
     }
-    
+
     var body: some View {
         NavigationStack {
             VStack {
@@ -78,7 +78,7 @@ struct ProofManagementView: View {
             }
         }
     }
-    
+
     private var proofsList: some View {
         List {
             // Summary section
@@ -92,9 +92,9 @@ struct ProofManagementView: View {
                             .font(.title2)
                             .fontWeight(.semibold)
                     }
-                    
+
                     Spacer()
-                    
+
                     if !selectedProofs.isEmpty {
                         VStack(alignment: .trailing) {
                             Text("Selected")
@@ -108,7 +108,7 @@ struct ProofManagementView: View {
                 }
                 .padding(.vertical, 4)
             }
-            
+
             // Mints and their proofs
             ForEach(groupedProofs.keys.sorted(), id: \.self) { mint in
                 if let proofs = groupedProofs[mint] {
@@ -137,13 +137,13 @@ struct ProofManagementView: View {
         }
         .listStyle(.insetGrouped)
     }
-    
+
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
             Button("Done") { dismiss() }
         }
-        
+
         ToolbarItem(placement: .primaryAction) {
             HStack(spacing: 16) {
                 if !selectedProofs.isEmpty {
@@ -151,14 +151,14 @@ struct ProofManagementView: View {
                         Text("Clear")
                             .font(.caption)
                     }
-                    
+
                     Button(action: { showDeleteConfirmation = true }) {
                         Label("Delete", systemImage: "trash")
                             .foregroundColor(.red)
                     }
                     .disabled(isDeleting)
                 }
-                
+
                 Button(action: { Task { await validateAllProofs() } }) {
                     if isValidating {
                         ProgressView()
@@ -171,7 +171,7 @@ struct ProofManagementView: View {
             }
         }
     }
-    
+
     private func toggleSelection(_ proofC: String) {
         if selectedProofs.contains(proofC) {
             selectedProofs.remove(proofC)
@@ -179,45 +179,45 @@ struct ProofManagementView: View {
             selectedProofs.insert(proofC)
         }
     }
-    
+
     private func loadAllProofs() async {
         isLoading = true
-        
+
         guard let wallet = walletManager.wallet else {
             await MainActor.run { isLoading = false }
             return
         }
-        
+
         // Get all proof entries
         let entries = await wallet.proofStateManager.getAllEntries()
             .filter { $0.state != ProofStateManager.ProofState.deleted }
-        
+
         // Calculate balances per mint
         var balances: [String: Int64] = [:]
         for entry in entries where entry.state == ProofStateManager.ProofState.available {
             balances[entry.mint, default: 0] += Int64(entry.proof.amount)
         }
-        
+
         await MainActor.run {
             self.allProofEntries = entries
             self.mintBalances = balances
             self.isLoading = false
         }
     }
-    
+
     private func validateAllProofs() async {
         isValidating = true
         validationResults.removeAll()
-        
+
         guard let wallet = walletManager.wallet else {
             await MainActor.run { isValidating = false }
             return
         }
-        
+
         // Validate proofs for each mint
         for (mint, _) in groupedProofs {
             guard let mintURL = URL(string: mint) else { continue }
-            
+
             do {
                 let states = try await wallet.checkProofStates(mintURL: mintURL)
                 await MainActor.run {
@@ -227,33 +227,33 @@ struct ProofManagementView: View {
                 print("Failed to validate proofs for mint \(mint): \(error)")
             }
         }
-        
+
         await MainActor.run {
             isValidating = false
         }
     }
-    
+
     private func deleteSelectedProofs() async {
         isDeleting = true
         deleteError = nil
-        
+
         guard let wallet = walletManager.wallet else {
             await MainActor.run { isDeleting = false }
             return
         }
-        
+
         do {
             // Get the proofs to delete
             _ = allProofEntries
                 .filter { selectedProofs.contains($0.proof.C) }
                 .map { $0.proof }
-            
+
             // Group proofs by mint
             var proofsByMint: [String: [CashuSwift.Proof]] = [:]
             for entry in allProofEntries where selectedProofs.contains(entry.proof.C) {
                 proofsByMint[entry.mint, default: []].append(entry.proof)
             }
-            
+
             // Create wallet state change for each mint
             for (mint, proofs) in proofsByMint {
                 let stateChange = WalletStateChange(
@@ -262,14 +262,14 @@ struct ProofManagementView: View {
                     mint: mint,
                     memo: "Manual proof deletion"
                 )
-                
+
                 // Use the wallet's update method which properly creates token events with del tags
                 _ = try await wallet.update(stateChange: stateChange)
             }
-            
+
             // Reload proofs
             await loadAllProofs()
-            
+
             await MainActor.run {
                 selectedProofs.removeAll()
                 isDeleting = false
@@ -281,13 +281,13 @@ struct ProofManagementView: View {
             }
         }
     }
-    
+
     private func formatMintName(_ urlString: String) -> String {
         guard let url = URL(string: urlString),
               let host = url.host else {
             return urlString
         }
-        
+
         return host
             .replacingOccurrences(of: "www.", with: "")
             .replacingOccurrences(of: "mint.", with: "")
@@ -300,7 +300,7 @@ struct ProofManagementRow: View {
     let validationState: CashuSwift.Proof.ProofState?
     let isSelected: Bool
     let onToggleSelection: () -> Void
-    
+
     var stateIndicator: (color: Color, icon: String, text: String) {
         if let validationState = validationState {
             switch validationState {
@@ -312,7 +312,7 @@ struct ProofManagementRow: View {
                 return (.orange, "clock.fill", "Pending")
             }
         }
-        
+
         switch entry.state {
         case .available:
             return (.blue, "circle", "Available")
@@ -322,7 +322,7 @@ struct ProofManagementRow: View {
             return (.red, "trash.circle", "Deleted")
         }
     }
-    
+
     var isSelectable: Bool {
         // Only allow selection of spent or problematic proofs
         if let validationState = validationState {
@@ -330,7 +330,7 @@ struct ProofManagementRow: View {
         }
         return entry.state == .available
     }
-    
+
     var body: some View {
         HStack {
             // Selection checkbox
@@ -342,15 +342,15 @@ struct ProofManagementRow: View {
             .buttonStyle(.plain)
             .disabled(!isSelectable)
             .opacity(isSelectable ? 1.0 : 0.3)
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text("\(entry.proof.amount) sats")
                         .font(.system(.body, design: .monospaced))
                         .fontWeight(.medium)
-                    
+
                     Spacer()
-                    
+
                     HStack(spacing: 4) {
                         Image(systemName: stateIndicator.icon)
                             .font(.caption)
@@ -359,12 +359,12 @@ struct ProofManagementRow: View {
                     }
                     .foregroundColor(stateIndicator.color)
                 }
-                
+
                 HStack {
                     Text("C: " + entry.proof.C.prefix(12) + "...")
                         .font(.system(.caption2, design: .monospaced))
                         .foregroundStyle(.secondary)
-                    
+
                     if let eventId = entry.ownerEventId {
                         Text("•")
                             .foregroundStyle(.tertiary)

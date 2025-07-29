@@ -6,43 +6,43 @@ struct AuthenticationFlow: View {
     @Environment(NostrManager.self) private var nostrManager
     @Environment(WalletManager.self) private var walletManager
     @Environment(\.dismiss) private var dismiss
-    
+
     // Shared animation values for smooth transitions
     @State private var logoSize: CGFloat = 140
     @State private var logoOpacity: Double = 0
     @State private var logoScale: CGFloat = 0.3
     @State private var logoRotation: Double = -180
     @State private var logoPosition = CGPoint(x: 0, y: 0)
-    
+
     @State private var titleText = "NUTSACK"
     @State private var titleOpacity: Double = 0
     @State private var titleOffset: CGFloat = 0
     @State private var titleSize: CGFloat = 52
-    
+
     @State private var sloganOpacity: Double = 0
     @State private var contentOpacity: Double = 0
     @State private var buttonsOpacity: Double = 0
-    
+
     // Background effects
     @State private var glowOpacity: Double = 0
     @State private var pulseScale: CGFloat = 1
     @State private var electricityOffset: CGFloat = -100
-    
+
     // Wallet onboarding sheet
     @State private var showWalletOnboarding = false
     @State private var walletOnboardingAuthMode: WalletOnboardingView.AuthMode = .none
     @State private var checkingExistingUser = true
-    
+
     var body: some View {
         ZStack {
             // Background
             backgroundGradient
             electricEffects
-            
+
             // Main content - centered vertically
             VStack(spacing: 40) {
                 Spacer()
-                
+
                 // Animated header
                 AnimatedHeader(
                     logoSize: logoSize,
@@ -59,12 +59,12 @@ struct AuthenticationFlow: View {
                     glowOpacity: glowOpacity,
                     pulseScale: pulseScale
                 )
-                
+
                 // Auth buttons
                 authButtons
                     .opacity(contentOpacity)
                     .animation(.easeInOut(duration: 0.4), value: contentOpacity)
-                
+
                 Spacer()
             }
             .padding(.vertical, 40)
@@ -87,13 +87,13 @@ struct AuthenticationFlow: View {
                 }
         }
     }
-    
+
     @ViewBuilder
     private var authButtons: some View {
         VStack(spacing: 16) {
-            Button(action: { 
+            Button(action: {
                 print("🔍 [AuthFlow] New Account clicked")
-                print("🔍 [AuthFlow] NDKAuthManager.isAuthenticated: \(NDKAuthManager.shared.isAuthenticated)")
+                print("🔍 [AuthFlow] NDKAuthManager.hasActiveSession: \(NDKAuthManager.shared.hasActiveSession)")
                 print("🔍 [AuthFlow] NostrManager has signer: \(nostrManager.ndk?.signer != nil)")
                 walletOnboardingAuthMode = .create
                 print("🔍 [AuthFlow] Setting authMode to: .create")
@@ -121,10 +121,10 @@ struct AuthenticationFlow: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .shadow(color: Color.orange.opacity(0.3), radius: 10, x: 0, y: 4)
             }
-            
-            Button(action: { 
+
+            Button(action: {
                 print("🔍 [AuthFlow] Login clicked")
-                print("🔍 [AuthFlow] NDKAuthManager.isAuthenticated: \(NDKAuthManager.shared.isAuthenticated)")
+                print("🔍 [AuthFlow] NDKAuthManager.hasActiveSession: \(NDKAuthManager.shared.hasActiveSession)")
                 print("🔍 [AuthFlow] NostrManager has signer: \(nostrManager.ndk?.signer != nil)")
                 walletOnboardingAuthMode = .import
                 print("🔍 [AuthFlow] Setting authMode to: .import")
@@ -146,14 +146,14 @@ struct AuthenticationFlow: View {
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             }
-            
+
             Text("Your keys, your nuts")
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(Color.white.opacity(0.4))
                 .padding(.top, 8)
-            
+
             // Show logout option if authenticated
-            if NDKAuthManager.shared.isAuthenticated {
+            if NDKAuthManager.shared.hasActiveSession {
                 Button(action: {
                     nostrManager.logout()
                 }) {
@@ -167,9 +167,9 @@ struct AuthenticationFlow: View {
         .padding(.horizontal, 32)
         .opacity(buttonsOpacity)
     }
-    
+
     // MARK: - Background Views
-    
+
     @ViewBuilder
     private var backgroundGradient: some View {
         LinearGradient(
@@ -183,7 +183,7 @@ struct AuthenticationFlow: View {
         )
         .ignoresSafeArea()
     }
-    
+
     @ViewBuilder
     private var electricEffects: some View {
         ForEach(0..<5) { index in
@@ -217,7 +217,7 @@ struct AuthenticationFlow: View {
             )
         }
     }
-    
+
     private var primaryButtonGradient: LinearGradient {
         LinearGradient(
             gradient: Gradient(colors: [
@@ -228,9 +228,9 @@ struct AuthenticationFlow: View {
             endPoint: .trailing
         )
     }
-    
+
     // MARK: - Animation Methods
-    
+
     private func startSplashAnimation() {
         // Logo animation
         withAnimation(.spring(response: 1.2, dampingFraction: 0.7)) {
@@ -238,41 +238,41 @@ struct AuthenticationFlow: View {
             logoOpacity = 1
             logoRotation = 0
         }
-        
+
         // Glow effects
         withAnimation(.easeInOut(duration: 1.5).delay(0.2)) {
             glowOpacity = 0.8
         }
-        
+
         // Start electricity animation
         withAnimation(.easeInOut(duration: 2).delay(0.5).repeatForever(autoreverses: true)) {
             electricityOffset = 100
         }
-        
+
         // Title animation - no offset change to prevent bouncing
         withAnimation(.easeOut(duration: 0.8).delay(0.8)) {
             titleOpacity = 1
         }
         // Set titleOffset to 0 immediately without animation
         titleOffset = 0
-        
+
         // Slogan animation
         withAnimation(.easeOut(duration: 0.8).delay(1.2)) {
             sloganOpacity = 1
         }
-        
+
         // Pulse animation
         withAnimation(.easeInOut(duration: 1.5).delay(1).repeatForever(autoreverses: true)) {
             pulseScale = 1.1
         }
-        
+
         // Button animation
         withAnimation(.spring(response: 0.8, dampingFraction: 0.8).delay(2.0)) {
             buttonsOpacity = 1
             contentOpacity = 1
         }
     }
-    
+
     private func checkForExistingUser() {
         // Don't do anything here - this entire view shouldn't be shown if authenticated
         checkingExistingUser = false
@@ -294,7 +294,7 @@ struct AnimatedHeader: View {
     let showSlogan: Bool
     let glowOpacity: Double
     let pulseScale: CGFloat
-    
+
     var body: some View {
         VStack(spacing: 20) {
             // Logo
@@ -317,7 +317,7 @@ struct AnimatedHeader: View {
                     .blur(radius: 30)
                     .scaleEffect(pulseScale)
                     .opacity(logoOpacity * 0.7)
-                
+
                 // Logo background circle
                 Circle()
                     .fill(
@@ -336,7 +336,7 @@ struct AnimatedHeader: View {
                     .scaleEffect(logoScale)
                     .opacity(logoOpacity)
                     .rotationEffect(.degrees(logoRotation))
-                
+
                 // Nut logo
                 NutLogoView(size: logoSize * 0.57, color: .white)
                     .scaleEffect(logoScale)
@@ -344,7 +344,7 @@ struct AnimatedHeader: View {
                     .rotationEffect(.degrees(logoRotation))
             }
             .offset(x: logoPosition.x, y: logoPosition.y)
-            
+
             // Title and slogan
             VStack(spacing: 8) {
                 Text(titleText)
@@ -363,7 +363,7 @@ struct AnimatedHeader: View {
                     .shadow(color: Color.orange.opacity(0.3), radius: 10, x: 0, y: 2)
                     .opacity(titleOpacity)
                     .offset(y: titleOffset)
-                
+
                 if showSlogan {
                     Text("A WALLET FOR THE RELAYS")
                         .font(.system(size: 16, weight: .medium, design: .monospaced))
@@ -377,4 +377,3 @@ struct AnimatedHeader: View {
         .padding(.horizontal, 32)
     }
 }
-

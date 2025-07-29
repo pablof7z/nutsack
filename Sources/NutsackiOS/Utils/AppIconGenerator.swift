@@ -2,7 +2,7 @@ import SwiftUI
 
 struct AppIconView: View {
     let size: CGFloat
-    
+
     var body: some View {
         ZStack {
             // Background gradient
@@ -15,7 +15,7 @@ struct AppIconView: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            
+
             // Hexagon shape
             HexagonShape()
                 .fill(
@@ -44,7 +44,7 @@ struct AppIconView: View {
                 )
                 .padding(size * 0.15)
                 .shadow(color: Color.black.opacity(0.3), radius: size * 0.02, x: 0, y: size * 0.02)
-            
+
             // Inner glow effect
             HexagonShape()
                 .fill(
@@ -60,7 +60,7 @@ struct AppIconView: View {
                 )
                 .padding(size * 0.15)
                 .blendMode(.overlay)
-            
+
             // Text "N" for Nutsack
             Text("N")
                 .font(.system(size: size * 0.4, weight: .black, design: .rounded))
@@ -77,7 +77,7 @@ struct AppIconGenerator: View {
             Text("App Icon Preview")
                 .font(.largeTitle)
                 .fontWeight(.bold)
-            
+
             VStack(spacing: 20) {
                 // 1024x1024 App Store icon
                 VStack {
@@ -85,7 +85,7 @@ struct AppIconGenerator: View {
                     Text("1024×1024 (App Store)")
                         .font(.caption)
                 }
-                
+
                 HStack(spacing: 20) {
                     // 180x180 (60pt @3x for iPhone)
                     VStack {
@@ -93,21 +93,21 @@ struct AppIconGenerator: View {
                         Text("180×180")
                             .font(.caption)
                     }
-                    
+
                     // 120x120 (60pt @2x for iPhone)
                     VStack {
                         AppIconView(size: 60)
                         Text("120×120")
                             .font(.caption)
                     }
-                    
+
                     // 152x152 (76pt @2x for iPad)
                     VStack {
                         AppIconView(size: 76)
                         Text("152×152")
                             .font(.caption)
                     }
-                    
+
                     // 167x167 (83.5pt @2x for iPad Pro)
                     VStack {
                         AppIconView(size: 83.5)
@@ -116,7 +116,7 @@ struct AppIconGenerator: View {
                     }
                 }
             }
-            
+
             Text("Export these at actual pixel sizes for production")
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -124,19 +124,4 @@ struct AppIconGenerator: View {
         .padding()
         .background(Color.gray.opacity(0.1))
     }
-}
-
-// Preview for development
-struct AppIconGenerator_Previews: PreviewProvider {
-    static var previews: some View {
-        AppIconGenerator()
-    }
-}
-
-// Helper function to export icon at specific size
-@MainActor
-func exportAppIcon(size: CGFloat) -> UIImage? {
-    let renderer = ImageRenderer(content: AppIconView(size: size))
-    renderer.scale = 1.0
-    return renderer.uiImage
 }

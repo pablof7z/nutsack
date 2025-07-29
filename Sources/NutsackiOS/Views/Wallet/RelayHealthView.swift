@@ -9,7 +9,7 @@ struct RelayHealthView: View {
     @State private var showingRepairSheet = false
     @State private var selectedUnhealthyRelay: WalletHealthMonitor.RelayHealth?
     @State private var showWalletSettings = false
-    
+
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
@@ -20,16 +20,16 @@ struct RelayHealthView: View {
                             Text("Wallet Relay Health")
                                 .font(.title2)
                                 .fontWeight(.bold)
-                            
+
                             if let lastUpdate = lastUpdateTime {
                                 Text("Last updated: \(lastUpdate, style: .time)")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
                         }
-                        
+
                         Spacer()
-                        
+
                         Button(action: {
                             Task {
                                 await refreshHealth()
@@ -42,14 +42,14 @@ struct RelayHealthView: View {
                         .disabled(isLoading)
                     }
                     .padding()
-                    
+
                     // Health summary
                     if !relayHealth.isEmpty {
                         healthSummaryCard
                     }
                 }
                 .background(Color(UIColor.systemGroupedBackground))
-                
+
                 // Relay list
                 if isLoading {
                     Spacer()
@@ -81,7 +81,7 @@ struct RelayHealthView: View {
             }
         }
     }
-    
+
     private var healthSummaryCard: some View {
         VStack(spacing: 12) {
             HStack {
@@ -96,10 +96,10 @@ struct RelayHealthView: View {
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity)
-                
+
                 Divider()
                     .frame(height: 40)
-                
+
                 // Unhealthy relays
                 VStack {
                     Text("\(unhealthyRelayCount)")
@@ -111,10 +111,10 @@ struct RelayHealthView: View {
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity)
-                
+
                 Divider()
                     .frame(height: 40)
-                
+
                 // Total relays
                 VStack {
                     Text("\(relayHealth.count)")
@@ -127,7 +127,7 @@ struct RelayHealthView: View {
                 }
                 .frame(maxWidth: .infinity)
             }
-            
+
             // Overall status
             HStack {
                 Image(systemName: overallHealthIcon)
@@ -142,10 +142,10 @@ struct RelayHealthView: View {
         .cornerRadius(12)
         .padding(.horizontal)
     }
-    
+
     private var relayListView: some View {
         List {
-            ForEach(Array(relayHealth.enumerated()), id: \.element.relay.url) { index, health in
+            ForEach(Array(relayHealth.enumerated()), id: \.element.relay.url) { _, health in
                 RelayHealthRow(
                     relayHealth: health,
                     onRepairTapped: {
@@ -158,23 +158,23 @@ struct RelayHealthView: View {
         }
         .listStyle(PlainListStyle())
     }
-    
+
     private var emptyStateView: some View {
         VStack(spacing: 16) {
             Image(systemName: "antenna.radiowaves.left.and.right.slash")
                 .font(.system(size: 48))
                 .foregroundColor(.secondary)
-            
+
             Text("No Wallet Relays")
                 .font(.title2)
                 .fontWeight(.semibold)
-            
+
             Text("Your wallet doesn't have specific relay tags configured. All wallet operations use your default outbox relays.")
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-            
+
             Button("Configure Wallet Relays") {
                 showWalletSettings = true
             }
@@ -183,17 +183,17 @@ struct RelayHealthView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
     }
-    
+
     // MARK: - Health Calculations
-    
+
     private var healthyRelayCount: Int {
         relayHealth.filter { $0.isHealthy }.count
     }
-    
+
     private var unhealthyRelayCount: Int {
         relayHealth.filter { !$0.isHealthy }.count
     }
-    
+
     private var overallHealthIcon: String {
         if unhealthyRelayCount == 0 {
             return "checkmark.circle.fill"
@@ -203,7 +203,7 @@ struct RelayHealthView: View {
             return "xmark.circle.fill"
         }
     }
-    
+
     private var overallHealthColor: Color {
         if unhealthyRelayCount == 0 {
             return .green
@@ -213,7 +213,7 @@ struct RelayHealthView: View {
             return .red
         }
     }
-    
+
     private var overallHealthMessage: String {
         if unhealthyRelayCount == 0 {
             return "All relays are healthy"
@@ -223,15 +223,15 @@ struct RelayHealthView: View {
             return "All relays have issues"
         }
     }
-    
+
     // MARK: - Actions
-    
+
     private func refreshHealth() async {
         guard let wallet = walletManager.wallet else { return }
-        
+
         isLoading = true
         defer { isLoading = false }
-        
+
         let health = await wallet.getRelayHealth()
         await MainActor.run {
             self.relayHealth = health
@@ -243,7 +243,7 @@ struct RelayHealthView: View {
 struct RelayHealthRow: View {
     let relayHealth: WalletHealthMonitor.RelayHealth
     let onRepairTapped: () -> Void
-    
+
     private var displayURL: String {
         let url = relayHealth.relay.url
         if url.hasPrefix("wss://") {
@@ -253,7 +253,7 @@ struct RelayHealthRow: View {
         }
         return url
     }
-    
+
     var body: some View {
         VStack(spacing: 8) {
             HStack {
@@ -261,20 +261,20 @@ struct RelayHealthRow: View {
                 Circle()
                     .fill(relayHealth.isHealthy ? Color.green : Color.red)
                     .frame(width: 12, height: 12)
-                
+
                 // Relay URL
                 VStack(alignment: .leading, spacing: 2) {
                     Text(displayURL)
                         .font(.headline)
                         .lineLimit(1)
-                    
+
                     Text("\(relayHealth.knownEvents) events")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 Spacer()
-                
+
                 // Health status
                 if relayHealth.isHealthy {
                     Image(systemName: "checkmark.circle")
@@ -288,7 +288,7 @@ struct RelayHealthRow: View {
                     .controlSize(.small)
                 }
             }
-            
+
             // Issue details
             if !relayHealth.isHealthy {
                 VStack(alignment: .leading, spacing: 4) {
@@ -302,7 +302,7 @@ struct RelayHealthRow: View {
                                 .foregroundColor(.orange)
                         }
                     }
-                    
+
                     if !relayHealth.extraEvents.isEmpty {
                         HStack {
                             Image(systemName: "plus.circle")
@@ -330,7 +330,7 @@ struct RelayRepairSheet: View {
     @State private var isRepairing = false
     @State private var showErrorAlert = false
     @State private var errorMessage = ""
-    
+
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
@@ -339,23 +339,23 @@ struct RelayRepairSheet: View {
                     Image(systemName: "wrench.and.screwdriver")
                         .font(.system(size: 48))
                         .foregroundColor(.blue)
-                    
+
                     Text("Repair Relay")
                         .font(.title2)
                         .fontWeight(.bold)
-                    
+
                     Text(relayHealth.relay.url)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                 }
                 .padding()
-                
+
                 // Issue summary
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Issues Found:")
                         .font(.headline)
-                    
+
                     if !relayHealth.missingEvents.isEmpty {
                         HStack {
                             Image(systemName: "minus.circle")
@@ -364,7 +364,7 @@ struct RelayRepairSheet: View {
                             Spacer()
                         }
                     }
-                    
+
                     if !relayHealth.extraEvents.isEmpty {
                         HStack {
                             Image(systemName: "plus.circle")
@@ -377,9 +377,9 @@ struct RelayRepairSheet: View {
                 .padding()
                 .background(Color(UIColor.secondarySystemGroupedBackground))
                 .cornerRadius(12)
-                
+
                 Spacer()
-                
+
                 // Repair button
                 Button(action: performRepair) {
                     HStack {
@@ -398,7 +398,7 @@ struct RelayRepairSheet: View {
                     .cornerRadius(12)
                 }
                 .disabled(isRepairing)
-                
+
                 Text("This will republish missing events to the relay.")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -419,17 +419,17 @@ struct RelayRepairSheet: View {
             }
         }
     }
-    
+
     private func performRepair() {
         guard let wallet = walletManager.wallet else { return }
-        
+
         Task {
             isRepairing = true
             defer { isRepairing = false }
-            
+
             do {
                 try await wallet.repairRelay(relayHealth.relay, missingEventIds: relayHealth.missingEvents)
-                
+
                 await MainActor.run {
                     onComplete()
                     dismiss()
@@ -449,7 +449,7 @@ struct RelayRepairSheet: View {
 #Preview {
     // Create mock objects for preview
     let nostrManager = NostrManager(from: "Health")
-    
+
     RelayHealthView()
         .environment(WalletManager(nostrManager: nostrManager, appState: AppState()))
 }

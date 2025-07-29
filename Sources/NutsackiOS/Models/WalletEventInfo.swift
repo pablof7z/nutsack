@@ -10,7 +10,7 @@ struct WalletEventInfo: Identifiable, Hashable {
     let isDeleted: Bool
     let deletionReason: String?
     let deletionEvent: NDKEvent?
-    
+
     init(event: NDKEvent, tokenData: NIP60TokenEvent?, isDeleted: Bool, deletionReason: String? = nil, deletionEvent: NDKEvent? = nil) {
         self.id = event.id
         self.event = event
@@ -19,11 +19,11 @@ struct WalletEventInfo: Identifiable, Hashable {
         self.deletionReason = deletionReason
         self.deletionEvent = deletionEvent
     }
-    
+
     static func == (lhs: WalletEventInfo, rhs: WalletEventInfo) -> Bool {
         lhs.id == rhs.id
     }
-    
+
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }

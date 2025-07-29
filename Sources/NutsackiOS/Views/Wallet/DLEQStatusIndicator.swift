@@ -2,13 +2,13 @@ import SwiftUI
 
 struct DLEQStatusIndicator: View {
     @Environment(WalletManager.self) private var walletManager
-    
+
     @State private var proofStats: (verified: Int, unverified: Int, unknown: Int) = (0, 0, 0)
-    
+
     var dleqStatus: (verified: Int, unverified: Int, unknown: Int) {
         proofStats
     }
-    
+
     var statusColor: Color {
         let status = dleqStatus
         if status.unverified > 0 {
@@ -20,7 +20,7 @@ struct DLEQStatusIndicator: View {
         }
         return .gray
     }
-    
+
     var statusIcon: String {
         let status = dleqStatus
         if status.unverified > 0 {
@@ -31,7 +31,7 @@ struct DLEQStatusIndicator: View {
             return "shield.fill"
         }
     }
-    
+
     var statusText: String {
         let status = dleqStatus
         if status.unverified > 0 {
@@ -44,13 +44,13 @@ struct DLEQStatusIndicator: View {
             return "No verification data"
         }
     }
-    
+
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: statusIcon)
                 .font(.caption2)
                 .foregroundStyle(statusColor)
-            
+
             Text(statusText)
                 .font(.caption2)
                 .foregroundStyle(statusColor)
@@ -60,7 +60,7 @@ struct DLEQStatusIndicator: View {
             await updateStats()
         }
     }
-    
+
     private func updateStats() async {
         // Implementation pending: Requires WalletManager to track DLEQ verification status of proofs
         // This would involve tracking each proof's verification state in the wallet
@@ -72,7 +72,7 @@ struct DLEQStatusIndicator: View {
 // Compact version for inline use
 struct DLEQBadge: View {
     let isVerified: Bool?
-    
+
     var body: some View {
         if let verified = isVerified {
             Image(systemName: verified ? "checkmark.shield.fill" : "exclamationmark.shield.fill")

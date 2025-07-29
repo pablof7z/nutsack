@@ -4,11 +4,11 @@ import CashuSwift
 
 struct MintDetailView: View {
     let mintURL: String
-    
+
     @Environment(WalletManager.self) private var walletManager
     @Environment(NostrManager.self) private var nostrManager
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var balance: Int64 = 0
     @State private var mintInfo: NDKMintInfo?
     @State private var walletEvents: [WalletEventInfo] = []
@@ -19,7 +19,7 @@ struct MintDetailView: View {
     @State private var validationResult: ProofValidationResult?
     @State private var showValidationDetails = false
     @State private var selectedTab = 0
-    
+
     struct ProofValidationResult {
         let totalProofs: Int
         let validProofs: Int
@@ -28,7 +28,7 @@ struct MintDetailView: View {
         let invalidProofs: Int
         let proofStates: [String: CashuSwift.Proof.ProofState]
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Header with mint info and balance
@@ -38,15 +38,15 @@ struct MintDetailView: View {
                         Text(mintInfo?.name ?? URL(string: mintURL)?.host ?? "Unknown Mint")
                             .font(.title2)
                             .fontWeight(.semibold)
-                        
+
                         Text(mintURL)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
-                    
+
                     Spacer()
-                    
+
                     VStack(alignment: .trailing, spacing: 4) {
                         Text("\(balance)")
                             .font(.title)
@@ -57,7 +57,7 @@ struct MintDetailView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                
+
                 // Quick actions
                 HStack(spacing: 12) {
                     Button(action: { isValidatingProofs = true; Task { await validateAllProofs() } }) {
@@ -66,7 +66,7 @@ struct MintDetailView: View {
                     }
                     .buttonStyle(.bordered)
                     .disabled(isValidatingProofs)
-                    
+
                     if validationResult != nil {
                         Button(action: { showValidationDetails = true }) {
                             Label("View Results", systemImage: "doc.text.magnifyingglass")
@@ -79,7 +79,7 @@ struct MintDetailView: View {
             }
             .padding()
             .background(Color(.secondarySystemGroupedBackground))
-            
+
             // Tab selection
             Picker("View", selection: $selectedTab) {
                 Text("Token Events").tag(0)
@@ -88,7 +88,7 @@ struct MintDetailView: View {
             }
             .pickerStyle(.segmented)
             .padding()
-            
+
             // Content based on selected tab
             switch selectedTab {
             case 0:
@@ -115,7 +115,7 @@ struct MintDetailView: View {
             }
         }
     }
-    
+
     private func loadMintData() async {
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await loadBalance() }
@@ -124,7 +124,7 @@ struct MintDetailView: View {
             group.addTask { await loadProofs() }
         }
     }
-    
+
     private func loadBalance() async {
         guard let wallet = walletManager.wallet else { return }
         guard let url = URL(string: mintURL) else { return }
@@ -133,11 +133,11 @@ struct MintDetailView: View {
             self.balance = mintBalance
         }
     }
-    
+
     private func loadMintInfo() async {
         guard let wallet = walletManager.wallet else { return }
         guard let url = URL(string: mintURL) else { return }
-        
+
         do {
             let info = try await wallet.mints.getMintInfo(url: url)
             await MainActor.run {
@@ -147,17 +147,17 @@ struct MintDetailView: View {
             print("Failed to load mint info: \(error)")
         }
     }
-    
+
     private func loadWalletEvents() async {
         isLoadingEvents = true
-        
+
         do {
             // Fetch all wallet events and filter by mint
             let allEvents = try await walletManager.fetchAllWalletEvents()
             let mintEvents = allEvents.filter { event in
                 event.tokenData?.mint == mintURL
             }
-            
+
             await MainActor.run {
                 self.walletEvents = mintEvents.sorted { $0.event.createdAt > $1.event.createdAt }
                 self.isLoadingEvents = false
@@ -168,15 +168,15 @@ struct MintDetailView: View {
             }
         }
     }
-    
+
     private func loadProofs() async {
         isLoadingProofs = true
-        
+
         guard let wallet = walletManager.wallet else {
             await MainActor.run { isLoadingProofs = false }
             return
         }
-        
+
         let entries = await wallet.proofStateManager.getEntries(mint: mintURL)
         await MainActor.run {
             self.proofEntries = entries.filter { $0.state != .deleted }
@@ -184,19 +184,19 @@ struct MintDetailView: View {
             self.isLoadingProofs = false
         }
     }
-    
+
     private func validateAllProofs() async {
         guard let wallet = walletManager.wallet,
               let url = URL(string: mintURL) else { return }
-        
+
         do {
             let states = try await wallet.checkProofStates(mintURL: url)
-            
+
             // Count different states
             var validCount = 0
             var spentCount = 0
             var pendingCount = 0
-            
+
             for (_, state) in states {
                 switch state {
                 case .unspent:
@@ -207,7 +207,7 @@ struct MintDetailView: View {
                     pendingCount += 1
                 }
             }
-            
+
             let result = ProofValidationResult(
                 totalProofs: states.count,
                 validProofs: validCount,
@@ -216,7 +216,7 @@ struct MintDetailView: View {
                 invalidProofs: 0,
                 proofStates: states
             )
-            
+
             await MainActor.run {
                 self.validationResult = result
                 self.isValidatingProofs = false
@@ -236,7 +236,7 @@ struct TokenEventsTab: View {
     let mintURL: String
     @Binding var walletEvents: [WalletEventInfo]
     @Binding var isLoading: Bool
-    
+
     var body: some View {
         if isLoading {
             ProgressView("Loading events...")
@@ -277,15 +277,15 @@ struct ProofsTab: View {
     @Binding var proofEntries: [ProofStateManager.ProofEntry]
     @Binding var isLoading: Bool
     let validationResult: MintDetailView.ProofValidationResult?
-    
+
     var activeProofs: [ProofStateManager.ProofEntry] {
         proofEntries.filter { $0.state == .available }
     }
-    
+
     var reservedProofs: [ProofStateManager.ProofEntry] {
         proofEntries.filter { $0.state == .reserved }
     }
-    
+
     var body: some View {
         if isLoading {
             ProgressView("Loading proofs...")
@@ -313,7 +313,7 @@ struct ProofsTab: View {
                         }
                     }
                 }
-                
+
                 if !reservedProofs.isEmpty {
                     Section {
                         ForEach(reservedProofs, id: \.proof.C) { entry in
@@ -338,7 +338,7 @@ struct ProofsTab: View {
 struct MintInfoTab: View {
     let mintInfo: NDKMintInfo?
     let mintURL: String
-    
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -351,29 +351,29 @@ struct MintInfoTab: View {
             .padding()
         }
     }
-    
+
     @ViewBuilder
     private func mintInfoContent(info: NDKMintInfo) -> some View {
         // Basic Info
         basicInfoSection(info: info)
-        
+
         // Contact Info
         ContactInfoSection(contacts: info.contact)
-        
+
         // Supported Methods
         supportedMethodsSection(nuts: info.nuts)
     }
-    
+
     @ViewBuilder
     private func basicInfoSection(info: NDKMintInfo) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Mint Information")
                 .font(.headline)
-            
+
             LabeledContent("Name", value: info.name ?? "Unknown")
             LabeledContent("Public Key", value: String(info.pubkey?.prefix(16) ?? "Unknown") + "...")
                 .font(.system(.body, design: .monospaced))
-            
+
             if let description = info.description {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Description")
@@ -388,14 +388,14 @@ struct MintInfoTab: View {
         .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
     }
-    
+
     @ViewBuilder
     private func supportedMethodsSection(nuts: NDKMintInfo.Nuts?) -> some View {
         if let nuts = nuts {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Supported NIPs")
                     .font(.headline)
-                
+
                 VStack(alignment: .leading, spacing: 8) {
                     if nuts.nut04 != nil {
                         nutRow(number: "04", description: "Mint tokens")
@@ -425,7 +425,7 @@ struct MintInfoTab: View {
             .cornerRadius(12)
         }
     }
-    
+
     private func nutRow(number: String, description: String) -> some View {
         HStack {
             Text("NUT-\(number)")
@@ -438,17 +438,17 @@ struct MintInfoTab: View {
                 .foregroundColor(.green)
         }
     }
-    
+
     private var noMintInfoContent: some View {
         VStack(spacing: 16) {
             Image(systemName: "building.columns")
                 .font(.system(size: 48))
                 .foregroundColor(.gray)
-            
+
             Text("Mint information not available")
                 .font(.headline)
                 .foregroundStyle(.secondary)
-            
+
             Text(mintURL)
                 .font(.caption)
                 .foregroundStyle(.tertiary)
@@ -462,9 +462,9 @@ struct MintInfoTab: View {
 struct ProofEntryRow: View {
     let entry: ProofStateManager.ProofEntry
     let validationState: CashuSwift.Proof.ProofState?
-    
+
     @State private var isExpanded = false
-    
+
     var stateColor: Color {
         if let validationState = validationState {
             switch validationState {
@@ -473,14 +473,14 @@ struct ProofEntryRow: View {
             case .pending: return .orange
             }
         }
-        
+
         switch entry.state {
         case .available: return .green
         case .reserved: return .orange
         case .deleted: return .red
         }
     }
-    
+
     var stateText: String {
         if let validationState = validationState {
             switch validationState {
@@ -489,14 +489,14 @@ struct ProofEntryRow: View {
             case .pending: return "Pending"
             }
         }
-        
+
         switch entry.state {
         case .available: return "Available"
         case .reserved: return "Reserved"
         case .deleted: return "Deleted"
         }
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -505,39 +505,39 @@ struct ProofEntryRow: View {
                         Text("\(entry.proof.amount) sats")
                             .font(.system(.body, design: .monospaced))
                             .fontWeight(.medium)
-                        
+
                         if validationState != nil {
                             Text("•")
                                 .foregroundStyle(.tertiary)
-                            
+
                             Text(stateText)
                                 .font(.caption)
                                 .foregroundColor(stateColor)
                                 .fontWeight(.medium)
                         }
                     }
-                    
+
                     Text("C: " + entry.proof.C.prefix(16) + "...")
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.secondary)
                 }
-                
+
                 Spacer()
-                
+
                 VStack(alignment: .trailing, spacing: 4) {
                     if validationState == nil {
                         Text(stateText)
                             .font(.caption)
                             .foregroundColor(stateColor)
                     }
-                    
+
                     if let eventId = entry.ownerEventId {
                         Text("Event: " + eventId.prefix(8) + "...")
                             .font(.system(.caption2, design: .monospaced))
                             .foregroundStyle(.tertiary)
                     }
                 }
-                
+
                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -548,24 +548,24 @@ struct ProofEntryRow: View {
                     isExpanded.toggle()
                 }
             }
-            
+
             if isExpanded {
                 VStack(alignment: .leading, spacing: 6) {
                     Divider()
-                    
+
                     Group {
                         LabeledContent("Secret") {
                             Text(entry.proof.secret.prefix(32) + "...")
                                 .font(.system(.caption, design: .monospaced))
                                 .foregroundStyle(.secondary)
                         }
-                        
+
                         LabeledContent("Keyset ID") {
                             Text(entry.proof.keysetID.prefix(16) + "...")
                                 .font(.system(.caption, design: .monospaced))
                                 .foregroundStyle(.secondary)
                         }
-                        
+
                         if let eventId = entry.ownerEventId {
                             LabeledContent("Owner Event") {
                                 Text(eventId)
@@ -574,7 +574,7 @@ struct ProofEntryRow: View {
                                     .lineLimit(1)
                             }
                         }
-                        
+
                         if let timestamp = entry.ownerTimestamp {
                             LabeledContent("Created") {
                                 Text(Date(timeIntervalSince1970: TimeInterval(timestamp)), style: .relative)
@@ -597,7 +597,7 @@ struct ValidationResultsView: View {
     let result: MintDetailView.ProofValidationResult
     let proofEntries: [ProofStateManager.ProofEntry]
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         NavigationStack {
             List {
@@ -609,7 +609,7 @@ struct ValidationResultsView: View {
                         Text("\(result.totalProofs)")
                             .fontWeight(.medium)
                     }
-                    
+
                     HStack {
                         Label("Valid", systemImage: "checkmark.circle.fill")
                             .foregroundColor(.green)
@@ -618,7 +618,7 @@ struct ValidationResultsView: View {
                             .fontWeight(.medium)
                             .foregroundColor(.green)
                     }
-                    
+
                     HStack {
                         Label("Spent", systemImage: "xmark.circle.fill")
                             .foregroundColor(.red)
@@ -627,7 +627,7 @@ struct ValidationResultsView: View {
                             .fontWeight(.medium)
                             .foregroundColor(.red)
                     }
-                    
+
                     if result.pendingProofs > 0 {
                         HStack {
                             Label("Pending", systemImage: "clock.fill")
@@ -639,7 +639,7 @@ struct ValidationResultsView: View {
                         }
                     }
                 }
-                
+
                 // Invalid/Spent Proofs Details
                 if result.spentProofs > 0 {
                     Section("Spent Proofs") {
@@ -665,14 +665,14 @@ struct ValidationResultsView: View {
 // MARK: - Contact Info Section
 private struct ContactInfoSection: View {
     let contacts: [NDKMintInfo.Contact]?
-    
+
     var body: some View {
         if let contacts = contacts, !contacts.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Contact")
                     .font(.headline)
-                
-                ForEach(Array(contacts.enumerated()), id: \.offset) { index, contact in
+
+                ForEach(Array(contacts.enumerated()), id: \.offset) { _, contact in
                     HStack(alignment: .top, spacing: 8) {
                         Text("\(contact.method):")
                             .font(.caption)

@@ -11,48 +11,37 @@ struct ContactsView: View {
     @State private var isResolving = false
     @State private var showQRScanner = false
     @State private var contacts: [String] = []
-    
+
     // Default users to show when no contacts
     private let defaultUsers = [
         // Pablo Fernandez
-        try! Bech32.pubkey(from: "npub1l2vyh47mk2p0qlsku7hg0vn29faehy9hy34ygaclpn66ukqp3afqutajft"),
+        "fcb220c3af11b08325c8ad74c37b2ab5b9e665e3c39076c20c8d36c5b5c3de78",
         // Jack Dorsey
-        try! Bech32.pubkey(from: "npub1sg6plzptd64u62a878hep2kev88swjh3tw00gjsfl8f237lmu63q0uf63m"),
+        "82341f882b6eabcd2ba7f1ef90aad961cf074af15b9ef44a09f9d2a8fbfbe6a2",
         // Calle (Cashu creator)
-        try! Bech32.pubkey(from: "npub12rv5lskctqxxs2c8rf2zlzc7xx3qpvzs3w4etgemauy9thegr43sf485vg")
+        "50d94fc2d8580c682b071a542f8b1e31a200b0508bab95a33bef0855df281d63"
     ]
-    
-    
+
     var filteredContacts: [String] {
         if searchText.isEmpty {
             return contacts
         }
-        
-        return contacts.filter { pubkey in
+
+        var filtered: [String] = []
+        for pubkey in contacts {
             // Filter by pubkey/npub
             let npub = NDKUser(pubkey: pubkey).npub
             if npub.localizedCaseInsensitiveContains(searchText) {
-                return true
+                filtered.append(pubkey)
+                continue
             }
-            
-            // Also check profile data if available
-            if let profileDataSource = nostrManager.contactsMetadataDataSource,
-               let profile = profileDataSource.profile(for: pubkey) {
-                if let name = profile.name, name.localizedCaseInsensitiveContains(searchText) {
-                    return true
-                }
-                if let displayName = profile.displayName, displayName.localizedCaseInsensitiveContains(searchText) {
-                    return true
-                }
-                if let nip05 = profile.nip05, nip05.localizedCaseInsensitiveContains(searchText) {
-                    return true
-                }
-            }
-            
-            return false
+
+            // Profile search disabled for now - would need async implementation
+            // TODO: Implement profile-based search with declarative data sources
         }
+        return filtered
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
                 // Search input section
@@ -63,7 +52,7 @@ struct ContactsView: View {
                             .textInputAutocapitalization(.never)
                             #endif
                             .autocorrectionDisabled()
-                        
+
                         #if os(iOS)
                         Button(action: { showQRScanner = true }) {
                             Image(systemName: "qrcode.viewfinder")
@@ -77,7 +66,7 @@ struct ContactsView: View {
                         #endif
                     }
                     .padding(.horizontal)
-                    
+
                     if isResolving {
                         HStack {
                             ProgressView()
@@ -92,19 +81,19 @@ struct ContactsView: View {
                             HStack {
                                 // Profile picture
                                 UserProfilePicture(user: user)
-                                
+
                                 VStack(alignment: .leading) {
                                     UserDisplayName(user: user)
                                         .font(.subheadline)
                                         .fontWeight(.medium)
-                                    
+
                                     UserNIP05(user: user)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
-                                
+
                                 Spacer()
-                                
+
                                 Image(systemName: "bolt.heart.fill")
                                     .foregroundStyle(.orange)
                             }
@@ -116,7 +105,7 @@ struct ContactsView: View {
                 }
                 .padding(.vertical, 8)
                 .background(Color(.systemGroupedBackground))
-                
+
                 // Contacts list
                 List {
                     if contacts.isEmpty {
@@ -166,10 +155,15 @@ struct ContactsView: View {
             }
             #if os(iOS)
             .sheet(isPresented: $showQRScanner) {
-                QRScannerView { scannedCode in
-                    searchText = scannedCode
-                    showQRScanner = false
-                }
+                QRScannerView(
+                    onScan: { scannedCode in
+                        searchText = scannedCode
+                        showQRScanner = false
+                    },
+                    onDismiss: {
+                        showQRScanner = false
+                    }
+                )
             }
             #endif
         .navigationDestination(for: String.self) { pubkey in
@@ -181,32 +175,32 @@ struct ContactsView: View {
             await loadContacts()
         }
     }
-    
+
     private func resolveSearchInput() {
         // Clear previous resolution if search text is empty or too short
         guard !searchText.isEmpty else {
             resolvedUser = nil
             return
         }
-        
+
         // Only resolve if it looks like a pubkey, npub, or NIP-05
-        guard searchText.starts(with: "npub1") || 
-              HexValidator.isValid32ByteHex(searchText) || 
+        guard searchText.starts(with: "npub1") ||
+              HexValidator.isValid32ByteHex(searchText) ||
               searchText.contains("@") else {
             resolvedUser = nil
             return
         }
-        
+
         isResolving = true
-        
+
         Task {
             do {
                 guard let ndk = nostrManager.ndk else {
-                    throw NostrError.ndkNotInitialized
+                    throw NDKError.notConfigured("NDK not initialized")
                 }
-                
+
                 var pubkey: String?
-                
+
                 // Try to parse as npub
                 if searchText.starts(with: "npub1") {
                     pubkey = try? Bech32.pubkey(from: searchText)
@@ -220,10 +214,10 @@ struct ContactsView: View {
                     let user = try await NDKUser.fromNip05(searchText, ndk: ndk)
                     pubkey = user.pubkey
                 }
-                
+
                 if let pubkey = pubkey {
                     let user = NDKUser(pubkey: pubkey)
-                    
+
                     await MainActor.run {
                         resolvedUser = user
                         isResolving = false
@@ -242,35 +236,35 @@ struct ContactsView: View {
             }
         }
     }
-    
+
     @MainActor
     private func loadContacts() async {
         guard let ndk = nostrManager.ndk else { return }
-        
+
         do {
             // Get user's contact list
             guard let signer = ndk.signer else { return }
             let pubkey = try await signer.pubkey
-            
+
             let filter = NDKFilter(
                 authors: [pubkey],
                 kinds: [3],
                 limit: 1
             )
-            
+
             // Use declarative data source to fetch contact list
             let contactDataSource = ndk.observe(
                 filter: filter,
                 maxAge: 3600,
                 cachePolicy: .cacheWithNetwork
             )
-            
+
             var contactListEvent: NDKEvent?
             for await event in contactDataSource.events {
                 contactListEvent = event
                 break // Take first event
             }
-            
+
             if let contactListEvent = contactListEvent {
                 // Parse the contact list
                 var contactPubkeys: [String] = []
@@ -279,7 +273,7 @@ struct ContactsView: View {
                         contactPubkeys.append(tag[1])
                     }
                 }
-                
+
                 // Update contacts
                 contacts = contactPubkeys
             }
@@ -292,30 +286,30 @@ struct ContactsView: View {
 struct ContactRow: View {
     let pubkey: String
     @Environment(NostrManager.self) private var nostrManager
-    
+
     private var user: NDKUser {
         NDKUser(pubkey: pubkey)
     }
-    
+
     var body: some View {
         NavigationLink(value: pubkey) {
             HStack {
                 // Profile picture
                 UserProfilePicture(pubkey: pubkey, size: 50)
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     UserDisplayName(pubkey: pubkey)
                         .font(.headline)
                         .lineLimit(1)
-                    
+
                     UserNIP05(pubkey: pubkey)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-                
+
                 Spacer()
-                
+
                 Image(systemName: "bolt.heart.fill")
                     .foregroundStyle(.orange)
             }

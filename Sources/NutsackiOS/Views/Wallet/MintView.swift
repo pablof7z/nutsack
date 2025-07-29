@@ -10,7 +10,7 @@ import AppKit
 struct MintView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(WalletManager.self) private var walletManager
-    
+
     @State private var amount = ""
     @State private var selectedMintURL: String = ""
     @State private var availableMints: [MintInfo] = []
@@ -25,7 +25,7 @@ struct MintView: View {
     @State private var mintedAmount: Int64 = 0
     @State private var manualCheckContinuation: AsyncStream<Void>.Continuation?
     @FocusState private var amountFieldFocused: Bool
-    
+
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
@@ -36,7 +36,7 @@ struct MintView: View {
                 .padding(.vertical)
                 .padding(.bottom, 120) // Add space for the fixed button and keyboard
             }
-            
+
             createInvoiceButton
         }
         .navigationTitle("Mint Ecash")
@@ -46,7 +46,7 @@ struct MintView: View {
         #endif
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Create Invoice") { 
+                Button("Create Invoice") {
                     createMintQuote()
                 }
                 .foregroundColor(.orange)
@@ -82,7 +82,7 @@ struct MintView: View {
             }
         }
     }
-    
+
     private func loadMints() async {
         guard let wallet = walletManager.wallet else { return }
         let mintURLs = await wallet.mints.getMintURLs()
@@ -97,11 +97,11 @@ struct MintView: View {
             }
         }
     }
-    
+
     private func startMintLoading() async {
         // Initial load
         await loadMints()
-        
+
         // If no mints found, periodically check until they're available
         if availableMints.isEmpty {
             loadMintTask = Task {
@@ -109,7 +109,7 @@ struct MintView: View {
                 while attempts < 10 && !Task.isCancelled {
                     try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
                     await loadMints()
-                    
+
                     if !availableMints.isEmpty {
                         break
                     }
@@ -118,13 +118,13 @@ struct MintView: View {
             }
         }
     }
-    
+
     // MARK: - Computed Properties
     private var formattedAmount: String {
         if amount.isEmpty {
             return "0"
         }
-        
+
         // Format with thousand separators
         if let number = Int(amount) {
             let formatter = NumberFormatter()
@@ -134,12 +134,12 @@ struct MintView: View {
         }
         return amount
     }
-    
+
     private var isValidAmount: Bool {
         guard let amountInt = Int(amount), amountInt > 0 else { return false }
         return !selectedMintURL.isEmpty
     }
-    
+
     // MARK: - View Components
     private var amountInputSection: some View {
         VStack(spacing: 16) {
@@ -149,14 +149,14 @@ struct MintView: View {
                 .opacity(0)
                 .frame(height: 0)
                 .focused($amountFieldFocused)
-            
+
             // Visual amount display
             VStack(spacing: 8) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(formattedAmount)
                         .font(.system(size: 48, weight: .semibold, design: .rounded))
                         .foregroundStyle(.primary)
-                    
+
                     Text("sats")
                         .font(.system(size: 20, weight: .medium, design: .rounded))
                         .foregroundStyle(.secondary)
@@ -165,14 +165,14 @@ struct MintView: View {
                 .onTapGesture {
                     amountFieldFocused = true
                 }
-                
+
                 // USD equivalent (placeholder)
                 Text("≈ $0.00 USD")
                     .font(.system(size: 16, weight: .regular, design: .rounded))
                     .foregroundStyle(.secondary)
                     .opacity(0.6)
             }
-            
+
             // Quick amount buttons
             HStack(spacing: 12) {
                 ForEach(AmountPresets.nutzapAmounts, id: \.self) { preset in
@@ -190,13 +190,13 @@ struct MintView: View {
         }
         .padding(.horizontal)
     }
-    
+
     private var mintSelectionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Select Mint")
                 .font(.headline)
                 .padding(.horizontal)
-            
+
             if availableMints.isEmpty {
                 HStack {
                     ProgressView()
@@ -214,7 +214,7 @@ struct MintView: View {
             }
         }
     }
-    
+
     private func mintRow(for mint: MintInfo) -> some View {
         HStack {
             // Mint icon
@@ -226,18 +226,18 @@ struct MintView: View {
                         .font(.system(size: 16))
                         .foregroundColor(.orange)
                 )
-            
+
             VStack(alignment: .leading, spacing: 2) {
                 Text(mint.name ?? mint.url.host ?? "Unknown Mint")
                     .font(.system(size: 16, weight: .medium))
-                
+
                 Text(mint.url.host ?? mint.url.absoluteString)
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
-            
+
             Spacer()
-            
+
             if selectedMintURL == mint.url.absoluteString {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.orange)
@@ -249,11 +249,11 @@ struct MintView: View {
         }
         .padding(.horizontal)
     }
-    
+
     private var createInvoiceButton: some View {
         VStack {
             Divider()
-            
+
             Button(action: createMintQuote) {
                 if isMinting {
                     HStack {
@@ -286,15 +286,14 @@ struct MintView: View {
     private func setAmount(_ preset: Int) {
         amount = "\(preset)"
     }
-    
-    
+
     private func createMintQuote() {
         guard let amountInt = Int(amount),
               amountInt > 0,
               !selectedMintURL.isEmpty else { return }
-        
+
         isMinting = true
-        
+
         Task {
             do {
                 // Request mint quote from the wallet
@@ -305,16 +304,16 @@ struct MintView: View {
                     amount: Int64(amountInt),
                     mintURL: selectedMintURL
                 )
-                
+
                 await MainActor.run {
                     mintQuote = quote
                     showInvoice = true
                     isMinting = false
                 }
-                
+
                 // Start monitoring for deposit
                 startDepositMonitoring(quote: quote)
-                
+
             } catch {
                 await MainActor.run {
                     errorMessage = error.localizedDescription
@@ -324,14 +323,14 @@ struct MintView: View {
             }
         }
     }
-    
+
     private func startDepositMonitoring(quote: CashuMintQuote) {
         depositTask?.cancel()
-        
+
         // Create manual check trigger stream
         let (triggerStream, continuation) = AsyncStream<Void>.makeStream()
         manualCheckContinuation = continuation
-        
+
         depositTask = Task {
             do {
                 guard let wallet = walletManager.wallet else { return }
@@ -344,14 +343,14 @@ struct MintView: View {
                     case .pending:
                         // Still waiting for payment
                         print("Deposit pending for quote: \(quote.quoteId)")
-                        
+
                     case .minted(let proofs):
                         // Success! Tokens have been minted
                         print("Successfully minted \(proofs.count) proofs")
-                        
+
                         // Calculate total amount from proofs
                         let totalAmount = proofs.reduce(0) { $0 + $1.amount }
-                        
+
                         await MainActor.run {
                             // Update wallet balance in UI
                             // The wallet manager already saved the proofs
@@ -360,7 +359,7 @@ struct MintView: View {
                             showPaymentAnimation = true
                         }
                         return
-                        
+
                     case .expired:
                         await MainActor.run {
                             errorMessage = "Lightning invoice expired"
@@ -368,7 +367,7 @@ struct MintView: View {
                             showInvoice = false
                         }
                         return
-                        
+
                     case .cancelled:
                         return
                     }
@@ -381,7 +380,7 @@ struct MintView: View {
             }
         }
     }
-    
+
     private func checkMintStatus() {
         // This is called when the invoice view is shown
         // The actual monitoring is handled by startDepositMonitoring
@@ -394,11 +393,11 @@ struct InvoiceView: View {
     let amount: Int
     let onPaid: () -> Void
     let onCheckNow: () -> Void
-    
+
     @State private var copied = false
     @State private var isChecking = false
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 30) {
@@ -411,10 +410,10 @@ struct InvoiceView: View {
                         .foregroundStyle(.secondary)
                 }
                 .padding(.top, 40)
-                
+
                 // QR Code
                 QRCodeView(content: invoice)
-                
+
                 // Invoice text
                 VStack(spacing: 12) {
                     Text(invoice)
@@ -424,7 +423,7 @@ struct InvoiceView: View {
                         .padding()
                         .background(Color.secondary.opacity(0.2))
                         .cornerRadius(8)
-                    
+
                     Button(action: copyInvoice) {
                         Label(
                             copied ? "Copied!" : "Copy Invoice",
@@ -435,7 +434,7 @@ struct InvoiceView: View {
                     .tint(copied ? .green : .orange)
                 }
                 .padding(.horizontal)
-                
+
                 // Check Now button
                 Button(action: checkNow) {
                     HStack {
@@ -452,9 +451,9 @@ struct InvoiceView: View {
                 .buttonStyle(.borderedProminent)
                 .tint(.orange)
                 .disabled(isChecking)
-                
+
                 Spacer()
-                
+
                 // Status
                 VStack(spacing: 16) {
                     ProgressView()
@@ -472,13 +471,13 @@ struct InvoiceView: View {
             }
         }
     }
-    
+
     private func copyInvoice() {
         invoice.copyToPasteboard()
         withAnimation {
             copied = true
         }
-        
+
         // Reset copied state after 2 seconds
         Task {
             try? await Task.sleep(nanoseconds: 2_000_000_000)
@@ -489,15 +488,15 @@ struct InvoiceView: View {
             }
         }
     }
-    
+
     private func checkNow() {
         withAnimation {
             isChecking = true
         }
-        
+
         // Trigger manual check
         onCheckNow()
-        
+
         // Reset checking state after a brief delay
         Task {
             try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
@@ -509,4 +508,3 @@ struct InvoiceView: View {
         }
     }
 }
-

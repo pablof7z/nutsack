@@ -9,14 +9,14 @@ struct ReceivedNutzapsView: View {
     @State private var showError: Bool = false
     @State private var errorMessage: String = ""
     @State private var isRetryingAll: Bool = false
-    
+
     var body: some View {
         List {
             // Summary section
             NutzapSummarySection(nutzaps: nutzaps)
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
-            
+
             // Filter picker
             Picker("Filter", selection: $selectedFilter) {
                 Text("All").tag(NutzapStatusFilter.all)
@@ -27,7 +27,7 @@ struct ReceivedNutzapsView: View {
             .pickerStyle(SegmentedPickerStyle())
             .padding(.vertical, 8)
             .listRowBackground(Color.clear)
-            
+
             // Nutzap list
             ForEach(filteredNutzaps) { nutzap in
                 NutzapRow(
@@ -61,9 +61,9 @@ struct ReceivedNutzapsView: View {
             await loadNutzaps()
         }
     }
-    
+
     // MARK: - Computed Properties
-    
+
     var filteredNutzaps: [NutzapInfo] {
         nutzaps.filter { nutzap in
             switch selectedFilter {
@@ -86,7 +86,7 @@ struct ReceivedNutzapsView: View {
             }
         }
     }
-    
+
     var hasRetryableFailures: Bool {
         nutzaps.contains { nutzap in
             if case .failed(let error, _, _) = nutzap.status {
@@ -95,39 +95,39 @@ struct ReceivedNutzapsView: View {
             return false
         }
     }
-    
+
     var pendingAmount: Int64 {
         nutzaps.filter { nutzap in
             if case .pending = nutzap.status { return true }
             return false
         }.reduce(0) { $0 + $1.amount }
     }
-    
+
     var redeemedAmount: Int64 {
         nutzaps.filter { nutzap in
             if case .redeemed = nutzap.status { return true }
             return false
         }.reduce(0) { $0 + $1.amount }
     }
-    
+
     var failedCount: Int {
         nutzaps.filter { nutzap in
             if case .failed = nutzap.status { return true }
             return false
         }.count
     }
-    
+
     // MARK: - Methods
-    
+
     private func loadNutzaps() async {
         guard let wallet = walletManager.wallet else { return }
         self.nutzaps = await wallet.getNutzaps()
     }
-    
+
     private func redeemNutzap(_ nutzap: NutzapInfo) async {
         isRedeeming.insert(nutzap.eventId)
         defer { isRedeeming.remove(nutzap.eventId) }
-        
+
         do {
             _ = try await walletManager.wallet?.redeemNutzap(nutzap.eventId)
             await loadNutzaps()
@@ -139,24 +139,24 @@ struct ReceivedNutzapsView: View {
             showError = true
         }
     }
-    
+
     private func retryAllFailed() async {
         isRetryingAll = true
         defer { isRetryingAll = false }
-        
+
         guard let wallet = walletManager.wallet else { return }
-        
+
         let results = await wallet.retryFailedNutzaps()
-        
+
         // Count successes and failures
         let successCount = results.filter { $0.result.success }.count
         let failureCount = results.count - successCount
-        
+
         if successCount > 0 {
             // Reload to show updated statuses
             await loadNutzaps()
         }
-        
+
         if failureCount > 0 {
             errorMessage = "Retried \(results.count) nutzaps: \(successCount) succeeded, \(failureCount) failed"
             showError = true
@@ -174,28 +174,28 @@ extension NutzapInfo: @retroactive Identifiable {
 
 struct NutzapSummarySection: View {
     let nutzaps: [NutzapInfo]
-    
+
     var pendingAmount: Int64 {
         nutzaps.filter { nutzap in
             if case .pending = nutzap.status { return true }
             return false
         }.reduce(0) { $0 + $1.amount }
     }
-    
+
     var redeemedAmount: Int64 {
         nutzaps.filter { nutzap in
             if case .redeemed = nutzap.status { return true }
             return false
         }.reduce(0) { $0 + $1.amount }
     }
-    
+
     var failedCount: Int {
         nutzaps.filter { nutzap in
             if case .failed = nutzap.status { return true }
             return false
         }.count
     }
-    
+
     var body: some View {
         VStack(spacing: 12) {
             HStack(spacing: 12) {
@@ -206,7 +206,7 @@ struct NutzapSummarySection: View {
                     color: .orange,
                     icon: "clock.fill"
                 )
-                
+
                 // Redeemed card
                 SummaryCard(
                     title: "Redeemed",
@@ -214,7 +214,7 @@ struct NutzapSummarySection: View {
                     color: .green,
                     icon: "checkmark.circle.fill"
                 )
-                
+
                 // Failed card
                 if failedCount > 0 {
                     SummaryCard(
@@ -236,7 +236,7 @@ struct SummaryCard: View {
     let value: String
     let color: Color
     let icon: String
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
@@ -266,24 +266,24 @@ struct NutzapRow: View {
     let nutzap: NutzapInfo
     let isRedeeming: Bool
     let onRedeem: () async -> Void
-    
+
     var body: some View {
         HStack {
             // Status indicator
             NutzapStatusIndicator(status: nutzap.status)
                 .frame(width: 32)
-            
+
             VStack(alignment: .leading, spacing: 2) {
                 // Amount and sender
                 HStack {
                     Text("\(nutzap.amount) sats")
                         .font(.headline)
-                    
+
                     Text("from \(nutzap.sender.prefix(8))...")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 // Comment if present
                 if let comment = nutzap.comment, !comment.isEmpty {
                     Text(comment)
@@ -291,18 +291,18 @@ struct NutzapRow: View {
                         .foregroundColor(.secondary)
                         .lineLimit(2)
                 }
-                
+
                 // Timestamp
                 RelativeTimeView(date: Date(timeIntervalSince1970: TimeInterval(nutzap.createdAt)))
                     .font(.caption2)
                     .foregroundColor(.secondary)
-                
+
                 // Error message for failed nutzaps
                 if case .failed(let error, let attempts, _) = nutzap.status {
                     Text(error.userFriendlyMessage)
                         .font(.caption)
                         .foregroundColor(.red)
-                    
+
                     if attempts > 1 {
                         Text("\(attempts) attempts")
                             .font(.caption2)
@@ -310,9 +310,9 @@ struct NutzapRow: View {
                     }
                 }
             }
-            
+
             Spacer()
-            
+
             // Action button for failed nutzaps
             if case .failed(let error, _, _) = nutzap.status, error.isRetryable {
                 Button {
@@ -338,7 +338,7 @@ struct NutzapRow: View {
 
 struct NutzapStatusIndicator: View {
     let status: NutzapRedemptionStatus
-    
+
     var body: some View {
         Circle()
             .fill(statusColor)
@@ -349,7 +349,7 @@ struct NutzapStatusIndicator: View {
                     .foregroundColor(.white)
             )
     }
-    
+
     var statusColor: Color {
         switch status {
         case .pending:
@@ -360,7 +360,7 @@ struct NutzapStatusIndicator: View {
             return .red
         }
     }
-    
+
     var statusIcon: String {
         switch status {
         case .pending:

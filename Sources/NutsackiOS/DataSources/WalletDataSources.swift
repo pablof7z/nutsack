@@ -11,11 +11,11 @@ public class MintDiscoveryDataSource: ObservableObject {
     @Published public private(set) var discoveredMints: [DiscoveredMint] = []
     @Published public private(set) var isLoading = false
     @Published public private(set) var error: Error?
-    
+
     private let announcementDataSource: NDKDataSource<NDKEvent>
     private let recommendationDataSource: NDKDataSource<NDKEvent>
     private var cancellables = Set<AnyCancellable>()
-    
+
     public init(ndk: NDK, followedPubkeys: [String] = []) {
         // Mint announcements (kind: 38172)
         self.announcementDataSource = ndk.observe(
@@ -23,22 +23,23 @@ public class MintDiscoveryDataSource: ObservableObject {
             maxAge: 0,  // Real-time updates
             cachePolicy: .cacheWithNetwork
         )
-        
+
         // Mint recommendations (kind: 38000)
         self.recommendationDataSource = ndk.observe(
             filter: NDKFilter(
                 authors: followedPubkeys.isEmpty ? nil : followedPubkeys,
-                kinds: [EventKind.mintAnnouncement]
+                kinds: [EventKind.mintAnnouncement],
+                tags: ["k": Set([String(EventKind.mintAnnouncement)])]
             ),
             maxAge: 0,  // Real-time updates
             cachePolicy: .cacheWithNetwork
         )
-        
+
         Task {
             await startObserving()
         }
     }
-    
+
     private func startObserving() async {
         // Combine announcements and recommendations
         Publishers.CombineLatest(
@@ -55,7 +56,7 @@ public class MintDiscoveryDataSource: ObservableObject {
             self?.discoveredMints = discoveredMints
         }
         .store(in: &cancellables)
-        
+
         // Combine loading states
         Publishers.CombineLatest(
             announcementDataSource.$isLoading,
@@ -67,26 +68,26 @@ public class MintDiscoveryDataSource: ObservableObject {
         }
         .store(in: &cancellables)
     }
-    
+
     private func processMintsFromEvents(
         announcements: [NDKEvent],
         recommendations: [NDKEvent]
     ) -> [DiscoveredMint] {
         var mintMap: [String: DiscoveredMint] = [:]
-        
+
         // Process mint announcements
         for event in announcements {
             guard let mintUrl = event.tags.first(where: { $0.first == "u" })?.dropFirst().first else {
                 continue
             }
-            
+
             // Parse the content as JSON according to NIP-87
             var mintName = ""
-            var mintDescription: String? = nil
-            var mintIconURL: String? = nil
-            var mintWebsite: String? = nil
-            var mintContact: String? = nil
-            
+            var mintDescription: String?
+            var mintIconURL: String?
+            var mintWebsite: String?
+            var mintContact: String?
+
             if !event.content.isEmpty,
                let contentData = event.content.data(using: .utf8),
                let json = try? JSONSerialization.jsonObject(with: contentData) as? [String: Any] {
@@ -97,7 +98,7 @@ public class MintDiscoveryDataSource: ObservableObject {
                 mintWebsite = json["website"] as? String
                 mintContact = json["contact"] as? String ?? json["email"] as? String
             }
-            
+
             // Fallback to mint URL if no name provided
             if mintName.isEmpty {
                 if let url = URL(string: mintUrl), let host = url.host {
@@ -106,7 +107,7 @@ public class MintDiscoveryDataSource: ObservableObject {
                     mintName = "Unknown Mint"
                 }
             }
-            
+
             let mint = DiscoveredMint(
                 url: mintUrl,
                 name: mintName,
@@ -124,16 +125,16 @@ public class MintDiscoveryDataSource: ObservableObject {
                     contact: mintContact
                 )
             )
-            
+
             mintMap[mintUrl] = mint
         }
-        
+
         // Process mint recommendations
         for event in recommendations {
             guard let mintUrl = event.tags.first(where: { $0.first == "u" })?.dropFirst().first else {
                 continue
             }
-            
+
             if var existingMint = mintMap[mintUrl] {
                 existingMint.recommendedBy.append(event.pubkey)
                 mintMap[mintUrl] = existingMint
@@ -151,7 +152,7 @@ public class MintDiscoveryDataSource: ObservableObject {
                 mintMap[mintUrl] = mint
             }
         }
-        
+
         return Array(mintMap.values).sorted { mint1, mint2 in
             // Sort by recommendation count first
             if mint1.recommendedBy.count != mint2.recommendedBy.count {
@@ -175,7 +176,7 @@ public struct MintMetadata {
     public let iconURL: String?
     public let website: String?
     public let contact: String?
-    
+
     public init(
         name: String,
         description: String? = nil,
@@ -203,7 +204,7 @@ public struct DiscoveredMint: Identifiable {
     public let pubkey: String?
     public var mintInfo: NDKMintInfo?
     public let metadata: MintMetadata?
-    
+
     public init(
         url: String,
         name: String,

@@ -10,7 +10,7 @@ import AppKit
 struct SendView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(WalletManager.self) private var walletManager
-    
+
     @State private var amount = ""
     @State private var memo = ""
     @State private var selectedMintURL: URL?
@@ -19,12 +19,12 @@ struct SendView: View {
     @State private var errorMessage = ""
     @State private var generatedToken: String?
     @State private var showTokenView = false
-    
+
     @State private var availableBalance: Int = 0
     @State private var mints: [MintInfo] = []
     @State private var mintBalances: [String: Int64] = [:] // mint URL to balance
     @State private var isOfflineMode = false
-    
+
     // Offline mode states
     @State private var availableAmounts: [Int64] = []
     @State private var proofCombinations: [Int64: [CashuSwift.Proof]] = [:]
@@ -33,25 +33,25 @@ struct SendView: View {
     @State private var pickerAmounts: [Int64] = []
     @State private var selectedPickerIndex = 0
     @State private var isLoadingOfflineAmounts = false
-    
+
     @FocusState private var amountFieldFocused: Bool
-    
+
     // Common amounts to suggest
     private let commonAmounts: [Int64] = AmountPresets.extendedAmounts.map { Int64($0) }
-    
+
     var availableBalanceForMint: Int {
         return availableBalance
     }
-    
+
     var amountInt: Int {
         Int(amount) ?? 0
     }
-    
+
     var formattedAmount: String {
         if amount.isEmpty {
             return "0"
         }
-        
+
         if let number = Int(amount) {
             let formatter = NumberFormatter()
             formatter.numberStyle = .decimal
@@ -60,7 +60,7 @@ struct SendView: View {
         }
         return amount
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
@@ -74,14 +74,14 @@ struct SendView: View {
                                 .opacity(0)
                                 .frame(height: 0)
                                 .focused($amountFieldFocused)
-                            
+
                             // Visual amount display (same style as MintView)
                             VStack(spacing: 8) {
                                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                                     Text(formattedAmount)
                                         .font(.system(size: 48, weight: .semibold, design: .rounded))
                                         .foregroundStyle(.primary)
-                                    
+
                                     Text("sats")
                                         .font(.system(size: 20, weight: .medium, design: .rounded))
                                         .foregroundStyle(.secondary)
@@ -90,7 +90,7 @@ struct SendView: View {
                                 .onTapGesture {
                                     amountFieldFocused = true
                                 }
-                                
+
                                 // Available balance
                                 Text("Available: \(availableBalanceForMint) sats")
                                     .font(.system(size: 16, weight: .regular, design: .rounded))
@@ -98,15 +98,15 @@ struct SendView: View {
                                     .opacity(0.8)
                             }
                         }
-                        
+
                         // Offline mode toggle (moved under input)
                         VStack(spacing: 12) {
                             Toggle("Offline Mode", isOn: $isOfflineMode)
                                 .tint(.orange)
                                 .padding(.horizontal)
-                            
-                            Text(isOfflineMode ? 
-                                 "" : 
+
+                            Text(isOfflineMode ?
+                                 "" :
                                  "Send tokens directly with network connection")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -114,7 +114,7 @@ struct SendView: View {
                         }
                     }
                     .padding(.horizontal)
-                    
+
                     // Offline mode amount selection
                     if isOfflineMode && selectedMintURL != nil && isLoadingOfflineAmounts {
                         // Show loading indicator
@@ -122,7 +122,7 @@ struct SendView: View {
                             Text("Select Amount")
                                 .font(.headline)
                                 .padding(.horizontal)
-                            
+
                             HStack {
                                 Spacer()
                                 ProgressView("Loading available amounts...")
@@ -136,7 +136,7 @@ struct SendView: View {
                             Text("Select Amount")
                                 .font(.headline)
                                 .padding(.horizontal)
-                            
+
                             // Picker wheel
                             Picker("Amount", selection: $selectedPickerIndex) {
                                 ForEach(Array(pickerAmounts.enumerated()), id: \.offset) { index, amount in
@@ -158,20 +158,20 @@ struct SendView: View {
                                     selectedAmount = pickerAmounts[newIndex]
                                 }
                             }
-                            
+
                         }
                     }
-                    
+
                     // Mint Selection
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Select Mint")
                             .font(.headline)
                             .padding(.horizontal)
-                        
+
                         if !mints.isEmpty {
                             // Filter to only show mints with balance
                             let mintsWithBalance = mints.filter { mintBalances[$0.url.absoluteString] ?? 0 > 0 }
-                            
+
                             if mintsWithBalance.isEmpty {
                                 HStack {
                                     Image(systemName: "exclamationmark.triangle")
@@ -197,13 +197,13 @@ struct SendView: View {
                                                     Circle()
                                                         .stroke(selectedMintURL == nil ? Color.orange : Color.clear, lineWidth: 2)
                                                 )
-                                            
+
                                             VStack(spacing: 2) {
                                                 Text("Auto")
                                                     .font(.caption)
                                                     .fontWeight(.medium)
                                                     .foregroundColor(.primary)
-                                                
+
                                                 let totalBalance = mintBalances.values.reduce(0, +)
                                                 Text("\(totalBalance) sats")
                                                     .font(.caption2)
@@ -215,9 +215,9 @@ struct SendView: View {
                                         .onTapGesture {
                                             selectedMintURL = nil
                                         }
-                                        
+
                                         // Mints with balance, sorted by balance (highest first)
-                                        ForEach(mintsWithBalance.sorted(by: { 
+                                        ForEach(mintsWithBalance.sorted(by: {
                                             (mintBalances[$0.url.absoluteString] ?? 0) > (mintBalances[$1.url.absoluteString] ?? 0)
                                         }), id: \.url.absoluteString) { mint in
                                             VStack(spacing: 8) {
@@ -233,14 +233,14 @@ struct SendView: View {
                                                         Circle()
                                                             .stroke(selectedMintURL == mint.url ? Color.orange : Color.clear, lineWidth: 2)
                                                     )
-                                                
+
                                                 VStack(spacing: 2) {
                                                     Text(mint.url.host ?? "Mint")
                                                         .font(.caption)
                                                         .fontWeight(.medium)
                                                         .foregroundColor(.primary)
                                                         .lineLimit(1)
-                                                    
+
                                                     if let balance = mintBalances[mint.url.absoluteString] {
                                                         Text("\(balance) sats")
                                                             .font(.caption2)
@@ -259,7 +259,7 @@ struct SendView: View {
                                 }
                             }
                         }
-                        
+
                         if isOfflineMode && selectedMintURL != nil && availableAmounts.isEmpty {
                             Text("This mint has no proofs that can be spent offline")
                                 .foregroundStyle(.orange)
@@ -267,17 +267,17 @@ struct SendView: View {
                                 .padding(.horizontal)
                         }
                     }
-                    
+
                     // Memo Section
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Memo")
                             .font(.headline)
                             .padding(.horizontal)
-                        
+
                         TextField("Note (optional)", text: $memo, axis: .vertical)
                             .lineLimit(2...4)
                             .padding(.horizontal)
-                        
+
                         Text("Add a note for the recipient")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -287,11 +287,11 @@ struct SendView: View {
                 .padding(.vertical)
                 .padding(.bottom, 140) // Add space for the fixed button and keyboard
             }
-            
+
             // Generate Token Button - Outside ScrollView
             VStack {
                 Divider()
-                
+
                 Button(action: generateToken) {
                     if isSending {
                         HStack {
@@ -315,7 +315,7 @@ struct SendView: View {
                             .cornerRadius(12)
                     }
                 }
-                .disabled(isOfflineMode ? 
+                .disabled(isOfflineMode ?
                     (selectedAmount == nil || isSending || selectedMintURL == nil) :
                     (amount.isEmpty || amountInt <= 0 || amountInt > availableBalanceForMint || isSending || availableBalanceForMint == 0))
                 .padding()
@@ -336,13 +336,13 @@ struct SendView: View {
                 .fontWeight(.semibold)
                 .foregroundColor(.orange)
             }
-            
+
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Generate Token") { 
+                Button("Generate Token") {
                     generateToken()
                 }
                 .foregroundColor(.orange)
-                .disabled(isOfflineMode ? 
+                .disabled(isOfflineMode ?
                     (selectedAmount == nil || isSending || selectedMintURL == nil) :
                     (amount.isEmpty || amountInt <= 0 || amountInt > availableBalanceForMint || isSending || availableBalanceForMint == 0))
             }
@@ -385,19 +385,19 @@ struct SendView: View {
             }
         }
     }
-    
+
     private func generateToken() {
         if isOfflineMode {
             guard let selectedAmt = selectedAmount else { return }
             let amount = selectedAmt
-            
+
             guard let proofs = proofCombinations[amount],
                   let mintURL = selectedMintURL else { return }
-            
+
             guard !proofs.isEmpty else { return }
-            
+
             isSending = true
-            
+
             Task {
                 do {
                     // Generate offline token
@@ -406,7 +406,7 @@ struct SendView: View {
                         mint: mintURL,
                         memo: memo.isEmpty ? nil : memo
                     )
-                    
+
                     await MainActor.run {
                         generatedToken = token
                         showTokenView = true
@@ -422,23 +422,23 @@ struct SendView: View {
             }
         } else {
             guard amountInt > 0 else { return }
-            
+
             isSending = true
-            
+
             Task {
                 do {
                     // Show success immediately - the transaction appears as pending
                     await MainActor.run {
                         showTokenView = true
                     }
-                    
+
                     // Generate ecash token (this creates pending transaction immediately)
                     let tokenString = try await walletManager.send(
                         amount: Int64(amountInt),
                         memo: memo.isEmpty ? nil : memo,
                         fromMint: selectedMintURL
                     )
-                    
+
                     // Update with actual token
                     await MainActor.run {
                         generatedToken = tokenString
@@ -455,7 +455,7 @@ struct SendView: View {
             }
         }
     }
-    
+
     private func updateAvailableBalance() {
         Task {
             if let mintURL = selectedMintURL {
@@ -476,24 +476,24 @@ struct SendView: View {
             }
         }
     }
-    
+
     private func loadMints() {
         Task {
             guard let wallet = walletManager.wallet else { return }
-            
+
             // Get balances for all mints (this gives us the full list like the pie chart)
             let balancesByMint = await wallet.getBalancesByMint()
-            
+
             // Create mint info from all mints that have balances
             let loadedMints = balancesByMint.compactMap { (mintURL, _) -> MintInfo? in
                 guard let url = URL(string: mintURL) else { return nil }
                 return MintInfo(url: url, name: url.host ?? "Unknown Mint")
             }
-            
+
             await MainActor.run {
                 mints = loadedMints
                 mintBalances = balancesByMint
-                
+
                 // Select the mint with the highest balance by default
                 if let richestMint = balancesByMint.max(by: { $0.value < $1.value })?.key,
                    let richestURL = URL(string: richestMint) {
@@ -504,25 +504,25 @@ struct SendView: View {
             }
         }
     }
-    
+
     private func formatAmount(_ amount: Int64) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.groupingSeparator = ","
         return formatter.string(from: NSNumber(value: amount)) ?? String(amount)
     }
-    
+
     private func loadAvailableAmounts() async {
         guard let mintURL = selectedMintURL else { return }
-        
+
         await MainActor.run {
             isLoadingOfflineAmounts = true
         }
-        
+
         do {
             // Get real unspent proofs from wallet
             let proofsByMint = try await walletManager.getUnspentProofsByMint()
-            
+
             guard let mintProofs = proofsByMint[mintURL] else {
                 await MainActor.run {
                     availableProofs = []
@@ -533,31 +533,31 @@ struct SendView: View {
                 }
                 return
             }
-            
+
             print("Found \(mintProofs.count) proofs for mint \(mintURL)")
-            
+
             // Sort proofs by amount (largest first)
             let sortedProofs = mintProofs.sorted(by: { $0.amount > $1.amount })
-            
+
             // Use a smart approach that doesn't explode exponentially
             var amounts: [Int64] = []
             var combinations: [Int64: [CashuSwift.Proof]] = [:]
-            
+
             // Calculate total available
             let totalAmount = sortedProofs.reduce(0) { $0 + Int64($1.amount) }
             print("Total available: \(totalAmount) sats from \(sortedProofs.count) proofs")
-            
+
             // Always add the total amount option
             amounts.append(totalAmount)
             combinations[totalAmount] = sortedProofs
-            
+
             // Add common denominations that we can definitely make
             for targetAmount in commonAmounts where targetAmount <= totalAmount {
                 // Try to construct this amount using a greedy algorithm
                 var remaining = targetAmount
                 var usedProofs: [CashuSwift.Proof] = []
                 let availableProofs = sortedProofs
-                
+
                 // First try to find exact matches
                 if let exactMatch = availableProofs.first(where: { Int64($0.amount) == remaining }) {
                     usedProofs.append(exactMatch)
@@ -565,7 +565,7 @@ struct SendView: View {
                     combinations[targetAmount] = usedProofs
                     continue
                 }
-                
+
                 // Otherwise use greedy approach - start with largest proofs
                 for proof in availableProofs {
                     if Int64(proof.amount) <= remaining {
@@ -574,17 +574,17 @@ struct SendView: View {
                         if remaining == 0 { break }
                     }
                 }
-                
+
                 if remaining == 0 {
                     amounts.append(targetAmount)
                     combinations[targetAmount] = usedProofs
                 }
             }
-            
+
             // Add some intermediate amounts based on proof distribution
             // Group proofs by amount
             let proofsByAmount = Dictionary(grouping: sortedProofs, by: { Int64($0.amount) })
-            
+
             // For each unique proof amount, offer multiples of it (if we have multiple)
             for (amount, proofs) in proofsByAmount where proofs.count > 1 {
                 for multiplier in 1...min(5, proofs.count) {
@@ -595,16 +595,16 @@ struct SendView: View {
                     }
                 }
             }
-            
+
             // Sort amounts
             let sortedAmounts = amounts.sorted().filter { $0 > 0 }
-            
+
             await MainActor.run {
                 availableProofs = sortedProofs
                 availableAmounts = amounts
                 proofCombinations = combinations
                 pickerAmounts = sortedAmounts
-                
+
                 // Select middle amount by default
                 if !sortedAmounts.isEmpty {
                     selectedPickerIndex = sortedAmounts.count / 2
@@ -620,6 +620,5 @@ struct SendView: View {
             }
         }
     }
-    
-    
+
 }

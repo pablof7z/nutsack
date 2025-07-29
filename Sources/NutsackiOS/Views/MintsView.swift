@@ -5,7 +5,7 @@ import CashuSwift
 struct MintsView: View {
     @Environment(WalletManager.self) private var walletManager
     @EnvironmentObject private var appState: AppState
-    
+
     @State private var availableMints: [MintInfo] = []
     @State private var showAddMint = false
     @State private var showDiscoverMints = false
@@ -14,7 +14,7 @@ struct MintsView: View {
     @State private var discoveredMints: [DiscoveredMint] = []
     @State private var showError = false
     @State private var errorMessage = ""
-    
+
     var body: some View {
         NavigationStack {
             List {
@@ -47,20 +47,20 @@ struct MintsView: View {
                         .foregroundColor(.secondary)
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 20, leading: 16, bottom: 5, trailing: 16))
-                    
+
                     ForEach(availableMints, id: \.url.absoluteString) { mint in
                         NavigationLink(destination: MintInfoDetailView(mintInfo: mint)) {
                             MintRow(mintInfo: mint)
                         }
                     }
                 }
-                
+
                 // Add mint buttons
                 Section {
                     Button(action: { showAddMint = true }) {
                         Label("Add Mint", systemImage: "plus.circle")
                     }
-                    
+
                     Button(action: discoverMints) {
                         if isDiscovering {
                             HStack {
@@ -96,27 +96,27 @@ struct MintsView: View {
             }
         }
     }
-    
+
     private func loadMints() async {
-        guard walletManager.wallet != nil else { 
+        guard walletManager.wallet != nil else {
             await MainActor.run {
                 isLoading = false
             }
-            return 
+            return
         }
-        
+
         let mintURLs = await walletManager.getActiveMintsURLs()
         let mintInfos = mintURLs.compactMap { urlString -> MintInfo? in
             guard let url = URL(string: urlString) else { return nil }
             return MintInfo(url: url, name: url.host ?? "Unknown Mint")
         }
-        
+
         await MainActor.run {
             availableMints = mintInfos
             isLoading = false
         }
     }
-    
+
     private func discoverMints() {
         // Just show a message to use wallet settings
         Task {
@@ -132,40 +132,40 @@ struct MintRow: View {
     let mintInfo: MintInfo
     @Environment(WalletManager.self) private var walletManager
     @State private var balance: Int64 = 0
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(mintInfo.url.host ?? mintInfo.url.absoluteString)
                         .font(.headline)
-                    
+
                     Text(mintInfo.url.absoluteString)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-                
+
                 Spacer()
-                
+
                 VStack(alignment: .trailing, spacing: 4) {
                     Text("\(balance)")
                         .font(.headline)
                         .foregroundStyle(.orange)
-                    
+
                     Text("sats")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
-            
+
         }
         .padding(.vertical, 4)
         .task {
             await updateBalance()
         }
     }
-    
+
     private func updateBalance() async {
         guard let wallet = walletManager.wallet else { return }
         let mintBalance = await wallet.getBalance(mint: mintInfo.url)
@@ -180,7 +180,7 @@ struct MintInfoDetailView: View {
     @Environment(WalletManager.self) private var walletManager
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var appState: AppState
-    
+
     @State private var showInfo = false
     @State private var isSyncing = false
     @State private var showRemoveAlert = false
@@ -189,7 +189,7 @@ struct MintInfoDetailView: View {
     @State private var balance: Int64 = 0
     @State private var isBlacklisted = false
     @State private var showBlacklistAlert = false
-    
+
     var body: some View {
         List {
             // Balance section
@@ -202,21 +202,20 @@ struct MintInfoDetailView: View {
                         .foregroundStyle(.orange)
                 }
             }
-            
+
             // Mint Information
             Section("Mint Information") {
                 LabeledContent("URL", value: mintInfo.url.absoluteString)
                     .textSelection(.enabled)
-                
+
             }
-            
-            
+
             // Actions
             Section("Actions") {
                 Button(action: { showInfo = true }) {
                     Label("View Full Info", systemImage: "info.circle")
                 }
-                
+
                 Button(action: syncMint) {
                     if isSyncing {
                         HStack {
@@ -229,12 +228,12 @@ struct MintInfoDetailView: View {
                     }
                 }
                 .disabled(isSyncing)
-                
+
                 Button(role: .destructive, action: { showBlacklistAlert = true }) {
                     Label("Blacklist Mint", systemImage: "xmark.shield")
                         .foregroundColor(.red)
                 }
-                
+
                 Button(role: .destructive, action: { showRemoveAlert = true }) {
                     Label("Remove Mint", systemImage: "trash")
                         .foregroundColor(.red)
@@ -272,7 +271,7 @@ struct MintInfoDetailView: View {
             await updateBalance()
         }
     }
-    
+
     private func updateBalance() async {
         guard let wallet = walletManager.wallet else { return }
         let mintBalance = await wallet.getBalance(mint: mintInfo.url)
@@ -280,14 +279,14 @@ struct MintInfoDetailView: View {
             balance = mintBalance
         }
     }
-    
+
     private func syncMint() {
         isSyncing = true
-        
+
         Task {
             do {
                 try await walletManager.wallet?.mints.refreshMintKeysets(url: mintInfo.url)
-                
+
                 await MainActor.run {
                     isSyncing = false
                 }
@@ -300,11 +299,11 @@ struct MintInfoDetailView: View {
             }
         }
     }
-    
+
     private func performRemoveMint() {
         // Just dismiss - user should manage mints in wallet settings
         dismiss()
-        
+
         // Show a message that they need to use wallet settings
         Task {
             await MainActor.run {
@@ -313,7 +312,7 @@ struct MintInfoDetailView: View {
             }
         }
     }
-    
+
     private func performBlacklistMint() {
         appState.blacklistMint(mintInfo.url.absoluteString)
         dismiss()
@@ -324,7 +323,7 @@ struct MintInfoDetailView: View {
 struct MintInfoView: View {
     let mintInfo: MintInfo
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         NavigationStack {
             List {
@@ -351,12 +350,12 @@ struct MintInfoView: View {
 struct AddMintView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(WalletManager.self) private var walletManager
-    
+
     @State private var mintURL = ""
     @State private var isAdding = false
     @State private var showError = false
     @State private var errorMessage = ""
-    
+
     var body: some View {
         NavigationStack {
             Form {
@@ -372,7 +371,7 @@ struct AddMintView: View {
                 } footer: {
                     Text("Enter the URL of a Cashu mint")
                 }
-                
+
                 Section {
                     Button(action: addMint) {
                         if isAdding {
@@ -400,11 +399,11 @@ struct AddMintView: View {
             }
         }
     }
-    
+
     private func addMint() {
         // Just dismiss - user should manage mints in wallet settings
         dismiss()
-        
+
         // Show a message that they need to use wallet settings
         Task {
             await MainActor.run {

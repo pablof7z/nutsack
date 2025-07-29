@@ -3,9 +3,9 @@ import NDKSwift
 
 struct RecentTransactionsView: View {
     @Environment(WalletManager.self) private var walletManager
-    
+
     @State private var recentTransactions: [Transaction] = []
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
@@ -18,7 +18,7 @@ struct RecentTransactionsView: View {
                         .foregroundStyle(.orange)
                 }
             }
-            
+
             if recentTransactions.isEmpty {
                 HStack {
                     Spacer()
@@ -50,7 +50,7 @@ struct RecentTransactionsView: View {
             await loadTransactions()
         }
     }
-    
+
     private func loadTransactions() async {
         let transactions = await walletManager.transactions
         self.recentTransactions = Array(transactions.prefix(5))
@@ -65,7 +65,7 @@ struct TransactionRow: View {
     @State private var recipientProfile: NDKUserProfile?
     @State private var showDetailDrawer = false
     @State private var mintInfo: NDKMintInfo?
-    
+
     var icon: String {
         switch transaction.type {
         case .mint, .deposit: return "bolt.fill"
@@ -76,33 +76,33 @@ struct TransactionRow: View {
         case .swap: return "arrow.2.circlepath"
         }
     }
-    
+
     var color: Color {
         // Failed transactions should always show in red
         if transaction.status == .failed {
             return .red
         }
-        
+
         switch transaction.type {
         case .mint, .deposit, .receive, .nutzap: return .green  // Nutzaps are received, so green
         case .melt, .withdraw, .send: return .orange
         case .swap: return .blue
         }
     }
-    
+
     var sign: String {
         // Don't show a sign for failed transactions
         if transaction.status == .failed {
             return ""
         }
-        
+
         switch transaction.direction {
         case .incoming: return "+"
         case .outgoing: return "-"
         case .neutral: return ""
         }
     }
-    
+
     var displayText: String {
         if transaction.type == .nutzap {
             // For incoming nutzaps (received), show sender
@@ -135,7 +135,7 @@ struct TransactionRow: View {
             return transaction.type.displayName
         }
     }
-    
+
     var body: some View {
         Button(action: { showDetailDrawer = true }) {
             HStack {
@@ -143,7 +143,7 @@ struct TransactionRow: View {
                 if transaction.type == .nutzap {
                     let profile = transaction.direction == .incoming ? senderProfile : recipientProfile
                     let pubkey = transaction.direction == .incoming ? transaction.senderPubkey : transaction.recipientPubkey
-                    
+
                     if pubkey != nil {
                         ZStack {
                             // User avatar
@@ -161,7 +161,7 @@ struct TransactionRow: View {
                             }
                             .frame(width: 30, height: 30)
                             .clipShape(Circle())
-                    
+
                     // Overlay icon based on status
                     if transaction.status == .failed {
                         // Failed icon
@@ -193,13 +193,13 @@ struct TransactionRow: View {
                         .foregroundStyle(color)
                         .frame(width: 30)
                 }
-            
+
             VStack(alignment: .leading, spacing: 2) {
                 Text(displayText)
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .lineLimit(1)
-                
+
                 // Show mint info or nutzap comment or transaction type
                 if let mintURL = transaction.mintURL {
                     HStack(spacing: 4) {
@@ -221,16 +221,16 @@ struct TransactionRow: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            
+
             Spacer()
-            
+
             VStack(alignment: .trailing, spacing: 2) {
                 HStack(spacing: 4) {
                     Text("\(sign)\(transaction.amount)")
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundStyle(color)
-                    
+
                     // Show pending indicator
                     if transaction.status == .pending {
                         ProgressView()
@@ -239,7 +239,7 @@ struct TransactionRow: View {
                             .frame(width: 16, height: 16)
                     }
                 }
-                
+
                 RelativeTimeView(date: transaction.createdAt)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
@@ -255,11 +255,11 @@ struct TransactionRow: View {
         }
         .task {
             // Fetch sender profile for incoming nutzaps
-            if transaction.type == .nutzap, 
+            if transaction.type == .nutzap,
                transaction.direction == .incoming,
                let senderPubkey = transaction.senderPubkey,
                let ndk = nostrManager.ndk {
-                
+
                 // Use declarative data source for profile
                 let profileDataSource = ndk.observe(
                     filter: NDKFilter(
@@ -269,7 +269,7 @@ struct TransactionRow: View {
                     maxAge: 3600,
                     cachePolicy: .cacheWithNetwork
                 )
-                
+
                 for await event in profileDataSource.events {
                     if let profileData = event.content.data(using: .utf8),
                        let profile = JSONCoding.safeDecode(NDKUserProfile.self, from: profileData) {
@@ -278,13 +278,13 @@ struct TransactionRow: View {
                     }
                 }
             }
-            
+
             // Fetch recipient profile for outgoing nutzaps
             if transaction.type == .nutzap,
                transaction.direction == .outgoing,
                let recipientPubkey = transaction.recipientPubkey,
                let ndk = nostrManager.ndk {
-                
+
                 // Use declarative data source for profile
                 let profileDataSource = ndk.observe(
                     filter: NDKFilter(
@@ -294,7 +294,7 @@ struct TransactionRow: View {
                     maxAge: 3600,
                     cachePolicy: .cacheWithNetwork
                 )
-                
+
                 for await event in profileDataSource.events {
                     if let profileData = event.content.data(using: .utf8),
                        let profile = JSONCoding.safeDecode(NDKUserProfile.self, from: profileData) {
@@ -303,12 +303,12 @@ struct TransactionRow: View {
                     }
                 }
             }
-            
+
             // Fetch mint info if we have a mint URL
             if let mintURL = transaction.mintURL,
                let wallet = walletManager.wallet,
                let url = URL(string: mintURL) {
-                
+
                 do {
                     mintInfo = try await wallet.mints.getMintInfo(url: url)
                 } catch {
@@ -323,15 +323,15 @@ struct TransactionRow: View {
 // MARK: - Transaction History View
 struct TransactionHistoryView: View {
     @Environment(WalletManager.self) private var walletManager
-    
+
     @State private var selectedFilter: TransactionFilter = .all
     @State private var allTransactions: [Transaction] = []
-    
+
     enum TransactionFilter: String, CaseIterable {
         case all = "All"
         case sent = "Sent"
         case received = "Received"
-        
+
         func matches(_ transaction: Transaction) -> Bool {
             switch self {
             case .all: return true
@@ -340,13 +340,13 @@ struct TransactionHistoryView: View {
             }
         }
     }
-    
+
     var filteredTransactions: [Transaction] {
         allTransactions
             .filter { selectedFilter.matches($0) }
             .sorted { $0.createdAt > $1.createdAt }
     }
-    
+
     var body: some View {
         List {
             // Filter picker
@@ -358,7 +358,7 @@ struct TransactionHistoryView: View {
             .pickerStyle(.segmented)
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets())
-            
+
             // Transactions
             ForEach(filteredTransactions) { transaction in
                 TransactionDetailRow(transaction: transaction)
@@ -371,7 +371,7 @@ struct TransactionHistoryView: View {
             await loadTransactions()
         }
     }
-    
+
     private func loadTransactions() async {
         allTransactions = await walletManager.transactions
     }
@@ -383,12 +383,12 @@ struct TransactionDetailRow: View {
     @State private var showDetailDrawer = false
     @State private var mintInfo: NDKMintInfo?
     @Environment(WalletManager.self) private var walletManager
-    
+
     var body: some View {
         Button(action: { showDetailDrawer = true }) {
             VStack(alignment: .leading, spacing: 8) {
                 TransactionRow(transaction: transaction)
-            
+
             if transaction.status != .completed {
                 HStack {
                     Image(systemName: "clock")
@@ -400,7 +400,7 @@ struct TransactionDetailRow: View {
                 .padding(.horizontal, 12)
                 .padding(.bottom, 4)
             }
-            
+
             // Show mint info if available and not already shown in TransactionRow
             if let mintURL = transaction.mintURL,
                transaction.type != .nutzap || transaction.memo == nil || transaction.memo!.isEmpty {
@@ -414,7 +414,7 @@ struct TransactionDetailRow: View {
                 .padding(.horizontal, 12)
                 .padding(.bottom, 4)
             }
-            
+
             // Show offline token button if available
             if transaction.offlineToken != nil && transaction.type == .send {
                 Button(action: { showOfflineToken = true }) {
@@ -454,7 +454,7 @@ struct TransactionDetailRow: View {
             if let mintURL = transaction.mintURL,
                let wallet = walletManager.wallet,
                let url = URL(string: mintURL) {
-                
+
                 do {
                     mintInfo = try await wallet.mints.getMintInfo(url: url)
                 } catch {
@@ -466,4 +466,3 @@ struct TransactionDetailRow: View {
 }
 
 // Transaction.TransactionType extension moved to DataModels.swift
-

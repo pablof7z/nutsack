@@ -6,10 +6,10 @@ struct WalletView: View {
     @EnvironmentObject private var appState: AppState
     @Environment(NostrManager.self) private var nostrManager
     @Environment(WalletManager.self) private var walletManager
-    
+
     @Binding var urlState: URLState?
     @Binding var showScanner: Bool
-    
+
     @State private var navigationDestination: WalletDestination?
     @State private var isLoadingWallet = false
     @State private var scannedInvoice: String?
@@ -18,7 +18,7 @@ struct WalletView: View {
     @State private var showSettings = false
     @State private var showWalletOnboarding = false
     @State private var isWalletConfigured = false
-    
+
     enum WalletDestination: Identifiable, Hashable {
         case mint
         case send
@@ -30,7 +30,7 @@ struct WalletView: View {
         case walletEvents
         case proofManagement
         case receivedNutzaps
-        
+
         var id: String {
             switch self {
             case .mint: return "mint"
@@ -46,8 +46,7 @@ struct WalletView: View {
             }
         }
     }
-    
-    
+
     var body: some View {
         NavigationStack {
             VStack {
@@ -60,11 +59,11 @@ struct WalletView: View {
                             BalanceCard()
                                 .padding(.horizontal)
                                 .zIndex(1) // Ensure it stays on top during expansion
-                            
+
                             // Contacts horizontal scroll
                             ContactsScrollView(navigationDestination: $navigationDestination)
                                 .padding(.top, -8)
-                            
+
                             // Recent transactions
                             RecentTransactionsView()
                                 .padding(.horizontal)
@@ -72,9 +71,9 @@ struct WalletView: View {
                         .padding(.top, 8)
                     }
                     .scrollIndicators(.hidden)
-                    
+
                     Spacer()
-                    
+
                     // Action buttons
                     ActionButtonsView(navigationDestination: $navigationDestination, showScanner: $showScanner)
                         .padding()
@@ -100,7 +99,7 @@ struct WalletView: View {
                             .font(.title3)
                     }
                 }
-                
+
                 if walletManager.wallet != nil {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button(action: { showWalletSettings = true }) {
@@ -155,19 +154,19 @@ struct WalletView: View {
                 print("🟢 WalletView - isAuthenticated: \(NDKAuthManager.shared.isAuthenticated)")
                 print("🟢 WalletView - signer available: \(nostrManager.ndk?.signer != nil)")
                 loadWalletIfNeeded()
-                
+
                 // Check wallet configuration
                 Task {
                     isWalletConfigured = await walletManager.isWalletConfigured
                 }
             }
-            .onChange(of: urlState) { oldValue, newValue in
+            .onChange(of: urlState) { _, newValue in
                 if let newValue {
                     navigationDestination = .receive(urlString: newValue.url)
                     urlState = nil
                 }
             }
-            .onChange(of: NDKAuthManager.shared.isAuthenticated) { oldValue, newValue in
+            .onChange(of: NDKAuthManager.shared.isAuthenticated) { _, newValue in
                 if newValue && walletManager.wallet == nil {
                     loadWalletIfNeeded()
                 }
@@ -205,7 +204,7 @@ struct WalletView: View {
         }
         .tint(.orange)
     }
-    
+
     private func loadWalletIfNeeded() {
         print("🟡 loadWalletIfNeeded called from \(Thread.current)")
         guard NDKAuthManager.shared.isAuthenticated else {
@@ -220,7 +219,7 @@ struct WalletView: View {
             print("🟡 loadWalletIfNeeded - Already loading wallet, skipping duplicate call")
             return
         }
-        
+
         print("🟡 loadWalletIfNeeded - Starting wallet load task")
         isLoadingWallet = true
         Task {
@@ -233,7 +232,7 @@ struct WalletView: View {
                 // Signer not ready yet, retry after a short delay
                 print("⚠️ loadWalletIfNeeded - Signer not available yet, retrying...")
                 try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                
+
                 // Retry once more
                 do {
                     print("🟡 loadWalletIfNeeded - Retrying loadWalletForCurrentUser")
@@ -253,14 +252,14 @@ struct WalletView: View {
 struct EmptyWalletView: View {
     @Environment(NostrManager.self) private var nostrManager
     @Binding var showWalletOnboarding: Bool
-    
+
     var body: some View {
         Color.clear
             .onAppear {
                 print("🔍 [EmptyWalletView] Detected authenticated user with no wallet")
                 print("🔍 [EmptyWalletView] NostrManager has signer: \(nostrManager.ndk?.signer != nil)")
                 print("🔍 [EmptyWalletView] NDKAuthManager.isAuthenticated: \(NDKAuthManager.shared.isAuthenticated)")
-                
+
                 // If we have auth state but no signer, clear the lingering auth state
                 if nostrManager.ndk?.signer == nil && NDKAuthManager.shared.isAuthenticated {
                     print("🔍 [EmptyWalletView] Clearing lingering auth state - no signer found")
@@ -290,7 +289,7 @@ struct ActionButtonsView: View {
     @State private var showReceiveMenu = false
     @State private var showSendMenu = false
     @State private var scanButtonPressed = false
-    
+
     var body: some View {
         ZStack {
             // Base layer - receive and send buttons touching
@@ -309,7 +308,7 @@ struct ActionButtonsView: View {
                     .padding(.trailing, 40) // Offset for floating circle (80px width / 2)
                 }
                 .buttonStyle(PremiumButtonStyle())
-                
+
                 // Send button - direct to send view
                 Button(action: { navigationDestination = .send }) {
                     HStack(spacing: 8) {
@@ -339,9 +338,9 @@ struct ActionButtonsView: View {
                     )
             )
             .shadow(color: Color(.label).opacity(0.2), radius: 20, x: 0, y: 10)
-            
+
             // Floating scan button on top
-            Button(action: { 
+            Button(action: {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                     scanButtonPressed = true
                 }
@@ -376,26 +375,29 @@ struct ActionButtonsView: View {
     }
 }
 
-
 // MARK: - Contacts Scroll View
 struct ContactsScrollView: View {
     @Binding var navigationDestination: WalletView.WalletDestination?
     @Environment(NostrManager.self) private var nostrManager
     @State private var contacts: [NDKUser] = []
     @State private var scrollOffset: CGFloat = 0
-    
+
     // Default users to show when no contacts
-    private let defaultUsers = [
-        // Pablo Fernandez
-        NDKUser(pubkey: try! Bech32.pubkey(from: "npub1l2vyh47mk2p0qlsku7hg0vn29faehy9hy34ygaclpn66ukqp3afqutajft")),
-        // Jack Dorsey
-        NDKUser(pubkey: try! Bech32.pubkey(from: "npub1sg6plzptd64u62a878hep2kev88swjh3tw00gjsfl8f237lmu63q0uf63m")),
-        // Calle (Cashu creator)
-        NDKUser(pubkey: try! Bech32.pubkey(from: "npub12rv5lskctqxxs2c8rf2zlzc7xx3qpvzs3w4etgemauy9thegr43sf485vg"))
-    ]
-    
+    private let defaultUsers: [NDKUser] = {
+        // Pre-calculated pubkeys for reliability
+        let defaultPubkeys = [
+            // Pablo Fernandez
+            "fcb220c3af11b08325c8ad74c37b2ab5b9e665e3c39076c20c8d36c5b5c3de78",
+            // Jack Dorsey  
+            "82341f882b6eabcd2ba7f1ef90aad961cf074af15b9ef44a09f9d2a8fbfbe6a2",
+            // Calle (Cashu creator)
+            "50d94fc2d8580c682b071a542f8b1e31a200b0508bab95a33bef0855df281d63"
+        ]
+        return defaultPubkeys.map { NDKUser(pubkey: $0) }
+    }()
+
     var body: some View {
-        ScrollViewReader { proxy in
+        ScrollViewReader { _ in
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 16) {
                     // Show default users if no contacts, otherwise show contacts
@@ -404,7 +406,7 @@ struct ContactsScrollView: View {
                             navigationDestination = .nutzap(pubkey: contact.pubkey)
                         }
                     }
-                    
+
                     // View All button at the end
                     Button(action: {
                         navigationDestination = .contacts
@@ -414,12 +416,12 @@ struct ContactsScrollView: View {
                                 Circle()
                                     .fill(Color(white: 0.15))
                                     .frame(width: 64, height: 64)
-                                
+
                                 Image(systemName: "ellipsis")
                                     .font(.system(size: 24, weight: .medium))
                                     .foregroundColor(.white.opacity(0.6))
                             }
-                            
+
                             Text("All")
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
@@ -430,7 +432,7 @@ struct ContactsScrollView: View {
                 .padding(.horizontal)
                 .background(GeometryReader { geometry in
                     Color.clear
-                        .preference(key: ScrollOffsetPreferenceKey.self, 
+                        .preference(key: ScrollOffsetPreferenceKey.self,
                                   value: geometry.frame(in: .named("scroll")).minX)
                 })
             }
@@ -447,35 +449,35 @@ struct ContactsScrollView: View {
             await loadContacts()
         }
     }
-    
+
     @MainActor
     private func loadContacts() async {
         guard let ndk = nostrManager.ndk else { return }
-        
+
         do {
             // Get user's contact list
             guard let signer = ndk.signer else { return }
             let pubkey = try await signer.pubkey
-            
+
             let filter = NDKFilter(
                 authors: [pubkey],
                 kinds: [3],
                 limit: 1
             )
-            
+
             // Use declarative data source to fetch contact list
             let contactDataSource = ndk.observe(
                 filter: filter,
                 maxAge: 3600,
                 cachePolicy: .cacheWithNetwork
             )
-            
+
             var contactListEvent: NDKEvent?
             for await event in contactDataSource.events {
                 contactListEvent = event
                 break // Take first event
             }
-            
+
             if let contactListEvent = contactListEvent {
                 // Parse the contact list
                 var contactPubkeys: [String] = []
@@ -484,10 +486,10 @@ struct ContactsScrollView: View {
                         contactPubkeys.append(tag[1])
                     }
                 }
-                
+
                 // Limit to first 20 contacts for performance
                 let limitedPubkeys = Array(contactPubkeys.prefix(20))
-                
+
                 // Create NDKUser objects and show them immediately
                 contacts = limitedPubkeys.map { NDKUser(pubkey: $0) }
             }
@@ -503,11 +505,11 @@ struct ContactAvatarView: View {
     @State private var profile: NDKUserProfile?
     @State private var profileTask: Task<Void, Never>?
     @Environment(NostrManager.self) private var nostrManager
-    
+
     var displayName: String {
         profile?.displayName ?? profile?.name ?? String(user.pubkey.prefix(8))
     }
-    
+
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 4) {
@@ -544,7 +546,7 @@ struct ContactAvatarView: View {
                     Circle()
                         .stroke(Color(.separator).opacity(0.3), lineWidth: 1)
                 )
-                
+
                 Text(displayName)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
@@ -555,7 +557,7 @@ struct ContactAvatarView: View {
         .buttonStyle(PlainButtonStyle())
         .task {
             guard let ndk = nostrManager.ndk else { return }
-            
+
             profileTask = Task {
                 // Use declarative data source for profile
                 let profileDataSource = ndk.observe(
@@ -566,7 +568,7 @@ struct ContactAvatarView: View {
                     maxAge: 3600,
                     cachePolicy: .cacheWithNetwork
                 )
-                
+
                 for await event in profileDataSource.events {
                     if let profile = JSONCoding.safeDecode(NDKUserProfile.self, from: event.content) {
                         await MainActor.run {

@@ -9,7 +9,7 @@ struct MintInfo: Identifiable, Equatable, Hashable {
     let name: String?
     let description: String?
     let isActive: Bool
-    
+
     init(url: URL, name: String? = nil, description: String? = nil, isActive: Bool = true) {
         self.id = url.absoluteString
         self.url = url
@@ -19,7 +19,6 @@ struct MintInfo: Identifiable, Equatable, Hashable {
     }
 }
 
-
 // Note: MintInfo is now defined at the top level of this file
 // References to NIP60Wallet.MintInfo should be changed to just MintInfo
 
@@ -28,7 +27,7 @@ struct MintInfo: Identifiable, Equatable, Hashable {
 struct Transaction: Identifiable {
     let id = UUID()
     var transactionID: UUID
-    
+
     var type: TransactionType
     var amount: Int
     var memo: String?
@@ -43,8 +42,7 @@ struct Transaction: Identifiable {
     var direction: TransactionDirection  // Direction of the transaction
     var mintURL: String?  // Mint URL for the transaction
     var errorDetails: String?  // Error details for failed transactions
-    
-    
+
     init(type: TransactionType, amount: Int, memo: String? = nil) {
         self.transactionID = UUID()
         self.type = type
@@ -55,7 +53,7 @@ struct Transaction: Identifiable {
         self.status = .pending
         self.direction = .neutral
     }
-    
+
     enum TransactionType: String, Codable {
         case mint      // Lightning -> Ecash (deposit)
         case melt      // Ecash -> Lightning (withdraw)
@@ -66,7 +64,7 @@ struct Transaction: Identifiable {
         case withdraw  // Alias for melt
         case swap      // Swap between mints
     }
-    
+
     enum TransactionStatus: String, Codable {
         case pending
         case processing
@@ -74,7 +72,7 @@ struct Transaction: Identifiable {
         case failed
         case expired
     }
-    
+
     enum TransactionDirection: String, Codable {
         case incoming
         case outgoing
@@ -99,9 +97,6 @@ extension Transaction.TransactionType {
 
 // MARK: - WalletTransaction UI Extensions
 
-import NDKSwift
-
-/// Extension to make WalletTransaction compatible with UI that expects Transaction
 extension WalletTransaction {
     /// Convert WalletTransaction to app's Transaction model for UI compatibility
     func toTransaction() -> Transaction {
@@ -110,7 +105,7 @@ extension WalletTransaction {
             amount: Int(amount),
             memo: memo ?? displayDescription
         )
-        
+
         // Map status
         switch status {
         case .pending:
@@ -124,7 +119,7 @@ extension WalletTransaction {
         case .expired:
             transaction.status = .expired
         }
-        
+
         // Map direction
         switch direction {
         case .incoming:
@@ -134,39 +129,39 @@ extension WalletTransaction {
         case .neutral:
             transaction.direction = .neutral
         }
-        
+
         // Set additional fields
         transaction.timestamp = timestamp
         transaction.createdAt = timestamp
-        
+
         // Set nutzap-specific fields
         if let nutzapData = nutzapData {
             transaction.senderPubkey = nutzapData.senderPubkey
             transaction.recipientPubkey = nutzapData.recipientPubkey
             transaction.nostrEventID = nutzapData.nutzapEventId
         }
-        
+
         // Set primary event ID
         if let primaryEventId = events.primaryEventId {
             transaction.nostrEventID = primaryEventId
         }
-        
+
         // Set mint URL if available
         if let mint = mint {
             transaction.mintURL = mint
         }
-        
+
         // Set offline token if available
         if let tokenData = ecashTokenData {
             transaction.offlineToken = tokenData.tokenString
         }
-        
+
         // Set error details if available
         transaction.errorDetails = errorDetails
-        
+
         return transaction
     }
-    
+
     private func mapTransactionType() -> Transaction.TransactionType {
         switch type {
         case .mint:

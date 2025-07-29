@@ -3,10 +3,10 @@ import NDKSwift
 
 struct ReceiveView: View {
     let tokenString: String?
-    
+
     @Environment(\.dismiss) private var dismiss
     @Environment(WalletManager.self) private var walletManager
-    
+
     @State private var inputToken = ""
     @State private var isProcessing = false
     @State private var showError = false
@@ -14,7 +14,7 @@ struct ReceiveView: View {
     @State private var showScanner = false
     @State private var receivedAmount: Int?
     @State private var showSuccess = false
-    
+
     var body: some View {
         Form {
             Section {
@@ -23,7 +23,7 @@ struct ReceiveView: View {
                         TextField("Paste ecash token", text: $inputToken, axis: .vertical)
                             .lineLimit(3...6)
                             .font(.system(.body, design: .monospaced))
-                        
+
                         Button(action: { showScanner = true }) {
                             Image(systemName: "qrcode.viewfinder")
                                 .font(.title2)
@@ -34,7 +34,7 @@ struct ReceiveView: View {
                         }
                         .buttonStyle(.plain)
                     }
-                    
+
                     if !inputToken.isEmpty {
                         // Token preview
                         HStack {
@@ -51,7 +51,7 @@ struct ReceiveView: View {
             } footer: {
                 Text("Paste or scan an ecash token to redeem it")
             }
-            
+
             Section {
                 Button(action: redeemToken) {
                     if isProcessing {
@@ -78,10 +78,15 @@ struct ReceiveView: View {
             Text(errorMessage)
         }
         .sheet(isPresented: $showScanner) {
-            QRScannerView { scannedValue in
-                inputToken = scannedValue
-                showScanner = false
-            }
+            QRScannerView(
+                onScan: { scannedValue in
+                    inputToken = scannedValue
+                    showScanner = false
+                },
+                onDismiss: {
+                    showScanner = false
+                }
+            )
         }
         .fullScreenCover(isPresented: $showSuccess) {
             if let amount = receivedAmount {
@@ -98,19 +103,19 @@ struct ReceiveView: View {
             }
         }
     }
-    
+
     private func redeemToken() {
         guard !inputToken.isEmpty else { return }
-        
+
         isProcessing = true
-        
+
         Task {
             do {
                 // Redeem the token
                 let amount = try await walletManager.receive(
                     tokenString: inputToken.trimmingCharacters(in: .whitespacesAndNewlines)
                 )
-                
+
                 // Transaction will be recorded automatically via NIP-60 history events
                 await MainActor.run {
                     receivedAmount = Int(amount)
@@ -132,13 +137,13 @@ struct ReceiveView: View {
 struct ReceiveSuccessView: View {
     let amount: Int
     let onDone: () -> Void
-    
+
     @State private var animationAmount = 0.0
-    
+
     var body: some View {
         VStack(spacing: 30) {
             Spacer()
-            
+
             // Success animation
             ZStack {
                 Circle()
@@ -146,25 +151,25 @@ struct ReceiveSuccessView: View {
                     .frame(width: 120, height: 120)
                     .scaleEffect(animationAmount)
                     .opacity(2 - animationAmount)
-                
+
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 80))
                     .foregroundStyle(.green)
                     .scaleEffect(animationAmount > 0 ? 1 : 0.5)
             }
-            
+
             VStack(spacing: 8) {
                 Text("Received!")
                     .font(.largeTitle)
                     .fontWeight(.bold)
-                
+
                 Text("\(amount) sats")
                     .font(.title)
                     .foregroundStyle(.orange)
             }
-            
+
             Spacer()
-            
+
             Button(action: onDone) {
                 Text("Done")
                     .frame(maxWidth: .infinity)
@@ -183,4 +188,3 @@ struct ReceiveSuccessView: View {
         }
     }
 }
-

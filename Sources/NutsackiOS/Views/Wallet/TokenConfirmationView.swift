@@ -13,16 +13,16 @@ struct TokenConfirmationView: View {
     let mintURL: URL?
     let isOfflineMode: Bool
     let onDismiss: () -> Void
-    
+
     @State private var copied = false
     @State private var showShareSheet = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
-    
+
     var isGenerating: Bool {
         token == nil || token?.isEmpty == true
     }
-    
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -38,8 +38,8 @@ struct TokenConfirmationView: View {
                                 )
                                 .shadow(
                                     color: Color(.label).opacity(colorScheme == .light ? 0.15 : 0),
-                                    radius: colorScheme == .light ? 10 : 0, 
-                                    x: 0, 
+                                    radius: colorScheme == .light ? 10 : 0,
+                                    x: 0,
                                     y: colorScheme == .light ? 4 : 0
                                 )
                                 .if(colorScheme == .dark) { view in
@@ -50,20 +50,20 @@ struct TokenConfirmationView: View {
                                         y: 0
                                     )
                                 }
-                            
+
                             if let token = token, !token.isEmpty {
                                 VStack {
                                     QRCodeView(content: token)
                                         .padding(20)
                                         .padding(.bottom, 44) // Space for copy button
-                                    
+
                                     Spacer()
                                 }
-                                
+
                                 // Copy button overlaid at bottom
                                 VStack {
                                     Spacer()
-                                    
+
                                     Button(action: copyToken) {
                                         HStack(spacing: 8) {
                                             Image(systemName: copied ? "checkmark.circle.fill" : "doc.on.doc")
@@ -92,7 +92,7 @@ struct TokenConfirmationView: View {
                         .frame(width: 280, height: 280)
                     }
                     .padding(.top, 8)
-                    
+
                     // Checkmark on left, amount + mint on right
                     HStack(alignment: .center, spacing: 16) {
                         // Success checkmark
@@ -101,13 +101,13 @@ struct TokenConfirmationView: View {
                                 Circle()
                                     .fill(Color.green.opacity(colorScheme == .dark ? 0.2 : 0.1))
                                     .frame(width: 40, height: 40)
-                                
+
                                 Image(systemName: "checkmark.circle.fill")
                                     .font(.system(size: 24))
                                     .foregroundStyle(.green)
                             }
                         }
-                        
+
                         // Amount and mint
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(alignment: .lastTextBaseline, spacing: 6) {
@@ -117,7 +117,7 @@ struct TokenConfirmationView: View {
                                     .font(.system(size: 20, weight: .regular, design: .rounded))
                                     .foregroundStyle(.secondary)
                             }
-                            
+
                             // Mint below amount
                             if let mint = mintURL?.host {
                                 Label(mint, systemImage: "building.columns.fill")
@@ -125,19 +125,19 @@ struct TokenConfirmationView: View {
                                     .foregroundStyle(.secondary.opacity(0.8))
                             }
                         }
-                        
+
                         Spacer()
                     }
                     .padding(.horizontal, 40)
                     .padding(.top, 8)
-                    
+
                     // Status text
                     if isGenerating {
                         Text("Generating token...")
                             .font(.headline)
                             .foregroundStyle(.secondary)
                     }
-                    
+
                     // Memo if present
                     if !memo.isEmpty {
                         Text(memo)
@@ -146,7 +146,7 @@ struct TokenConfirmationView: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
                     }
-                    
+
                     // Action button
                     if let token = token, !token.isEmpty {
                         Button(action: shareToken) {
@@ -160,7 +160,7 @@ struct TokenConfirmationView: View {
                         .padding(.horizontal)
                         .padding(.top, 24)
                     }
-                    
+
                     Spacer(minLength: 40)
                 }
             }
@@ -168,9 +168,9 @@ struct TokenConfirmationView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { 
+                    Button("Done") {
                         onDismiss()
-                        dismiss() 
+                        dismiss()
                     }
                     .fontWeight(.semibold)
                     .foregroundStyle(.orange)
@@ -183,38 +183,38 @@ struct TokenConfirmationView: View {
         }
         #endif
     }
-    
+
     private func formatAmount(_ amount: Int) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.groupingSeparator = ","
         return formatter.string(from: NSNumber(value: amount)) ?? String(amount)
     }
-    
+
     private func copyToken() {
         guard let token = token else { return }
-        
+
         #if os(iOS)
         UIPasteboard.general.string = token
         #else
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(token, forType: .string)
         #endif
-        
+
         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
             copied = true
         }
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             withAnimation {
                 copied = false
             }
         }
     }
-    
+
     private func shareToken() {
         guard token != nil else { return }
-        
+
         #if os(iOS)
         showShareSheet = true
         #else
@@ -226,11 +226,11 @@ struct TokenConfirmationView: View {
 #if os(iOS)
 struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
-    
+
     func makeUIViewController(context: Context) -> UIActivityViewController {
         UIActivityViewController(activityItems: items, applicationActivities: nil)
     }
-    
+
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 #endif

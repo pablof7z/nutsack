@@ -5,12 +5,12 @@ import CashuSwift
 struct WalletEventsView: View {
     @Environment(NostrManager.self) private var nostrManager
     @Environment(WalletManager.self) private var walletManager
-    
+
     @State private var walletEvents: [WalletEventInfo] = []
     @State private var isLoading = true
     @State private var error: Error?
     @State private var selectedEvent: WalletEventInfo?
-    
+
     var body: some View {
         List {
             if isLoading {
@@ -32,11 +32,11 @@ struct WalletEventsView: View {
                             Image(systemName: "tray")
                                 .font(.system(size: 48))
                                 .foregroundColor(.gray)
-                            
+
                             Text("No wallet events found")
                                 .font(.headline)
                                 .foregroundStyle(.secondary)
-                            
+
                             Text("Token events will appear here as you use your wallet")
                                 .font(.subheadline)
                                 .foregroundStyle(.tertiary)
@@ -64,7 +64,7 @@ struct WalletEventsView: View {
                         Text("Shows all NIP-60 token events (kind 7375) published by this wallet. Deleted events are marked with a strikethrough.")
                     }
                 }
-                
+
                 if let error = error {
                     Section {
                         VStack(alignment: .leading, spacing: 8) {
@@ -93,11 +93,11 @@ struct WalletEventsView: View {
                 }
             }
     }
-    
+
     private func loadWalletEvents() async {
         isLoading = true
         error = nil
-        
+
         do {
             let events = try await walletManager.fetchAllWalletEvents()
             await MainActor.run {
@@ -115,15 +115,15 @@ struct WalletEventsView: View {
 
 struct WalletEventRow: View {
     let eventInfo: WalletEventInfo
-    
+
     private var eventDate: Date {
         Date(timeIntervalSince1970: TimeInterval(eventInfo.event.createdAt))
     }
-    
+
     private var totalAmount: Int {
         eventInfo.tokenData?.proofs.reduce(0) { $0 + Int($1.amount) } ?? 0
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -131,15 +131,15 @@ struct WalletEventRow: View {
                 Image(systemName: eventInfo.isDeleted ? "xmark.circle.fill" : "checkmark.circle.fill")
                     .foregroundColor(eventInfo.isDeleted ? .red : .green)
                     .font(.system(size: 20))
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text(eventInfo.event.id.prefix(8) + "...")
                             .font(.system(.subheadline, design: .monospaced))
                             .strikethrough(eventInfo.isDeleted)
-                        
+
                         Spacer()
-                        
+
                         if eventInfo.tokenData != nil {
                             Text("\(totalAmount) sats")
                                 .font(.subheadline)
@@ -147,29 +147,29 @@ struct WalletEventRow: View {
                                 .foregroundColor(.orange)
                         }
                     }
-                    
+
                     HStack {
                         if let tokenData = eventInfo.tokenData {
                             Label("\(tokenData.proofs.count) proofs", systemImage: "key.fill")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                            
+
                             Text("•")
                                 .foregroundStyle(.tertiary)
-                            
+
                             Text(URL(string: tokenData.mint)?.host ?? tokenData.mint)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
                         }
-                        
+
                         Spacer()
-                        
+
                         RelativeTimeView(date: eventDate)
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                     }
-                    
+
                     if eventInfo.isDeleted {
                         HStack {
                             Image(systemName: "trash")
@@ -179,7 +179,7 @@ struct WalletEventRow: View {
                                 .foregroundStyle(.red)
                         }
                     }
-                    
+
                     if let delTags = eventInfo.tokenData?.del, !delTags.isEmpty {
                         HStack {
                             Image(systemName: "arrow.triangle.2.circlepath")
@@ -195,4 +195,3 @@ struct WalletEventRow: View {
         .padding(.vertical, 4)
     }
 }
-

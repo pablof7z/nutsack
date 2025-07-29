@@ -28,6 +28,8 @@ targets:
     dependencies:
       - package: NDKSwift
         product: NDKSwift
+      - package: NDKSwift
+        product: NDKSwiftUI
     info:
       path: Sources/NutsackiOS/Info.plist
       properties:

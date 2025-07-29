@@ -9,7 +9,7 @@ struct DiscoveredMintsView: View {
     @State private var isAdding = false
     @State private var showError = false
     @State private var errorMessage = ""
-    
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -18,7 +18,7 @@ struct DiscoveredMintsView: View {
                 } else {
                     mintsList
                 }
-                
+
                 // Bottom action bar
                 if !selectedMints.isEmpty {
                     actionBar
@@ -38,7 +38,7 @@ struct DiscoveredMintsView: View {
             }
         }
     }
-    
+
     private var emptyStateView: some View {
         VStack(spacing: 16) {
             Image(systemName: "magnifyingglass")
@@ -56,7 +56,7 @@ struct DiscoveredMintsView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemGroupedBackground))
     }
-    
+
     private var mintsList: some View {
         List {
             Section {
@@ -80,18 +80,18 @@ struct DiscoveredMintsView: View {
             }
         }
     }
-    
+
     private var actionBar: some View {
         VStack(spacing: 0) {
             Divider()
-            
+
             HStack {
                 Text("\(selectedMints.count) mint\(selectedMints.count == 1 ? "" : "s") selected")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-                
+
                 Spacer()
-                
+
                 Button(action: addSelectedMints) {
                     if isAdding {
                         ProgressView()
@@ -107,11 +107,11 @@ struct DiscoveredMintsView: View {
             .background(Color(.systemBackground))
         }
     }
-    
+
     private func addSelectedMints() {
         // Just dismiss - user should manage mints in wallet settings
         dismiss()
-        
+
         // Show a message that they need to use wallet settings
         Task {
             await MainActor.run {
@@ -126,7 +126,7 @@ struct DiscoveredMintRow: View {
     let mint: DiscoveredMint
     let isSelected: Bool
     let onToggle: () -> Void
-    
+
     var body: some View {
         Button(action: onToggle) {
             HStack(spacing: 12) {
@@ -134,27 +134,27 @@ struct DiscoveredMintRow: View {
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.title2)
                     .foregroundStyle(isSelected ? .orange : .secondary)
-                
+
                 // Mint info
                 VStack(alignment: .leading, spacing: 4) {
                     Text(mint.name)
                         .font(.headline)
                         .foregroundStyle(.primary)
-                    
+
                     if let description = mint.description, !description.isEmpty {
                         Text(description)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
                     }
-                    
+
                     HStack(spacing: 8) {
                         // URL
                         Label(mint.url, systemImage: "link")
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                             .lineLimit(1)
-                        
+
                         // Pubkey if available
                         if let pubkey = mint.pubkey {
                             Label(String(pubkey.prefix(8)) + "...", systemImage: "person.circle")
@@ -164,7 +164,7 @@ struct DiscoveredMintRow: View {
                         }
                     }
                 }
-                
+
                 Spacer()
             }
             .padding(.vertical, 4)

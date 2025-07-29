@@ -7,7 +7,7 @@ struct WalletSettingsView: View {
     @Environment(NostrManager.self) private var nostrManager
     @Environment(WalletManager.self) private var walletManager
     @EnvironmentObject private var appState: AppState
-    
+
     @State private var mints: [MintInfo] = []
     @State private var relays: [String] = []
     @State private var hasWalletInfo = false
@@ -20,122 +20,140 @@ struct WalletSettingsView: View {
     @State private var showDiscoveredMints = false
     @State private var discoveryTask: Task<Void, Never>?
     
+    // Wallet warning section
+    @ViewBuilder
+    private var walletWarningSection: some View {
+        if !hasWalletInfo && walletManager.wallet != nil {
+            Section {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle")
+                        .foregroundColor(.orange)
+                        .font(.caption)
+                    Text("Wallet not published - tap to sync across devices")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    Task { await saveSettings() }
+                }
+            }
+        }
+    }
+    
+    // Mints section
+    @ViewBuilder
+    private var mintsSection: some View {
+        Section {
+            if mints.isEmpty {
+                VStack(spacing: 16) {
+                    ContentUnavailableView(
+                        "No Mints Configured",
+                        systemImage: "building.columns",
+                        description: Text("Add mints to start using ecash")
+                    )
+                    .scaleEffect(0.85)
+
+                    HStack(spacing: 12) {
+                        Button(action: { showAddMintSheet = true }) {
+                            Label("Add URL", systemImage: "link")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.regular)
+
+                        Button(action: discoverMints) {
+                            Label("Discover", systemImage: "sparkle.magnifyingglass")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.regular)
+                    }
+                }
+            } else {
+                ForEach(mints, id: \.url.absoluteString) { mint in
+                    NavigationLink(destination: MintDetailView(mintURL: mint.url.absoluteString)) {
+                        MintSettingsRow(mintInfo: mint) {
+                            mints.removeAll { $0.url == mint.url }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.leading, 2)
+                }
+            }
+        } header: {
+            mintsSectionHeader
+        }
+    }
+    
+    // Mints section header
+    @ViewBuilder
+    private var mintsSectionHeader: some View {
+        HStack {
+            Text("MINTS")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .textCase(.none)
+            Spacer()
+            Menu {
+                Button(action: { showAddMintSheet = true }) {
+                    Label("Add by URL", systemImage: "link")
+                }
+                Button(action: discoverMints) {
+                    Label("Discover Mints", systemImage: "sparkle.magnifyingglass")
+                }
+            } label: {
+                Image(systemName: "plus")
+                    .font(.caption)
+                    .foregroundColor(.accentColor)
+            }
+        }
+    }
+    
+    // Relays section
+    @ViewBuilder
+    private var relaysSection: some View {
+        Section {
+            if relays.isEmpty {
+                ContentUnavailableView(
+                    "No Relays Configured",
+                    systemImage: "antenna.radiowaves.left.and.right",
+                    description: Text("Add relays to sync your wallet data")
+                )
+                .scaleEffect(0.85)
+            } else {
+                ForEach(relays, id: \.self) { relay in
+                    RelaySettingsRow(relayURL: relay) {
+                        relays.removeAll { $0 == relay }
+                    }
+                }
+            }
+        } header: {
+            HStack {
+                Text("WALLET RELAYS")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .textCase(.none)
+                Spacer()
+                Button(action: { showAddRelaySheet = true }) {
+                    Image(systemName: "plus.circle")
+                        .font(.footnote)
+                }
+            }
+        } footer: {
+            Text("These relays will be used to sync your wallet events and mint lists")
+                .font(.caption2)
+                .foregroundColor(.secondary.opacity(0.7))
+                .padding(.top, -6)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             Form {
-                // Wallet Configuration Warning
-                if !hasWalletInfo && walletManager.wallet != nil {
-                    Section {
-                        HStack {
-                            Image(systemName: "exclamationmark.triangle")
-                                .foregroundColor(.orange)
-                                .font(.caption)
-                            Text("Wallet not published - tap to sync across devices")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                        }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            Task { await saveSettings() }
-                        }
-                    }
-                }
-                
-                // Mints Section
-                Section {
-                    if mints.isEmpty {
-                        VStack(spacing: 16) {
-                            ContentUnavailableView(
-                                "No Mints Configured",
-                                systemImage: "building.columns",
-                                description: Text("Add mints to start using ecash")
-                            )
-                            .scaleEffect(0.85)
-                            
-                            HStack(spacing: 12) {
-                                Button(action: { showAddMintSheet = true }) {
-                                    Label("Add URL", systemImage: "link")
-                                }
-                                .buttonStyle(.bordered)
-                                .controlSize(.regular)
-                                
-                                Button(action: discoverMints) {
-                                    Label("Discover", systemImage: "sparkle.magnifyingglass")
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .controlSize(.regular)
-                            }
-                        }
-                    } else {
-                        ForEach(mints, id: \.url.absoluteString) { mint in
-                            NavigationLink(destination: MintDetailView(mintURL: mint.url.absoluteString)) {
-                                MintSettingsRow(mintInfo: mint) {
-                                    mints.removeAll { $0.url == mint.url }
-                                }
-                            }
-                            .buttonStyle(.plain)
-            .padding(.leading, 2)
-                        }
-                    }
-                } header: {
-                    HStack {
-                        Text("MINTS")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .textCase(.none)
-                        Spacer()
-                        Menu {
-                            Button(action: { showAddMintSheet = true }) {
-                                Label("Add by URL", systemImage: "link")
-                            }
-                            Button(action: discoverMints) {
-                                Label("Discover Mints", systemImage: "sparkle.magnifyingglass")
-                            }
-                        } label: {
-                            Image(systemName: "plus")
-                                .font(.caption)
-                                .foregroundColor(.accentColor)
-                        }
-                    }
-                }
-                
-                // Relays Section
-                Section {
-                    if relays.isEmpty {
-                        ContentUnavailableView(
-                            "No Relays Configured",
-                            systemImage: "antenna.radiowaves.left.and.right",
-                            description: Text("Add relays to sync your wallet data")
-                        )
-                        .scaleEffect(0.85)
-                    } else {
-                        ForEach(relays, id: \.self) { relay in
-                            RelaySettingsRow(relayURL: relay) {
-                                relays.removeAll(value: relay)
-                            }
-                        }
-                    }
-                    
-                } header: {
-                    HStack {
-                        Text("WALLET RELAYS")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .textCase(.none)
-                        Spacer()
-                        Button(action: { showAddRelaySheet = true }) {
-                            Image(systemName: "plus.circle")
-                                .font(.footnote)
-                        }
-                    }
-                } footer: {
-                    Text("These relays will be used to sync your wallet events and mint lists")
-                        .font(.caption2)
-                        .foregroundColor(.secondary.opacity(0.7))
-                        .padding(.top, -6)
-                }
-                
+                walletWarningSection
+                mintsSection
+                relaysSection
+
             }
             .formStyle(.grouped)
             .navigationTitle("Wallet Settings")
@@ -144,7 +162,7 @@ struct WalletSettingsView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         Task { await saveSettings() }
@@ -158,7 +176,7 @@ struct WalletSettingsView: View {
                 AddMintSheet { url in
                     print("DEBUG: AddMintSheet callback - adding mint URL: \(url)")
                     print("DEBUG: Current mints before addition: \(mints.map { $0.url.absoluteString })")
-                    
+
                     do {
                         let mintInfo = try await fetchMintInfo(url: url)
                         mints.append(mintInfo)
@@ -172,12 +190,12 @@ struct WalletSettingsView: View {
                         )
                         mints.append(fallbackMintInfo)
                         print("DEBUG: Added mint with fallback info due to error: \(error)")
-                        
+
                         // Show error but don't prevent mint addition
                         errorMessage = "Note: Could not fetch mint details (\(error.localizedDescription)). Mint added with basic info."
                         showError = true
                     }
-                    
+
                     print("DEBUG: Mints after addition: \(mints.map { $0.url.absoluteString })")
                     print("DEBUG: Total mints count: \(mints.count)")
                 }
@@ -196,7 +214,7 @@ struct WalletSettingsView: View {
                         if appState.isMintBlacklisted(mint.url) {
                             continue
                         }
-                        
+
                         if !mints.contains(where: { $0.url.absoluteString == mint.url }) {
                             // Note: mint.url should already be validated by MintDiscoveryManager
                             // but we double-check here for safety
@@ -230,59 +248,58 @@ struct WalletSettingsView: View {
             }
         }
     }
-    
+
     private func loadCurrentSettings() async {
         isLoading = true
-        
+
         print("DEBUG: loadCurrentSettings() called")
-        
+
         // Load current configuration directly from the wallet
         if let wallet = walletManager.wallet {
             // Get mints from the wallet's mint manager, filtering out blacklisted ones
             let mintURLs = await wallet.mints.getMintURLs()
             print("DEBUG: Loaded mint URLs from wallet: \(mintURLs)")
-            
+
             let mintURLObjects = mintURLs
                 .filter { !appState.isMintBlacklisted($0) }
                 .compactMap { URL(string: $0) }
             mints = mintURLObjects.map { MintInfo(url: $0, name: $0.host ?? "Unknown Mint") }
-            
+
             print("DEBUG: Loaded \(mints.count) mints after filtering: \(mints.map { $0.url.absoluteString })")
-            
+
             // Get relays from the wallet's configuration
             relays = await wallet.walletConfigRelays
-            
+
             // Check if wallet info exists
             hasWalletInfo = await checkWalletInfo()
         }
-        
+
         isLoading = false
     }
-    
+
     private func checkWalletInfo() async -> Bool {
         guard let ndk = nostrManager.ndk,
               let pubkey = try? await ndk.signer?.pubkey else { return false }
-        
+
         let filter = NDKFilter(
             authors: [pubkey],
             kinds: [17375]
         )
-        
+
         // Use declarative data source to check if user has published wallet events
         let dataSource = ndk.observe(
             filter: filter,
             maxAge: 3600,
             cachePolicy: .cacheWithNetwork
         )
-        
+
         for await _ in dataSource.events {
             return true // Found at least one event
         }
-        
+
         return false
     }
-    
-    
+
     private func fetchMintInfo(url: URL) async throws -> MintInfo {
         // Use wallet's mint manager to fetch proper mint info
         if let wallet = walletManager.wallet {
@@ -302,24 +319,24 @@ struct WalletSettingsView: View {
             return MintInfo(url: url, name: url.host ?? "Unknown Mint")
         }
     }
-    
+
     private func saveSettings() async {
         isSaving = true
-        
+
         do {
             guard let wallet = walletManager.wallet else {
                 throw WalletError.noActiveWallet
             }
-            
+
             // Debug logging
             print("DEBUG: saveSettings() called")
             print("DEBUG: mints array before conversion: \(mints.map { $0.url.absoluteString })")
             print("DEBUG: mints count: \(mints.count)")
-            
+
             // Convert mints to URL strings, filtering out blacklisted ones
             let allMintURLs = mints.map { $0.url.absoluteString }
             print("DEBUG: All mint URLs: \(allMintURLs)")
-            
+
             let mintURLs = mints
                 .map { $0.url.absoluteString }
                 .filter { url in
@@ -327,44 +344,43 @@ struct WalletSettingsView: View {
                     print("DEBUG: Mint \(url) blacklisted: \(isBlacklisted)")
                     return !isBlacklisted
                 }
-            
+
             print("DEBUG: Filtered mint URLs to setup: \(mintURLs)")
             print("DEBUG: Filtered mint count: \(mintURLs.count)")
-            
+
             // Setup wallet with new configuration
             try await wallet.setup(
                 mints: mintURLs,
                 relays: relays,
                 publishMintList: true
             )
-            
+
             // Update wallet info flag
             hasWalletInfo = true
-            
+
             dismiss()
         } catch {
             errorMessage = "Failed to save settings: \(error.localizedDescription)"
             showError = true
         }
-        
+
         isSaving = false
     }
-    
+
     private func discoverMints() {
         // Cancel any existing discovery task
         discoveryTask?.cancel()
-        
+
         // Start new discovery task
         discoveryTask = Task {
             guard nostrManager.ndk != nil else { return }
-            
+
             // Just show the sheet - the DiscoveredMintsSheet will handle the discovery
         }
-        
+
         // Show the sheet immediately
         showDiscoveredMints = true
     }
-    
 }
 
 // MARK: - Mint Row
@@ -374,7 +390,7 @@ struct MintSettingsRow: View {
     @State private var balance: Int64 = 0
     @State private var favicon: Image?
     @Environment(WalletManager.self) private var walletManager
-    
+
     var body: some View {
         HStack(spacing: 6) {
             // Favicon
@@ -394,7 +410,7 @@ struct MintSettingsRow: View {
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
             }
-            
+
             VStack(alignment: .leading, spacing: 1) {
                 Text(mintInfo.name ?? mintInfo.url.host ?? "Unknown Mint")
                     .font(.footnote)
@@ -405,9 +421,9 @@ struct MintSettingsRow: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
             }
-            
+
             Spacer(minLength: 2)
-            
+
             VStack(alignment: .trailing, spacing: 0) {
                 Text("\(balance)")
                     .font(.footnote)
@@ -417,7 +433,7 @@ struct MintSettingsRow: View {
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
-            
+
             Button(action: onDelete) {
                 Image(systemName: "xmark.circle.fill")
                     .font(.footnote)
@@ -432,7 +448,7 @@ struct MintSettingsRow: View {
             await loadFavicon()
         }
     }
-    
+
     private func updateBalance() async {
         guard let wallet = walletManager.wallet else { return }
         let mintBalance = await wallet.getBalance(mint: mintInfo.url)
@@ -440,11 +456,11 @@ struct MintSettingsRow: View {
             balance = mintBalance
         }
     }
-    
+
     private func loadFavicon() async {
         guard let host = mintInfo.url.host else { return }
         let faviconURL = URL(string: "https://\(host)/favicon.ico")
-        
+
         // Simple favicon loading - in production you'd want proper caching
         if let url = faviconURL,
            let data = try? await URLSession.shared.data(from: url).0,
@@ -464,39 +480,61 @@ struct RelaySettingsRow: View {
     @State private var relayIcon: Image?
     @State private var observationTask: Task<Void, Never>?
     @Environment(NostrManager.self) private var nostrManager
-    
+
     var body: some View {
         HStack(spacing: 6) {
             // Relay Icon
-            RelayIconView(icon: relayIcon, size: 28)
-            
+            if let icon = relayIcon {
+                icon
+                    .font(.system(size: 28))
+                    .foregroundColor(.secondary)
+            } else {
+                Image(systemName: "network")
+                    .font(.system(size: 28))
+                    .foregroundColor(.secondary)
+            }
+
             VStack(alignment: .leading, spacing: 1) {
                 // Use NIP-11 name if available, otherwise use hostname
                 Text(relayState?.info?.name ?? getRelayHost(relayURL) ?? "Unknown Relay")
                     .font(.footnote)
                     .fontWeight(.medium)
-                    
+
                 HStack(spacing: 4) {
                     Text(getRelayHost(relayURL) ?? relayURL)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
-                    
+
                     // Connection status indicator
                     if let state = relayState {
-                        ConnectionStatusBadge(state: state.connectionState, style: .compact)
+                        Circle()
+                            .fill(state.connectionState == .connected ? Color.green : 
+                                  state.connectionState == .connecting ? Color.orange : Color.red)
+                            .frame(width: 6, height: 6)
                     }
                 }
             }
-            
+
             Spacer()
-            
+
             // Show NIP-11 info if available
             if let info = relayState?.info {
-                RelayInfoView(info: info, style: .compact)
+                HStack(spacing: 4) {
+                    if info.supportedNips?.contains(60) == true {
+                        Image(systemName: "bitcoinsign.circle")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                    if info.pubkey != nil {
+                        Image(systemName: "checkmark.shield")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                    }
+                }
             }
-            
+
             Button(action: onDelete) {
                 Image(systemName: "xmark.circle.fill")
                     .font(.footnote)
@@ -513,14 +551,14 @@ struct RelaySettingsRow: View {
             stopObserving()
         }
     }
-    
+
     private func getRelayHost(_ url: String) -> String? {
         URL(string: url)?.host
     }
-    
+
     private func loadRelayInfo() async {
         guard let ndk = nostrManager.ndk else { return }
-        
+
         // Get the relay from NDK
         let relays = await ndk.relays
         guard let relay = relays.first(where: { $0.url == relayURL }) else {
@@ -536,13 +574,13 @@ struct RelaySettingsRow: View {
             }
             return
         }
-        
+
         // Start observing relay state
         observationTask = Task {
             for await state in relay.stateStream {
                 await MainActor.run {
                     self.relayState = state
-                    
+
                     // Load relay icon from NIP-11 data if available
                     if let iconURL = state.info?.icon,
                        let url = URL(string: iconURL),
@@ -560,13 +598,12 @@ struct RelaySettingsRow: View {
             }
         }
     }
-    
+
     private func stopObserving() {
         observationTask?.cancel()
         observationTask = nil
     }
 }
-
 
 // MARK: - Add Mint Sheet
 struct AddMintSheet: View {
@@ -575,39 +612,39 @@ struct AddMintSheet: View {
     @State private var isValidating = false
     @State private var validationError = ""
     let onAdd: (URL) async -> Void
-    
+
     var isValidURL: Bool {
         // Trim whitespace
         let trimmed = mintURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        
+
         guard !trimmed.isEmpty,
               let url = URL(string: trimmed),
               let scheme = url.scheme?.lowercased(),
-              (scheme == "https" || scheme == "http"),
+              scheme == "https" || scheme == "http",
               let host = url.host,
               !host.isEmpty else {
             return false
         }
-        
+
         // No spaces in the URL
         if trimmed.contains(" ") {
             return false
         }
-        
+
         // Host should be a valid domain
         let hostPattern = #"^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$"#
         let hostRegex = try? NSRegularExpression(pattern: hostPattern, options: .caseInsensitive)
         let hostRange = NSRange(location: 0, length: host.utf16.count)
-        
+
         if let regex = hostRegex {
             if regex.firstMatch(in: host, options: [], range: hostRange) == nil {
                 return false
             }
         }
-        
+
         return true
     }
-    
+
     var body: some View {
         NavigationStack {
             Form {
@@ -640,7 +677,7 @@ struct AddMintSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add") {
                         let trimmedURL = mintURL.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -667,7 +704,7 @@ struct AddRelaySheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var relayURL = ""
     let onAdd: (String) -> Void
-    
+
     var body: some View {
         NavigationStack {
             Form {
@@ -690,7 +727,7 @@ struct AddRelaySheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add") {
                         guard relayURL.starts(with: "wss://") || relayURL.starts(with: "ws://") else { return }
@@ -713,7 +750,7 @@ struct DiscoveredMintsSheet: View {
     @State private var selectedMints: Set<String> = []
     @State private var discoveredMints: [DiscoveredMint] = []
     @State private var streamTask: Task<Void, Never>?
-    
+
     var body: some View {
         NavigationStack {
             mintsList
@@ -730,24 +767,31 @@ struct DiscoveredMintsSheet: View {
                 }
         }
     }
-    
+
     private func startDiscovery() async {
         guard let ndk = nostrManager.ndk else { return }
-        
+
         streamTask = Task {
             // Get user's followed pubkeys for mint recommendations
             var followedPubkeys: [String] = []
-            if let user = await nostrManager.currentUser {
-                let contactList = try? await user.fetchContactList()
-                if let contactList = contactList {
-                    // NDKContactList has a contacts property that contains NDKContactEntry objects
-                    followedPubkeys = contactList.contacts.map { $0.user.pubkey }
+            if let signer = ndk.signer {
+                do {
+                    let userPubkey = try await signer.pubkey
+                    let user = NDKUser(pubkey: userPubkey)
+                    user.ndk = ndk
+                    let contactList = try? await user.fetchContactList()
+                    if let contactList = contactList {
+                        // NDKContactList has a contacts property that contains NDKContactEntry objects
+                        followedPubkeys = contactList.contacts.map { $0.user.pubkey }
+                    }
+                } catch {
+                    print("Failed to get user pubkey: \(error)")
                 }
             }
-            
+
             // Create discovery data source
             let discoveryDataSource = MintDiscoveryDataSource(ndk: ndk, followedPubkeys: followedPubkeys)
-            
+
             // Observe discovered mints
             while !Task.isCancelled {
                 await MainActor.run {
@@ -757,7 +801,7 @@ struct DiscoveredMintsSheet: View {
             }
         }
     }
-    
+
     @ViewBuilder
     private var mintsList: some View {
         if discoveredMints.isEmpty {
@@ -791,13 +835,13 @@ struct DiscoveredMintsSheet: View {
             }
         }
     }
-    
+
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
             Button("Cancel") { dismiss() }
         }
-        
+
         ToolbarItem(placement: .confirmationAction) {
             Button("Add Selected") {
                 Task {
@@ -816,19 +860,19 @@ private struct DiscoveredMintRowItem: View {
     let mint: DiscoveredMint
     let isSelected: Bool
     let onToggle: () -> Void
-    
+
     var body: some View {
         HStack {
             mintInfo
-            
+
             Spacer()
-            
+
             selectionIndicator
         }
         .contentShape(Rectangle())
         .onTapGesture(perform: onToggle)
     }
-    
+
     @ViewBuilder
     private var mintInfo: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -840,7 +884,7 @@ private struct DiscoveredMintRowItem: View {
                 .lineLimit(1)
         }
     }
-    
+
     @ViewBuilder
     private var selectionIndicator: some View {
         if isSelected {
@@ -849,6 +893,3 @@ private struct DiscoveredMintRowItem: View {
         }
     }
 }
-
-
-// MARK: - Supporting Types

@@ -4,10 +4,10 @@ import SwiftUI
 struct AsyncContentView<Content: View, T>: View {
     let operation: () async -> T
     let content: (T) -> Content
-    
+
     @State private var result: T?
     @State private var isLoading = true
-    
+
     var body: some View {
         Group {
             if isLoading {

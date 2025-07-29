@@ -10,9 +10,9 @@ struct NutzapView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(NostrManager.self) private var nostrManager
     @Environment(WalletManager.self) private var walletManager
-    
+
     let recipientPubkey: String?
-    
+
     @State private var resolvedUser: NDKUser?
     @State private var recipientProfile: NDKUserProfile?
     @State private var amount = ""
@@ -28,20 +28,20 @@ struct NutzapView: View {
     @State private var supportsLightning = false
     @State private var paymentMethod: PaymentMethod = .nutzap
     @FocusState private var amountFieldFocused: Bool
-    
+
     init(recipientPubkey: String? = nil) {
         self.recipientPubkey = recipientPubkey
     }
-    
+
     var amountInt: Int {
         Int(amount) ?? 0
     }
-    
+
     private var formattedAmount: String {
         if amount.isEmpty {
             return "0"
         }
-        
+
         // Format with thousand separators
         if let number = Int(amount) {
             let formatter = NumberFormatter()
@@ -51,7 +51,7 @@ struct NutzapView: View {
         }
         return amount
     }
-    
+
     private var isButtonDisabled: Bool {
         let hasNoUser = resolvedUser == nil
         let hasNoAmount = amount.isEmpty
@@ -59,14 +59,14 @@ struct NutzapView: View {
         let hasInsufficientBalance = (paymentMethod == .nutzap && amountInt > availableBalance)
         let isCurrentlySending = isSending
         let hasNoPaymentMethod = (!supportsLightning && acceptedMints.isEmpty)
-        
+
         return hasNoUser || hasNoAmount || hasInvalidAmount || hasInsufficientBalance || isCurrentlySending || hasNoPaymentMethod
     }
-    
+
     private func setAmount(_ preset: Int) {
         amount = "\(preset)"
     }
-    
+
     // MARK: - View Components
     private var recipientSection: some View {
         Group {
@@ -74,14 +74,14 @@ struct NutzapView: View {
                 VStack(spacing: 16) {
                     // Profile picture centered on top
                     UserProfilePicture(user: user, size: 80)
-                    
+
                     VStack(spacing: 4) {
                         // User name centered below avatar
                         UserDisplayName(user: user)
                             .font(.title2)
                             .fontWeight(.semibold)
                             .multilineTextAlignment(.center)
-                        
+
                         // NIP-05 or identifier below name
                         UserNIP05(user: user)
                             .font(.subheadline)
@@ -104,7 +104,7 @@ struct NutzapView: View {
             }
         }
     }
-    
+
     private var amountInputSection: some View {
         VStack(spacing: 16) {
             // Hidden text field that drives the amount
@@ -113,14 +113,14 @@ struct NutzapView: View {
                 .opacity(0)
                 .frame(height: 0)
                 .focused($amountFieldFocused)
-            
+
             // Visual amount display
             VStack(spacing: 8) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(formattedAmount)
                         .font(.system(size: 48, weight: .semibold, design: .rounded))
                         .foregroundStyle(.primary)
-                    
+
                     Text("sats")
                         .font(.system(size: 20, weight: .medium, design: .rounded))
                         .foregroundStyle(.secondary)
@@ -129,14 +129,14 @@ struct NutzapView: View {
                 .onTapGesture {
                     amountFieldFocused = true
                 }
-                
+
                 // USD equivalent (placeholder)
                 Text("≈ $0.00 USD")
                     .font(.system(size: 16, weight: .regular, design: .rounded))
                     .foregroundStyle(.secondary)
                     .opacity(0.6)
             }
-            
+
             // Quick amount buttons
             HStack(spacing: 12) {
                 ForEach(AmountPresets.nutzapAmounts, id: \.self) { preset in
@@ -154,19 +154,19 @@ struct NutzapView: View {
         }
         .padding(.horizontal)
     }
-    
+
     private var commentSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Comment")
                 .font(.headline)
                 .padding(.horizontal)
-            
+
             TextField("Comment (optional)", text: $comment, axis: .vertical)
                 .lineLimit(2...4)
                 .padding(.horizontal)
         }
     }
-    
+
     private var paymentMethodSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -184,7 +184,7 @@ struct NutzapView: View {
                 Spacer()
             }
             .padding(.horizontal)
-            
+
             if paymentMethod == .nutzap && !acceptedMints.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(acceptedMints, id: \.self) { mint in
@@ -197,11 +197,11 @@ struct NutzapView: View {
             }
         }
     }
-    
+
     private var sendButton: some View {
         VStack {
             Divider()
-            
+
             Button(action: sendPayment) {
                 if isSending {
                     HStack {
@@ -238,15 +238,14 @@ struct NutzapView: View {
         .background(Color(.systemBackground))
         .frame(maxWidth: .infinity)
     }
-    
-    
+
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(spacing: 24) {
                     recipientSection
                     amountInputSection
-                    
+
                     if resolvedUser != nil {
                         commentSection
                         paymentMethodSection
@@ -255,7 +254,7 @@ struct NutzapView: View {
                 .padding(.vertical)
                 .padding(.bottom, 120) // Add space for the fixed button and keyboard
             }
-            
+
             sendButton
         }
         .navigationTitle("Zap")
@@ -265,7 +264,7 @@ struct NutzapView: View {
         #endif
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Zap") { 
+                Button("Zap") {
                     sendPayment()
                 }
                 .foregroundColor(.orange)
@@ -287,7 +286,7 @@ struct NutzapView: View {
         }
         .onAppear {
             loadBalance()
-            
+
             // If a recipient pubkey was provided, resolve it
             if let pubkey = recipientPubkey {
                 Task {
@@ -299,7 +298,7 @@ struct NutzapView: View {
             profileTask?.cancel()
         }
     }
-    
+
     private func resolveRecipient(pubkey: String) async {
         guard !pubkey.isEmpty else {
             await MainActor.run {
@@ -308,25 +307,25 @@ struct NutzapView: View {
             }
             return
         }
-        
+
         await MainActor.run {
             isLoadingProfile = true
         }
-        
+
         profileTask?.cancel()
-        
+
         do {
             guard let ndk = nostrManager.ndk else {
-                throw NostrError.ndkNotInitialized
+                throw NDKError.notConfigured("NDK not initialized")
             }
-            
+
             let user = NDKUser(pubkey: pubkey)
-            
+
             await MainActor.run {
                 resolvedUser = user
                 isLoadingProfile = false
             }
-            
+
             // Use declarative data source for profile
             let profileDataSource = ndk.observe(
                 filter: NDKFilter(
@@ -336,7 +335,7 @@ struct NutzapView: View {
                 maxAge: 3600, // Cache for 1 hour
                 cachePolicy: .cacheWithNetwork
             )
-            
+
             profileTask = Task {
                 for await event in profileDataSource.events {
                     if let profileData = event.content.data(using: .utf8),
@@ -348,7 +347,7 @@ struct NutzapView: View {
                     }
                 }
             }
-            
+
             // Load accepted mints and check Lightning support
             await loadAcceptedMints(for: pubkey)
             await checkLightningSupport(for: pubkey)
@@ -360,24 +359,24 @@ struct NutzapView: View {
             }
         }
     }
-    
+
     private func sendPayment() {
         guard let recipient = resolvedUser,
               amountInt > 0 else { return }
-        
+
         let recipientPubkey = recipient.pubkey
-        
+
         isSending = true
-        
+
         // Show success immediately for better UX
         showSuccess = true
-        
+
         Task {
             do {
                 if paymentMethod == .nutzap && !acceptedMints.isEmpty {
                     // Convert accepted mints to URLs
                     let mintURLs = acceptedMints.compactMap { URL(string: $0) }
-                    
+
                     // This creates a pending transaction immediately
                     try await walletManager.sendNutzap(
                         to: recipientPubkey,
@@ -391,10 +390,10 @@ struct NutzapView: View {
                           let zapManager = nostrManager.zapManager else {
                         throw ZapError.zapManagerNotAvailable
                     }
-                    
+
                     let user = NDKUser(pubkey: recipientPubkey)
                     user.ndk = ndk
-                    
+
                     _ = try await zapManager.zap(
                         to: user,
                         amountSats: Int64(amountInt),
@@ -404,7 +403,7 @@ struct NutzapView: View {
                     // No payment method available
                     throw ZapError.zapManagerNotAvailable
                 }
-                
+
                 // Keep success showing
                 await MainActor.run {
                     isSending = false
@@ -419,24 +418,24 @@ struct NutzapView: View {
             }
         }
     }
-    
+
     private func loadAcceptedMints(for pubkey: String) async {
         guard let ndk = nostrManager.ndk else { return }
-        
+
         // Fetch nutzap preferences event (kind 10019) - NIP-61
         let filter = NDKFilter(
             authors: [pubkey],
             kinds: [EventKind.nutzapPreferences],
             limit: 1
         )
-        
+
         // Use declarative data source to fetch preferences
         let preferencesDataSource = ndk.observe(
             filter: filter,
             maxAge: 3600,
             cachePolicy: .cacheWithNetwork
         )
-        
+
         var events: [NDKEvent] = []
         let fetchTask = Task {
             for await event in preferencesDataSource.events {
@@ -446,7 +445,7 @@ struct NutzapView: View {
                 }
             }
         }
-        
+
         // Wait a bit for the event
         try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
         fetchTask.cancel()
@@ -457,15 +456,15 @@ struct NutzapView: View {
             }
             return
         }
-        
+
         // Parse mints from event tags
         var mints: [String] = []
         for tag in preferencesEvent.tags where tag.count >= 2 && tag[0] == "mint" {
             mints.append(tag[1])
         }
-        
+
         // Don't add fallback mints - recipient must have configured mints
-        
+
         await MainActor.run {
             acceptedMints = mints
             // Determine payment method: prefer nutzap if mints available, otherwise lightning
@@ -478,7 +477,7 @@ struct NutzapView: View {
             }
         }
     }
-    
+
     private func loadBalance() {
         Task {
             do {
@@ -491,10 +490,10 @@ struct NutzapView: View {
             }
         }
     }
-    
+
     private func checkLightningSupport(for pubkey: String) async {
         guard let ndk = nostrManager.ndk else { return }
-        
+
         // Use declarative data source to fetch profile
         let profileDataSource = ndk.observe(
             filter: NDKFilter(
@@ -504,7 +503,7 @@ struct NutzapView: View {
             maxAge: 3600,
             cachePolicy: .cacheWithNetwork
         )
-        
+
         var profile: NDKUserProfile?
         for await event in profileDataSource.events {
             if let profileData = event.content.data(using: .utf8) {
@@ -521,7 +520,7 @@ struct NutzapView: View {
 // MARK: - Errors
 enum ZapError: LocalizedError {
     case zapManagerNotAvailable
-    
+
     var errorDescription: String? {
         switch self {
         case .zapManagerNotAvailable:
@@ -535,19 +534,19 @@ struct NutzapSuccessView: View {
     let user: NDKUser
     let amount: Int
     let onDone: () -> Void
-    
+
     @State private var animationScale = 0.5
     @State private var showBolt = false
-    
+
     var body: some View {
         VStack(spacing: 30) {
             Spacer()
-            
+
             // Animation
             ZStack {
                 // Profile picture
                 UserProfilePicture(user: user, size: 100)
-                
+
                 // Bolt overlay
                 if showBolt {
                     Image(systemName: "bolt.heart.fill")
@@ -557,12 +556,12 @@ struct NutzapSuccessView: View {
                         .transition(.scale.combined(with: .opacity))
                 }
             }
-            
+
             VStack(spacing: 8) {
                 Text("Zapped!")
                     .font(.largeTitle)
                     .fontWeight(.bold)
-                
+
                 HStack(spacing: 4) {
                     Text("\(amount) sats to")
                     UserDisplayName(user: user)
@@ -572,9 +571,9 @@ struct NutzapSuccessView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
-            
+
             Spacer()
-            
+
             Button(action: onDone) {
                 Text("Done")
                     .frame(maxWidth: .infinity)
@@ -590,7 +589,7 @@ struct NutzapSuccessView: View {
             withAnimation(.easeOut(duration: 0.3)) {
                 showBolt = true
             }
-            
+
             withAnimation(.easeOut(duration: 0.6).delay(0.1)) {
                 animationScale = 1.2
             }

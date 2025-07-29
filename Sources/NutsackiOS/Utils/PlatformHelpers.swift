@@ -15,7 +15,7 @@ extension String {
 // MARK: - Platform-specific view modifiers
 struct PlatformNavigationBarTitleDisplayMode: ViewModifier {
     let mode: Any?
-    
+
     init(inline: Bool = true) {
         #if os(iOS)
         self.mode = inline ? NavigationBarItem.TitleDisplayMode.inline : NavigationBarItem.TitleDisplayMode.large
@@ -23,7 +23,7 @@ struct PlatformNavigationBarTitleDisplayMode: ViewModifier {
         self.mode = nil
         #endif
     }
-    
+
     func body(content: Content) -> some View {
         #if os(iOS)
         if let displayMode = mode as? NavigationBarItem.TitleDisplayMode {
