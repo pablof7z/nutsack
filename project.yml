@@ -17,8 +17,7 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
 packages:
   NDKSwift:
-    url: https://github.com/pablof7z/NDKSwift
-    branch: master
+    path: ../NDKSwift
 targets:
   NutsackiOS:
     type: application

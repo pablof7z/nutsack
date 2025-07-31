@@ -6,7 +6,7 @@ struct MintDetailView: View {
     let mintURL: String
 
     @Environment(WalletManager.self) private var walletManager
-    @Environment(NostrManager.self) private var nostrManager
+    @EnvironmentObject private var nostrManager: NostrManager
     @Environment(\.dismiss) private var dismiss
 
     @State private var balance: Int64 = 0

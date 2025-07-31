@@ -8,13 +8,13 @@ enum PaymentMethod {
 
 struct NutzapView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(NostrManager.self) private var nostrManager
+    @EnvironmentObject private var nostrManager: NostrManager
     @Environment(WalletManager.self) private var walletManager
 
     let recipientPubkey: String?
 
     @State private var resolvedUser: NDKUser?
-    @State private var recipientProfile: NDKUserProfile?
+    @State private var recipientMetadata: NDKUserMetadata?
     @State private var amount = ""
     @State private var comment = ""
     @State private var isLoadingProfile = false
@@ -303,7 +303,7 @@ struct NutzapView: View {
         guard !pubkey.isEmpty else {
             await MainActor.run {
                 resolvedUser = nil
-                recipientProfile = nil
+                recipientMetadata = nil
             }
             return
         }
@@ -314,50 +314,27 @@ struct NutzapView: View {
 
         profileTask?.cancel()
 
-        do {
-            guard let ndk = nostrManager.ndk else {
-                throw NDKError.notConfigured("NDK not initialized")
-            }
+        let ndk = nostrManager.ndk
+        let user = NDKUser(pubkey: pubkey)
 
-            let user = NDKUser(pubkey: pubkey)
+        await MainActor.run {
+            resolvedUser = user
+            isLoadingProfile = false
+        }
 
-            await MainActor.run {
-                resolvedUser = user
-                isLoadingProfile = false
-            }
-
-            // Use declarative data source for profile
-            let profileDataSource = ndk.observe(
-                filter: NDKFilter(
-                    authors: [pubkey],
-                    kinds: [0]
-                ),
-                maxAge: 3600, // Cache for 1 hour
-                cachePolicy: .cacheWithNetwork
-            )
-
-            profileTask = Task {
-                for await event in profileDataSource.events {
-                    if let profileData = event.content.data(using: .utf8),
-                       let profile = JSONCoding.safeDecode(NDKUserProfile.self, from: profileData) {
-                        await MainActor.run {
-                            self.recipientProfile = profile
-                        }
-                        break
-                    }
+        // Use profile manager to load metadata
+        profileTask = Task {
+            for await metadata in await ndk.profileManager.subscribe(for: pubkey, maxAge: 3600) {
+                await MainActor.run {
+                    self.recipientMetadata = metadata
                 }
-            }
-
-            // Load accepted mints and check Lightning support
-            await loadAcceptedMints(for: pubkey)
-            await checkLightningSupport(for: pubkey)
-        } catch {
-            await MainActor.run {
-                resolvedUser = nil
-                recipientProfile = nil
-                isLoadingProfile = false
+                break // Take first result
             }
         }
+
+        // Load accepted mints and check Lightning support
+        await loadAcceptedMints(for: pubkey)
+        await checkLightningSupport(for: pubkey)
     }
 
     private func sendPayment() {
@@ -386,19 +363,14 @@ struct NutzapView: View {
                     )
                 } else if supportsLightning {
                     // Send Lightning zap (either chosen or fallback)
-                    guard let ndk = nostrManager.ndk,
-                          let zapManager = nostrManager.zapManager else {
-                        throw ZapError.zapManagerNotAvailable
-                    }
+                    let ndk = nostrManager.ndk
 
                     let user = NDKUser(pubkey: recipientPubkey)
                     user.ndk = ndk
 
-                    _ = try await zapManager.zap(
-                        to: user,
-                        amountSats: Int64(amountInt),
-                        comment: comment.isEmpty ? nil : comment
-                    )
+                    // For now, throw error as zap manager is not available
+                    // TODO: Implement lightning zaps when NDKZapManager is available
+                    throw ZapError.zapManagerNotAvailable
                 } else {
                     // No payment method available
                     throw ZapError.zapManagerNotAvailable
@@ -420,17 +392,16 @@ struct NutzapView: View {
     }
 
     private func loadAcceptedMints(for pubkey: String) async {
-        guard let ndk = nostrManager.ndk else { return }
+        let ndk = nostrManager.ndk
 
         // Fetch nutzap preferences event (kind 10019) - NIP-61
         let filter = NDKFilter(
             authors: [pubkey],
-            kinds: [EventKind.nutzapPreferences],
-            limit: 1
+            kinds: [EventKind.nutzapPreferences]
         )
 
         // Use declarative data source to fetch preferences
-        let preferencesDataSource = ndk.observe(
+        let preferencesDataSource = ndk.subscribe(
             filter: filter,
             maxAge: 3600,
             cachePolicy: .cacheWithNetwork
@@ -492,27 +463,17 @@ struct NutzapView: View {
     }
 
     private func checkLightningSupport(for pubkey: String) async {
-        guard let ndk = nostrManager.ndk else { return }
+        guard let profileManager = nostrManager.profileManager else { return }
 
-        // Use declarative data source to fetch profile
-        let profileDataSource = ndk.observe(
-            filter: NDKFilter(
-                authors: [pubkey],
-                kinds: [0]
-            ),
-            maxAge: 3600,
-            cachePolicy: .cacheWithNetwork
-        )
-
-        var profile: NDKUserProfile?
-        for await event in profileDataSource.events {
-            if let profileData = event.content.data(using: .utf8) {
-                profile = JSONCoding.safeDecode(NDKUserProfile.self, from: profileData)
-                break
-            }
+        // Use profile manager to fetch metadata
+        var metadata: NDKUserMetadata?
+        for await fetchedMetadata in await profileManager.subscribe(for: pubkey, maxAge: TimeConstants.hour) {
+            metadata = fetchedMetadata
+            break  // Only need the metadata once
         }
+        
         await MainActor.run {
-            supportsLightning = profile?.lud16 != nil || profile?.lud06 != nil
+            supportsLightning = metadata?.lud16 != nil || metadata?.lud06 != nil
         }
     }
 }

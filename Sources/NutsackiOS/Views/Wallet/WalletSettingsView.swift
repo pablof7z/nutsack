@@ -4,7 +4,7 @@ import CashuSwift
 
 struct WalletSettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(NostrManager.self) private var nostrManager
+    @EnvironmentObject private var nostrManager: NostrManager
     @Environment(WalletManager.self) private var walletManager
     @EnvironmentObject private var appState: AppState
 
@@ -278,8 +278,8 @@ struct WalletSettingsView: View {
     }
 
     private func checkWalletInfo() async -> Bool {
-        guard let ndk = nostrManager.ndk,
-              let pubkey = try? await ndk.signer?.pubkey else { return false }
+        let ndk = nostrManager.ndk
+        guard let pubkey = try? await ndk.signer?.pubkey else { return false }
 
         let filter = NDKFilter(
             authors: [pubkey],
@@ -287,7 +287,7 @@ struct WalletSettingsView: View {
         )
 
         // Use declarative data source to check if user has published wallet events
-        let dataSource = ndk.observe(
+        let dataSource = ndk.subscribe(
             filter: filter,
             maxAge: 3600,
             cachePolicy: .cacheWithNetwork
@@ -373,8 +373,6 @@ struct WalletSettingsView: View {
 
         // Start new discovery task
         discoveryTask = Task {
-            guard nostrManager.ndk != nil else { return }
-
             // Just show the sheet - the DiscoveredMintsSheet will handle the discovery
         }
 
@@ -479,7 +477,7 @@ struct RelaySettingsRow: View {
     @State private var relayState: NDKRelay.State?
     @State private var relayIcon: Image?
     @State private var observationTask: Task<Void, Never>?
-    @Environment(NostrManager.self) private var nostrManager
+    @EnvironmentObject private var nostrManager: NostrManager
 
     var body: some View {
         HStack(spacing: 6) {
@@ -557,7 +555,7 @@ struct RelaySettingsRow: View {
     }
 
     private func loadRelayInfo() async {
-        guard let ndk = nostrManager.ndk else { return }
+        let ndk = nostrManager.ndk
 
         // Get the relay from NDK
         let relays = await ndk.relays
@@ -744,12 +742,16 @@ struct AddRelaySheet: View {
 // MARK: - Discovered Mints Sheet  
 struct DiscoveredMintsSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(NostrManager.self) private var nostrManager
+    @EnvironmentObject private var nostrManager: NostrManager
     let discoveryTask: Task<Void, Never>?
     let onSelect: ([DiscoveredMint]) async -> Void
     @State private var selectedMints: Set<String> = []
-    @State private var discoveredMints: [DiscoveredMint] = []
-    @State private var streamTask: Task<Void, Never>?
+    @State private var discoveryDataSource: MintDiscoveryDataSource?
+    
+    init(discoveryTask: Task<Void, Never>?, onSelect: @escaping ([DiscoveredMint]) async -> Void) {
+        self.discoveryTask = discoveryTask
+        self.onSelect = onSelect
+    }
 
     var body: some View {
         NavigationStack {
@@ -760,77 +762,85 @@ struct DiscoveredMintsSheet: View {
                     toolbarContent
                 }
                 .task {
-                    await startDiscovery()
+                    await setupDiscovery()
                 }
                 .onDisappear {
-                    streamTask?.cancel()
+                    discoveryDataSource?.stopStreaming()
                 }
         }
     }
 
-    private func startDiscovery() async {
-        guard let ndk = nostrManager.ndk else { return }
-
-        streamTask = Task {
-            // Get user's followed pubkeys for mint recommendations
-            var followedPubkeys: [String] = []
-            if let signer = ndk.signer {
-                do {
-                    let userPubkey = try await signer.pubkey
-                    let user = NDKUser(pubkey: userPubkey)
-                    user.ndk = ndk
-                    let contactList = try? await user.fetchContactList()
-                    if let contactList = contactList {
-                        // NDKContactList has a contacts property that contains NDKContactEntry objects
-                        followedPubkeys = contactList.contacts.map { $0.user.pubkey }
-                    }
-                } catch {
-                    print("Failed to get user pubkey: \(error)")
+    private func setupDiscovery() async {
+        let ndk = nostrManager.ndk
+        
+        // Get user's followed pubkeys for mint recommendations
+        var followedPubkeys: [String] = []
+        if let signer = ndk.signer {
+            do {
+                let userPubkey = try await signer.pubkey
+                let user = NDKUser(pubkey: userPubkey)
+                user.ndk = ndk
+                let contactList = try? await user.fetchContactList()
+                if let contactList = contactList {
+                    followedPubkeys = contactList.contacts.map { $0.user.pubkey }
                 }
-            }
-
-            // Create discovery data source
-            let discoveryDataSource = MintDiscoveryDataSource(ndk: ndk, followedPubkeys: followedPubkeys)
-
-            // Observe discovered mints
-            while !Task.isCancelled {
-                await MainActor.run {
-                    self.discoveredMints = discoveryDataSource.discoveredMints
-                }
-                try? await Task.sleep(nanoseconds: 1_000_000_000) // Update every second
+            } catch {
+                print("Failed to get user pubkey: \(error)")
             }
         }
+        
+        // Create proper data source and start streaming
+        let dataSource = MintDiscoveryDataSource(ndk: ndk, followedPubkeys: followedPubkeys)
+        await MainActor.run {
+            self.discoveryDataSource = dataSource
+        }
+        dataSource.startStreaming()
     }
 
     @ViewBuilder
     private var mintsList: some View {
-        if discoveredMints.isEmpty {
-            VStack(spacing: 16) {
-                ProgressView()
-                    .scaleEffect(1.2)
-                Text("Searching for mints...")
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-                Text("This may take a moment")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .listRowBackground(Color.clear)
-        } else {
-            List {
-                ForEach(discoveredMints) { mint in
-                    DiscoveredMintRowItem(
-                        mint: mint,
-                        isSelected: selectedMints.contains(mint.url),
-                        onToggle: {
-                            if selectedMints.contains(mint.url) {
-                                selectedMints.remove(mint.url)
-                            } else {
-                                selectedMints.insert(mint.url)
+        List {
+            if discoveryDataSource?.discoveredMints.isEmpty ?? true {
+                // Show empty state immediately - no spinner
+                Section {
+                    VStack(spacing: 12) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 48))
+                            .foregroundStyle(.secondary)
+                        Text("No mints found")
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                        Text("Mints will appear here")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 40)
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets())
+            } else {
+                Section {
+                    ForEach(discoveryDataSource?.discoveredMints ?? []) { mint in
+                        DiscoveredMintRowItem(
+                            mint: mint,
+                            isSelected: selectedMints.contains(mint.url),
+                            onToggle: {
+                                if selectedMints.contains(mint.url) {
+                                    selectedMints.remove(mint.url)
+                                } else {
+                                    selectedMints.insert(mint.url)
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
+                } header: {
+                    if let count = discoveryDataSource?.discoveredMints.count, count > 0 {
+                        Text("\(count) mint\(count == 1 ? "" : "s") discovered")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
         }
@@ -845,7 +855,7 @@ struct DiscoveredMintsSheet: View {
         ToolbarItem(placement: .confirmationAction) {
             Button("Add Selected") {
                 Task {
-                    let selected = discoveredMints.filter { selectedMints.contains($0.url) }
+                    let selected = (discoveryDataSource?.discoveredMints ?? []).filter { selectedMints.contains($0.url) }
                     await onSelect(selected)
                     dismiss()
                 }

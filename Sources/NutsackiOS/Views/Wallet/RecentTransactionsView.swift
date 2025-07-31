@@ -4,7 +4,9 @@ import NDKSwift
 struct RecentTransactionsView: View {
     @Environment(WalletManager.self) private var walletManager
 
-    @State private var recentTransactions: [Transaction] = []
+    var recentTransactions: [Transaction] {
+        Array(walletManager.transactions.prefix(5))
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -46,23 +48,15 @@ struct RecentTransactionsView: View {
                 .cornerRadius(12)
             }
         }
-        .task {
-            await loadTransactions()
-        }
-    }
-
-    private func loadTransactions() async {
-        let transactions = await walletManager.transactions
-        self.recentTransactions = Array(transactions.prefix(5))
     }
 }
 
 struct TransactionRow: View {
     let transaction: Transaction
-    @Environment(NostrManager.self) private var nostrManager
+    @EnvironmentObject private var nostrManager: NostrManager
     @Environment(WalletManager.self) private var walletManager
-    @State private var senderProfile: NDKUserProfile?
-    @State private var recipientProfile: NDKUserProfile?
+    @State private var senderMetadata: NDKUserMetadata?
+    @State private var recipientMetadata: NDKUserMetadata?
     @State private var showDetailDrawer = false
     @State private var mintInfo: NDKMintInfo?
 
@@ -107,8 +101,8 @@ struct TransactionRow: View {
         if transaction.type == .nutzap {
             // For incoming nutzaps (received), show sender
             if transaction.direction == .incoming {
-                if let senderProfile = senderProfile {
-                    let senderName = senderProfile.name ?? senderProfile.displayName ?? "Anonymous"
+                if let senderMetadata = senderMetadata {
+                    let senderName = senderMetadata.name ?? senderMetadata.displayName ?? "Anonymous"
                     return "Zap from \(senderName)"
                 } else if let senderPubkey = transaction.senderPubkey {
                     return "Zap from \(senderPubkey.prefix(8))..."
@@ -118,8 +112,8 @@ struct TransactionRow: View {
             }
             // For outgoing nutzaps (sent), show recipient
             else if transaction.direction == .outgoing {
-                if let recipientProfile = recipientProfile {
-                    let recipientName = recipientProfile.name ?? recipientProfile.displayName ?? "Anonymous"
+                if let recipientMetadata = recipientMetadata {
+                    let recipientName = recipientMetadata.name ?? recipientMetadata.displayName ?? "Anonymous"
                     return "Zap to \(recipientName)"
                 } else if let recipientPubkey = transaction.recipientPubkey {
                     return "Zap to \(recipientPubkey.prefix(8))..."
@@ -141,13 +135,13 @@ struct TransactionRow: View {
             HStack {
                 // Avatar for nutzaps, icon for other transactions
                 if transaction.type == .nutzap {
-                    let profile = transaction.direction == .incoming ? senderProfile : recipientProfile
+                    let metadata = transaction.direction == .incoming ? senderMetadata : recipientMetadata
                     let pubkey = transaction.direction == .incoming ? transaction.senderPubkey : transaction.recipientPubkey
 
                     if pubkey != nil {
                         ZStack {
                             // User avatar
-                            AsyncImage(url: URL(string: profile?.picture ?? "")) { image in
+                            AsyncImage(url: URL(string: metadata?.picture ?? "")) { image in
                                 image
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
@@ -258,24 +252,12 @@ struct TransactionRow: View {
             if transaction.type == .nutzap,
                transaction.direction == .incoming,
                let senderPubkey = transaction.senderPubkey,
-               let ndk = nostrManager.ndk {
+               let profileManager = nostrManager.profileManager {
 
-                // Use declarative data source for profile
-                let profileDataSource = ndk.observe(
-                    filter: NDKFilter(
-                        authors: [senderPubkey],
-                        kinds: [0]
-                    ),
-                    maxAge: 3600,
-                    cachePolicy: .cacheWithNetwork
-                )
-
-                for await event in profileDataSource.events {
-                    if let profileData = event.content.data(using: .utf8),
-                       let profile = JSONCoding.safeDecode(NDKUserProfile.self, from: profileData) {
-                        senderProfile = profile
-                        break
-                    }
+                // Use profile manager for efficient fetching
+                for await metadata in await profileManager.subscribe(for: senderPubkey, maxAge: TimeConstants.hour) {
+                    senderMetadata = metadata
+                    break  // Only need the metadata once
                 }
             }
 
@@ -283,24 +265,12 @@ struct TransactionRow: View {
             if transaction.type == .nutzap,
                transaction.direction == .outgoing,
                let recipientPubkey = transaction.recipientPubkey,
-               let ndk = nostrManager.ndk {
+               let profileManager = nostrManager.profileManager {
 
-                // Use declarative data source for profile
-                let profileDataSource = ndk.observe(
-                    filter: NDKFilter(
-                        authors: [recipientPubkey],
-                        kinds: [0]
-                    ),
-                    maxAge: 3600,
-                    cachePolicy: .cacheWithNetwork
-                )
-
-                for await event in profileDataSource.events {
-                    if let profileData = event.content.data(using: .utf8),
-                       let profile = JSONCoding.safeDecode(NDKUserProfile.self, from: profileData) {
-                        recipientProfile = profile
-                        break
-                    }
+                // Use profile manager for efficient fetching
+                for await metadata in await profileManager.subscribe(for: recipientPubkey, maxAge: TimeConstants.hour) {
+                    recipientMetadata = metadata
+                    break  // Only need the metadata once
                 }
             }
 
@@ -325,7 +295,6 @@ struct TransactionHistoryView: View {
     @Environment(WalletManager.self) private var walletManager
 
     @State private var selectedFilter: TransactionFilter = .all
-    @State private var allTransactions: [Transaction] = []
 
     enum TransactionFilter: String, CaseIterable {
         case all = "All"
@@ -342,7 +311,7 @@ struct TransactionHistoryView: View {
     }
 
     var filteredTransactions: [Transaction] {
-        allTransactions
+        walletManager.transactions
             .filter { selectedFilter.matches($0) }
             .sorted { $0.createdAt > $1.createdAt }
     }
@@ -367,13 +336,6 @@ struct TransactionHistoryView: View {
         .navigationTitle("Transaction History")
         .platformNavigationBarTitleDisplayMode(inline: true)
         .listStyle(.plain)
-        .task {
-            await loadTransactions()
-        }
-    }
-
-    private func loadTransactions() async {
-        allTransactions = await walletManager.transactions
     }
 }
 

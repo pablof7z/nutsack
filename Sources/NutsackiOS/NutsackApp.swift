@@ -4,7 +4,7 @@ import NDKSwift
 @main
 struct NutsackApp: App {
     @StateObject private var appState = AppState()
-    @State private var nostrManager: NostrManager
+    @StateObject private var nostrManager: NostrManager
     @State private var walletManager: WalletManager
 
     init() {
@@ -18,7 +18,7 @@ struct NutsackApp: App {
             appState: appStateInstance
         )
 
-        _nostrManager = State(initialValue: nm)
+        _nostrManager = StateObject(wrappedValue: nm)
         _walletManager = State(initialValue: wm)
         _appState = StateObject(wrappedValue: appStateInstance)
     }
@@ -53,7 +53,7 @@ struct NutsackApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(appState)
-                .environment(nostrManager)
+                .environmentObject(nostrManager)
                 .environment(walletManager)
                 .preferredColorScheme(appState.themeMode.colorScheme)
         }

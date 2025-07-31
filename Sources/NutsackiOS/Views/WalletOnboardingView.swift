@@ -5,13 +5,21 @@ import Combine
 struct WalletOnboardingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(WalletManager.self) private var walletManager
-    @Environment(NostrManager.self) private var nostrManager
+    @EnvironmentObject private var nostrManager: NostrManager
     @Environment(\.colorScheme) private var colorScheme
 
-    enum AuthMode {
+    enum AuthMode: Identifiable {
         case none
         case create
         case `import`
+        
+        var id: String {
+            switch self {
+            case .none: return "none"
+            case .create: return "create"
+            case .import: return "import"
+            }
+        }
     }
 
     let authMode: AuthMode
@@ -36,7 +44,6 @@ struct WalletOnboardingView: View {
 
     // Mint discovery
     @State private var discoveredMints: [DiscoveredMint] = []
-    @State private var isDiscoveringMints = true // Start as true since we begin discovery immediately
     @State private var mintDiscoveryDataSource: MintDiscoveryDataSource?
     @State private var cancellables = Set<AnyCancellable>()
 
@@ -81,7 +88,6 @@ struct WalletOnboardingView: View {
         RelayInfo(url: RelayConstants.damus, name: "Damus", description: "Popular iOS-friendly relay"),
         RelayInfo(url: RelayConstants.nosLol, name: "nos.lol", description: "High-performance relay"),
         RelayInfo(url: RelayConstants.nostrBand, name: "Nostr Band", description: "Analytics and search relay"),
-        RelayInfo(url: RelayConstants.nostrWine, name: "Nostr Wine", description: "Paid relay with spam protection")
     ]
 
     // Header view with logo and title
@@ -210,8 +216,7 @@ struct WalletOnboardingView: View {
             case 3:
                 MintSelectionView(
                     selectedMints: $selectedMints,
-                    discoveredMints: discoveredMints,
-                    isDiscoveringMints: isDiscoveringMints
+                    discoveredMints: discoveredMints
                 )
                 .transition(.asymmetric(
                     insertion: .move(edge: .trailing).combined(with: .opacity),
@@ -297,7 +302,9 @@ struct WalletOnboardingView: View {
                 
                 // Logout button
                 Button(action: {
-                    nostrManager.logout()
+                    Task {
+                        await nostrManager.logout()
+                    }
                     dismiss()
                 }) {
                     Text("Logout")
@@ -480,13 +487,29 @@ struct WalletOnboardingView: View {
             }
         }
         .onAppear {
+            print("\n=== 🎯 [WalletOnboarding] SETUP WIZARD START ===")
             print("🔍 [WalletOnboarding] onAppear - authMode: \(authMode), currentStep: \(currentStep)")
-            print("🔍 [WalletOnboarding] NostrManager has signer: \(nostrManager.ndk?.signer != nil)")
-            print("🔍 [WalletOnboarding] NDKAuthManager.isAuthenticated: \(NDKAuthManager.shared.isAuthenticated)")
+            print("🔍 [WalletOnboarding] NostrManager has signer: \(nostrManager.ndk.signer != nil)")
+            print("🔍 [WalletOnboarding] NostrManager.isAuthenticated: \(nostrManager.isAuthenticated)")
+            
+            Task {
+                let wallet = walletManager.wallet
+                let mintUrls = await wallet?.mints.getMintURLs() ?? []
+                print("🔍 [WalletOnboarding] Current wallet state:")
+                print("  - wallet exists: \(wallet != nil)")
+                print("  - mint count: \(mintUrls.count)")
+                print("  - mints: \(mintUrls)")
+                
+                if authMode == .none && currentStep == 1 {
+                    print("🚨 [WalletOnboarding] WARNING: User already authenticated but being shown setup wizard!")
+                    print("🚨 [WalletOnboarding] This indicates wallet exists but has no mints configured")
+                }
+            }
 
             animateOnboarding()
             // Start mint discovery immediately when view appears
             startMintDiscovery()
+            print("=== [WalletOnboarding] END SETUP WIZARD START ===\n")
         }
         .onDisappear {
             // Clean up subscriptions when view disappears
@@ -559,7 +582,7 @@ struct WalletOnboardingView: View {
                 try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
             }
 
-            guard let ndk = nostrManager.ndk else { return }
+            let ndk = nostrManager.ndk
 
             // Use the existing working MintDiscoveryDataSource
             let dataSource = MintDiscoveryDataSource(ndk: ndk)
@@ -567,24 +590,14 @@ struct WalletOnboardingView: View {
                 self.mintDiscoveryDataSource = dataSource
             }
 
+            // Start streaming mint discovery
+            dataSource.startStreaming()
+            
             // Observe changes from the data source
             await MainActor.run {
                 dataSource.$discoveredMints
                     .sink { mints in
-                        print("🎯 [WalletOnboarding] Received \(mints.count) mints from data source")
                         self.discoveredMints = mints
-
-                        // After first batch of mints, we're no longer "discovering"
-                        if !mints.isEmpty && self.isDiscoveringMints {
-                            self.isDiscoveringMints = false
-                            print("🎯 [WalletOnboarding] Set isDiscoveringMints to false")
-                        }
-                    }
-                    .store(in: &cancellables)
-
-                dataSource.$isLoading
-                    .sink { isLoading in
-                        self.isDiscoveringMints = isLoading && self.discoveredMints.isEmpty
                     }
                     .store(in: &cancellables)
             }
@@ -934,71 +947,84 @@ struct WalletOnboardingView: View {
                     loginStatus = "Finding your relays..."
                 }
 
-                // Step 2: Create session (this starts the outbox relay discovery)
-                try await nostrManager.login(with: nsecInput)
+                // Step 2: Get user's relay list BEFORE starting session
+                let ndk = nostrManager.ndk
 
-                guard let ndk = nostrManager.ndk else {
-                    throw NDKError.notConfigured("NDK not initialized")
-                }
-
-                // Step 3: Use outbox to track user and find their relays
-                await ndk.outbox.trackUser(pubkey)
-
-                // Wait for relay discovery (with timeout)
-                var retries = 0
+                NDKLogger.configure(
+                    logLevel: .debug,
+                    enabledCategories: [
+                        .general,
+                        .subscription,
+                        .cache
+                    ],
+                    logNetworkTraffic: true
+                )
+                
+                // Create user object with NDK reference and fetch their relay list
+                let user = NDKUser(pubkey: pubkey)
+                user.ndk = ndk
+                print("Starting fetch")
+                let relayInfoList: [NDKRelayInfo] = try await user.fetchRelayList()
+                print("Back from fetch")
+                
                 var userRelays: [String] = []
-                while userRelays.isEmpty && retries < 30 {
-                    userRelays = await ndk.outbox.getRecommendedRelays(for: pubkey)
-                    if userRelays.isEmpty {
-                        try await Task.sleep(nanoseconds: 100_000_000) // 100ms
-                        retries += 1
+                
+                // Extract write relays from the relay list
+                let writeRelays = relayInfoList.filter { $0.write }.map { $0.url }
+                let readRelays = relayInfoList.filter { $0.read }.map { $0.url }
+                
+                if !writeRelays.isEmpty {
+                    userRelays = writeRelays
+                    print("Found \(writeRelays.count) write relays from user's relay list")
+                } else if !readRelays.isEmpty {
+                    // Fall back to read relays if no write relays
+                    userRelays = readRelays
+                    print("Found \(readRelays.count) read relays from user's relay list")
+                }
+                
+                // Add user's relays to NDK before starting session
+                if !userRelays.isEmpty {
+                    await MainActor.run {
+                        loginStatus = "Connecting to your relays..."
+                    }
+                    
+                    for relay in userRelays {
+                        await ndk.addRelay(relay)
+                    }
+                    
+                    // Wait for relays to connect
+                    try await Task.sleep(nanoseconds: 500_000_000) // 500ms to allow connections
+                } else {
+                    await MainActor.run {
+                        loginStatus = "No relays found..."
                     }
                 }
-                print("Found \(userRelays.count) relays for user")
+                
+                // Step 3: Import account with session persistence
+                try await nostrManager.importAccount(signer: signer)
 
                 await MainActor.run {
                     loginStatus = "Importing wallet..."
                 }
 
-                // Step 4: Check for existing wallet (kind 17375)
+                // Step 4: Check for existing wallet (kind 17375) using collect
                 let walletFilter = NDKFilter(
                     authors: [pubkey],
                     kinds: [EventKind.cashuWalletConfig], // NIP-60 wallet configuration
                     limit: 1
                 )
 
-                var walletFound = false
-                let walletDataSource = ndk.observe(
+                let walletDataSource = ndk.subscribe(
                     filter: walletFilter,
-                    maxAge: 0, // Force network fetch
+                    maxAge: 0,  // Force network fetch
                     cachePolicy: .networkOnly
                 )
-
-                // Wait for EOSE to ensure we've checked all relays
-                for await event in walletDataSource.events {
-                    if event.kind == EventKind.cashuWalletConfig {
-                        walletFound = true
-                        print("Found existing wallet configuration")
-                        break
-                    }
-                }
-
-                // Also fetch profile while we're at it
-                let profileDataSource = ndk.observe(
-                    filter: NDKFilter(
-                        authors: [pubkey],
-                        kinds: [0]
-                    ),
-                    maxAge: 3600,
-                    cachePolicy: .cacheWithNetwork
-                )
-
-                for await event in profileDataSource.events {
-                    if let profileData = event.content.data(using: .utf8),
-                       let _ = JSONCoding.safeDecode(NDKUserProfile.self, from: profileData) {
-                        // Profile loaded successfully
-                        break
-                    }
+                
+                let walletEvents = await walletDataSource.collect(timeout: 5.0) // 5 second timeout
+                let walletFound = !walletEvents.isEmpty
+                
+                if walletFound {
+                    print("Found existing wallet configuration")
                 }
 
                 await MainActor.run {
@@ -1219,7 +1245,6 @@ struct RelayInfo {
 struct MintSelectionView: View {
     @Binding var selectedMints: Set<String>
     let discoveredMints: [DiscoveredMint]
-    let isDiscoveringMints: Bool
 
     @State private var manualMintURL = ""
     @State private var showManualInput = false
@@ -1289,20 +1314,6 @@ struct MintSelectionView: View {
         mintScrollView
     }
 
-    @ViewBuilder
-    private var discoveringView: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-                .scaleEffect(1.2)
-                .progressViewStyle(CircularProgressViewStyle(tint: .green))
-
-            Text("Discovering mints...")
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(Color.white.opacity(0.7))
-        }
-        .frame(maxHeight: 300)
-        .frame(maxWidth: .infinity)
-    }
 
     @ViewBuilder
     private var emptyStateView: some View {
@@ -1330,34 +1341,18 @@ struct MintSelectionView: View {
             VStack(spacing: 12) {
                 customMintSection
 
-                // Show discovery status if still loading and no mints yet
-                if isDiscoveringMints && discoveredMints.isEmpty {
-                    HStack(spacing: 12) {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                            .progressViewStyle(CircularProgressViewStyle(tint: .green))
-
-                        Text("Finding recommended mints...")
-                            .font(.system(size: 14))
-                            .foregroundColor(Color.white.opacity(0.6))
-
-                        Spacer()
-                    }
-                    .padding(16)
-                    .background(sectionBackground)
-                }
 
                 discoveredMintsSection
                 manuallyAddedMintsSection
 
                 // Show a hint if no mints discovered yet
-                if discoveredMints.isEmpty && !isDiscoveringMints {
+                if discoveredMints.isEmpty {
                     VStack(spacing: 12) {
-                        Text("No recommended mints found yet")
+                        Text("No recommended mints found")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(Color.white.opacity(0.5))
 
-                        Text("You can add custom mints above or wait for recommendations")
+                        Text("Add custom mints above")
                             .font(.system(size: 12))
                             .foregroundColor(Color.white.opacity(0.4))
                             .multilineTextAlignment(.center)

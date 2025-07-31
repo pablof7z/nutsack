@@ -10,6 +10,7 @@ import AppKit
 struct MintView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(WalletManager.self) private var walletManager
+    @EnvironmentObject private var appState: AppState
 
     @State private var amount = ""
     @State private var selectedMintURL: String = ""
@@ -334,6 +335,32 @@ struct MintView: View {
         depositTask = Task {
             do {
                 guard let wallet = walletManager.wallet else { return }
+                
+                #if DEBUG
+                // Check if we should simulate mint failure
+                if appState.debugSimulateMintFailure {
+                    // Wait a bit to simulate the payment being confirmed
+                    try await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+                    
+                    // Create a fake pending operation
+                    let pendingOp = PendingMintOperation(
+                        quoteId: quote.quoteId,
+                        mintURL: quote.mintURL,
+                        amount: quote.amount,
+                        invoice: quote.invoice,
+                        paymentProof: "debug_payment_proof_\(UUID().uuidString)",
+                        createdAt: Date(),
+                        lastAttemptAt: Date()
+                    )
+                    
+                    // Throw the mint failure error
+                    throw DepositMintError.requiresUserIntervention(
+                        pendingOperation: pendingOp,
+                        invoice: quote.invoice
+                    )
+                }
+                #endif
+                
                 let depositSequence = await wallet.monitorDeposit(
                     quote: quote,
                     manualCheckTrigger: triggerStream
@@ -374,8 +401,13 @@ struct MintView: View {
                 }
             } catch {
                 await MainActor.run {
+                    // Check if this is a mint failure error that needs user intervention
+                    walletManager.handleMintFailureError(error)
+                    
+                    // Still show the regular error
                     errorMessage = "Failed to monitor deposit: \(error.localizedDescription)"
                     showError = true
+                    showInvoice = false
                 }
             }
         }

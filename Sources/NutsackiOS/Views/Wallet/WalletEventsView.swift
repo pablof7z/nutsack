@@ -3,7 +3,7 @@ import NDKSwift
 import CashuSwift
 
 struct WalletEventsView: View {
-    @Environment(NostrManager.self) private var nostrManager
+    @EnvironmentObject private var nostrManager: NostrManager
     @Environment(WalletManager.self) private var walletManager
 
     @State private var walletEvents: [WalletEventInfo] = []

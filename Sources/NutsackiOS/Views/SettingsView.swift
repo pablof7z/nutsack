@@ -3,7 +3,7 @@ import NDKSwift
 
 struct SettingsView: View {
     @EnvironmentObject private var appState: AppState
-    @Environment(NostrManager.self) private var nostrManager
+    @EnvironmentObject private var nostrManager: NostrManager
     @Environment(WalletManager.self) private var walletManager
 
     @State private var currentUser: NDKUser?
@@ -15,20 +15,13 @@ struct SettingsView: View {
                 // Account section
                 Section {
                     if let currentUser = currentUser {
-                        NavigationLink(destination: AccountDetailView(user: currentUser, profile: nostrManager.currentUserProfile)) {
+                        NavigationLink(destination: AccountDetailView(user: currentUser, metadata: nil)) {
                             HStack {
-                                // Profile picture placeholder
-                                Circle()
-                                    .fill(Color.secondary.opacity(0.3))
-                                    .overlay(
-                                        Text((nostrManager.currentUserProfile?.displayName ?? nostrManager.currentUserProfile?.name ?? "User").prefix(1).uppercased())
-                                            .font(.headline)
-                                            .foregroundColor(.white)
-                                    )
-                                    .frame(width: 50, height: 50)
+                                // Profile picture
+                                UserProfilePicture(user: currentUser, size: 50)
 
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(nostrManager.currentUserProfile?.displayName ?? nostrManager.currentUserProfile?.name ?? "Nostr User")
+                                    UserDisplayName(user: currentUser)
                                         .font(.headline)
 
                                     HStack(spacing: 4) {
@@ -149,10 +142,14 @@ struct SettingsView: View {
                     NavigationLink(destination: DebugView()) {
                         Label("Debug", systemImage: "ladybug")
                     }
+                    
+                    Toggle(isOn: $appState.debugSimulateMintFailure) {
+                        Label("Simulate Mint Failures", systemImage: "exclamationmark.triangle")
+                    }
                 } header: {
                     Text("Debug")
                 } footer: {
-                    Text("Debug tools and cache statistics")
+                    Text("When enabled, mint operations will fail after payment to test error handling")
                 }
                 #endif
 
@@ -176,14 +173,7 @@ struct SettingsView: View {
                     .background(Color(UIColor.systemGroupedBackground))
             }
             .task {
-                guard let ndk = nostrManager.ndk,
-                      let signer = ndk.signer else { return }
-                do {
-                    let pubkey = try await signer.pubkey
-                    currentUser = NDKUser(pubkey: pubkey)
-                } catch {
-                    print("Failed to get current user: \(error)")
-                }
+                await loadUserData()
             }
         }
     }
@@ -205,13 +195,27 @@ struct SettingsView: View {
             }
         }
     }
+    
+    private func loadUserData() async {
+        let ndk = nostrManager.ndk
+        guard let signer = ndk.signer else { return }
+        
+        do {
+            let pubkey = try await signer.pubkey
+            currentUser = NDKUser(pubkey: pubkey)
+        } catch {
+            print("Failed to get current user: \(error)")
+        }
+    }
 
     private func logout() {
         // Clear wallet data and cancel subscriptions
         walletManager.clearWalletData()
 
         // Clear authentication data
-        nostrManager.logout()
+        Task {
+            await nostrManager.logout()
+        }
 
     }
 }
@@ -219,12 +223,13 @@ struct SettingsView: View {
 // MARK: - Account Detail View
 struct AccountDetailView: View {
     let user: NDKUser
-    let profile: NDKUserProfile?
-    @Environment(NostrManager.self) private var nostrManager
+    let metadata: NDKUserMetadata?
+    @EnvironmentObject private var nostrManager: NostrManager
     @State private var showPrivateKey = false
     @State private var copiedKey = false
     @State private var copiedNpub = false
     @State private var nsecKey: String?
+    @State private var userMetadata: NDKUserMetadata?
 
     var npub: String {
         user.npub
@@ -233,16 +238,16 @@ struct AccountDetailView: View {
     var body: some View {
         List {
             Section {
-                LabeledContent("Display Name", value: profile?.displayName ?? profile?.name ?? "Nostr User")
+                LabeledContent("Display Name", value: displayName)
 
-                if let about = profile?.about {
+                if let about = userMetadata?.about ?? metadata?.about {
                     LabeledContent("About") {
                         Text(about)
                             .font(.caption)
                     }
                 }
 
-                if let nip05 = profile?.nip05 {
+                if let nip05 = userMetadata?.nip05 ?? metadata?.nip05 {
                     LabeledContent("NIP-05", value: nip05)
                 }
             } header: {
@@ -316,11 +321,14 @@ struct AccountDetailView: View {
         #endif
         .onAppear {
             loadPrivateKey()
+            Task {
+                await loadUserMetadata()
+            }
         }
     }
 
     private func loadPrivateKey() {
-        guard let signer = NDKAuthManager.shared.activeSigner as? NDKPrivateKeySigner else {
+        guard let signer = nostrManager.ndk.signer as? NDKPrivateKeySigner else {
             nsecKey = nil
             return
         }
@@ -380,6 +388,21 @@ struct AccountDetailView: View {
             withAnimation {
                 copiedKey = false
             }
+        }
+    }
+    
+    private var displayName: String {
+        userMetadata?.displayName ?? userMetadata?.name ?? metadata?.displayName ?? metadata?.name ?? "Nostr User"
+    }
+    
+    private func loadUserMetadata() async {
+        guard let profileManager = nostrManager.profileManager else { return }
+        
+        for await metadata in profileManager.subscribe(for: user.pubkey, maxAge: 3600) {
+            await MainActor.run {
+                userMetadata = metadata
+            }
+            break // We only need the first result
         }
     }
 }
@@ -450,7 +473,7 @@ struct AboutView: View {
 
 // MARK: - Unpublished Events Badge
 struct UnpublishedEventsBadge: View {
-    @Environment(NostrManager.self) private var nostrManager
+    @EnvironmentObject private var nostrManager: NostrManager
     @State private var unpublishedCount = 0
     @State private var timer: Timer?
 
@@ -495,7 +518,7 @@ struct UnpublishedEventsBadge: View {
 
 // MARK: - Unpublished Events View
 struct UnpublishedEventsView: View {
-    @Environment(NostrManager.self) private var nostrManager
+    @EnvironmentObject private var nostrManager: NostrManager
     @State private var unpublishedEvents: [(event: NDKEvent, targetRelays: Set<String>)] = []
     @State private var isLoading = true
     @State private var isRetrying = false
@@ -633,7 +656,7 @@ struct UnpublishedEventsView: View {
     }
 
     private func retryAllEvents() {
-        guard let ndk = nostrManager.ndk else { return }
+        let ndk = nostrManager.ndk
 
         isRetrying = true
 
@@ -659,7 +682,8 @@ struct UnpublishedEventsView: View {
     }
 
     private func retryEvent(at index: Int) {
-        guard let ndk = nostrManager.ndk, index < unpublishedEvents.count else { return }
+        let ndk = nostrManager.ndk
+        guard index < unpublishedEvents.count else { return }
 
         let eventInfo = unpublishedEvents[index]
 
@@ -792,7 +816,7 @@ struct UnpublishedEventRow: View {
 // MARK: - Debug View
 #if DEBUG
 struct DebugView: View {
-    @Environment(NostrManager.self) private var nostrManager
+    @EnvironmentObject private var nostrManager: NostrManager
     @State private var cacheStats: CacheStatistics?
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -905,7 +929,21 @@ struct DebugView: View {
         }
 
         do {
-            let stats = try await cache.getStatistics()
+            // Query all events to get statistics
+            let filter = NDKFilter() // Empty filter to get all events
+            let allEvents = try await cache.queryEvents(filter)
+            
+            // Group events by kind
+            var eventsByKind: [Int: Int] = [:]
+            for event in allEvents {
+                eventsByKind[event.kind, default: 0] += 1
+            }
+            
+            let stats = CacheStatistics(
+                totalEvents: allEvents.count,
+                eventsByKind: eventsByKind
+            )
+            
             await MainActor.run {
                 cacheStats = stats
                 lastUpdateTime = Date()
@@ -922,7 +960,7 @@ struct DebugView: View {
 
 // MARK: - Cache Statistics View
 struct CacheStatsView: View {
-    @Environment(NostrManager.self) private var nostrManager
+    @EnvironmentObject private var nostrManager: NostrManager
     @State private var cacheStats: CacheStatistics?
     @State private var isLoading = true
     @State private var errorMessage: String?
@@ -1028,7 +1066,21 @@ struct CacheStatsView: View {
         }
 
         do {
-            let stats = try await cache.getStatistics()
+            // Query all events to get statistics
+            let filter = NDKFilter() // Empty filter to get all events
+            let allEvents = try await cache.queryEvents(filter)
+            
+            // Group events by kind
+            var eventsByKind: [Int: Int] = [:]
+            for event in allEvents {
+                eventsByKind[event.kind, default: 0] += 1
+            }
+            
+            let stats = CacheStatistics(
+                totalEvents: allEvents.count,
+                eventsByKind: eventsByKind
+            )
+            
             await MainActor.run {
                 cacheStats = stats
                 isLoading = false

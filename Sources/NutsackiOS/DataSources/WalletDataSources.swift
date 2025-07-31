@@ -9,151 +9,151 @@ import Combine
 @MainActor
 public class MintDiscoveryDataSource: ObservableObject {
     @Published public private(set) var discoveredMints: [DiscoveredMint] = []
-    @Published public private(set) var isLoading = false
-    @Published public private(set) var error: Error?
-
-    private let announcementDataSource: NDKDataSource<NDKEvent>
-    private let recommendationDataSource: NDKDataSource<NDKEvent>
-    private var cancellables = Set<AnyCancellable>()
-
+    
+    private let ndk: NDK
+    private let followedPubkeys: [String]
+    private var streamTask: Task<Void, Never>?
+    private var mintMap: [String: DiscoveredMint] = [:]
+    
     public init(ndk: NDK, followedPubkeys: [String] = []) {
-        // Mint announcements (kind: 38172)
-        self.announcementDataSource = ndk.observe(
-            filter: NDKFilter(kinds: [EventKind.cashuMintAnnouncement]),
-            maxAge: 0,  // Real-time updates
-            cachePolicy: .cacheWithNetwork
-        )
-
-        // Mint recommendations (kind: 38000)
-        self.recommendationDataSource = ndk.observe(
-            filter: NDKFilter(
-                authors: followedPubkeys.isEmpty ? nil : followedPubkeys,
-                kinds: [EventKind.mintAnnouncement],
-                tags: ["k": Set([String(EventKind.mintAnnouncement)])]
-            ),
-            maxAge: 0,  // Real-time updates
-            cachePolicy: .cacheWithNetwork
-        )
-
-        Task {
-            await startObserving()
-        }
+        self.ndk = ndk
+        self.followedPubkeys = followedPubkeys
     }
-
-    private func startObserving() async {
-        // Combine announcements and recommendations
-        Publishers.CombineLatest(
-            announcementDataSource.$data,
-            recommendationDataSource.$data
-        )
-        .map { [weak self] announcements, recommendations in
-            self?.processMintsFromEvents(
-                announcements: announcements,
-                recommendations: recommendations
-            ) ?? []
-        }
-        .sink { [weak self] discoveredMints in
-            self?.discoveredMints = discoveredMints
-        }
-        .store(in: &cancellables)
-
-        // Combine loading states
-        Publishers.CombineLatest(
-            announcementDataSource.$isLoading,
-            recommendationDataSource.$isLoading
-        )
-        .map { $0 || $1 }
-        .sink { [weak self] isLoading in
-            self?.isLoading = isLoading
-        }
-        .store(in: &cancellables)
-    }
-
-    private func processMintsFromEvents(
-        announcements: [NDKEvent],
-        recommendations: [NDKEvent]
-    ) -> [DiscoveredMint] {
-        var mintMap: [String: DiscoveredMint] = [:]
-
-        // Process mint announcements
-        for event in announcements {
-            guard let mintUrl = event.tags.first(where: { $0.first == "u" })?.dropFirst().first else {
-                continue
-            }
-
-            // Parse the content as JSON according to NIP-87
-            var mintName = ""
-            var mintDescription: String?
-            var mintIconURL: String?
-            var mintWebsite: String?
-            var mintContact: String?
-
-            if !event.content.isEmpty,
-               let contentData = event.content.data(using: .utf8),
-               let json = try? JSONSerialization.jsonObject(with: contentData) as? [String: Any] {
-                // Extract metadata from JSON content
-                mintName = json["name"] as? String ?? ""
-                mintDescription = json["description"] as? String
-                mintIconURL = json["picture"] as? String ?? json["icon"] as? String
-                mintWebsite = json["website"] as? String
-                mintContact = json["contact"] as? String ?? json["email"] as? String
-            }
-
-            // Fallback to mint URL if no name provided
-            if mintName.isEmpty {
-                if let url = URL(string: mintUrl), let host = url.host {
-                    mintName = host
-                } else {
-                    mintName = "Unknown Mint"
+    
+    public func startStreaming() {
+        // Cancel any existing task
+        streamTask?.cancel()
+        
+        streamTask = Task { @MainActor in
+            // Stream mint announcements
+            let announcementTask = Task {
+                let announcementDataSource = ndk.subscribe(
+                    filter: NDKFilter(kinds: [EventKind.cashuMintAnnouncement]),
+                    maxAge: 300,  // 5 minute cache for discovered mints
+                    cachePolicy: .cacheWithNetwork
+                )
+                
+                for await event in announcementDataSource.events {
+                    if Task.isCancelled { break }
+                    await processMintAnnouncement(event)
                 }
             }
-
-            let mint = DiscoveredMint(
-                url: mintUrl,
-                name: mintName,
-                announcedBy: event.pubkey,
-                announcementId: event.id,
-                announcementCreatedAt: event.createdAt,
-                recommendedBy: [],
-                description: mintDescription,
-                pubkey: event.tags.first(where: { $0.first == "p" })?.dropFirst().first,
-                metadata: MintMetadata(
-                    name: mintName,
-                    description: mintDescription,
-                    iconURL: mintIconURL,
-                    website: mintWebsite,
-                    contact: mintContact
+            
+            // Stream mint recommendations
+            let recommendationTask = Task {
+                let recommendationDataSource = ndk.subscribe(
+                    filter: NDKFilter(
+                        authors: followedPubkeys.isEmpty ? nil : followedPubkeys,
+                        kinds: [EventKind.mintAnnouncement],
+                        tags: ["k": Set([String(EventKind.mintAnnouncement)])]
+                    ),
+                    maxAge: 300,  // 5 minute cache
+                    cachePolicy: .cacheWithNetwork
                 )
-            )
+                
+                for await event in recommendationDataSource.events {
+                    if Task.isCancelled { break }
+                    await processMintRecommendation(event)
+                }
+            }
+            
+            // Keep streaming until cancelled
+            await announcementTask.value
+            await recommendationTask.value
+        }
+    }
+    
+    public func stopStreaming() {
+        streamTask?.cancel()
+        streamTask = nil
+    }
 
-            mintMap[mintUrl] = mint
+    @MainActor
+    private func processMintAnnouncement(_ event: NDKEvent) {
+        guard let mintUrl = event.tags.first(where: { $0.first == "u" })?.dropFirst().first else {
+            return
         }
 
-        // Process mint recommendations
-        for event in recommendations {
-            guard let mintUrl = event.tags.first(where: { $0.first == "u" })?.dropFirst().first else {
-                continue
-            }
+        // Parse the content as JSON according to NIP-87
+        var mintName = ""
+        var mintDescription: String?
+        var mintIconURL: String?
+        var mintWebsite: String?
+        var mintContact: String?
 
-            if var existingMint = mintMap[mintUrl] {
+        if !event.content.isEmpty,
+           let contentData = event.content.data(using: .utf8),
+           let json = try? JSONSerialization.jsonObject(with: contentData) as? [String: Any] {
+            // Extract metadata from JSON content
+            mintName = json["name"] as? String ?? ""
+            mintDescription = json["description"] as? String
+            mintIconURL = json["picture"] as? String ?? json["icon"] as? String
+            mintWebsite = json["website"] as? String
+            mintContact = json["contact"] as? String ?? json["email"] as? String
+        }
+
+        // Fallback to mint URL if no name provided
+        if mintName.isEmpty {
+            if let url = URL(string: mintUrl), let host = url.host {
+                mintName = host
+            } else {
+                mintName = "Unknown Mint"
+            }
+        }
+
+        let mint = DiscoveredMint(
+            url: mintUrl,
+            name: mintName,
+            announcedBy: event.pubkey,
+            announcementId: event.id,
+            announcementCreatedAt: event.createdAt,
+            recommendedBy: mintMap[mintUrl]?.recommendedBy ?? [],
+            description: mintDescription,
+            pubkey: event.tags.first(where: { $0.first == "p" })?.dropFirst().first,
+            metadata: MintMetadata(
+                name: mintName,
+                description: mintDescription,
+                iconURL: mintIconURL,
+                website: mintWebsite,
+                contact: mintContact
+            )
+        )
+
+        mintMap[mintUrl] = mint
+        updateDiscoveredMints()
+    }
+    
+    @MainActor
+    private func processMintRecommendation(_ event: NDKEvent) {
+        guard let mintUrl = event.tags.first(where: { $0.first == "u" })?.dropFirst().first else {
+            return
+        }
+
+        if var existingMint = mintMap[mintUrl] {
+            if !existingMint.recommendedBy.contains(event.pubkey) {
                 existingMint.recommendedBy.append(event.pubkey)
                 mintMap[mintUrl] = existingMint
-            } else {
-                let mint = DiscoveredMint(
-                    url: mintUrl,
-                    name: event.content,
-                    announcedBy: nil,
-                    announcementId: nil,
-                    announcementCreatedAt: nil,
-                    recommendedBy: [event.pubkey],
-                    description: nil,
-                    pubkey: nil
-                )
-                mintMap[mintUrl] = mint
             }
+        } else {
+            let mint = DiscoveredMint(
+                url: mintUrl,
+                name: event.content.isEmpty ? "Unknown Mint" : event.content,
+                announcedBy: nil,
+                announcementId: nil,
+                announcementCreatedAt: nil,
+                recommendedBy: [event.pubkey],
+                description: nil,
+                pubkey: nil
+            )
+            mintMap[mintUrl] = mint
         }
-
-        return Array(mintMap.values).sorted { mint1, mint2 in
+        
+        updateDiscoveredMints()
+    }
+    
+    @MainActor
+    private func updateDiscoveredMints() {
+        discoveredMints = Array(mintMap.values).sorted { mint1, mint2 in
             // Sort by recommendation count first
             if mint1.recommendedBy.count != mint2.recommendedBy.count {
                 return mint1.recommendedBy.count > mint2.recommendedBy.count
@@ -163,7 +163,7 @@ public class MintDiscoveryDataSource: ObservableObject {
                let date2 = mint2.announcementCreatedAt {
                 return date1 > date2
             }
-            return false
+            return mint1.name < mint2.name
         }
     }
 }

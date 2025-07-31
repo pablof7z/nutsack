@@ -9,34 +9,28 @@ class WalletManager {
     var wallet: NIP60Wallet?
     var isLoading = false
     var error: Error?
-    /// Get current balance directly from the wallet
-    var currentBalance: Int64 {
-        get async {
-            guard let wallet = wallet else { return 0 }
-            return (try? await wallet.getBalance()) ?? 0
-        }
-    }
-
-    /// Get transactions directly from the wallet's transaction history
-    var transactions: [Transaction] {
-        get async {
-            guard let wallet = wallet else { return [] }
-            let walletTransactions = await wallet.getRecentTransactions(limit: 50)
-            return walletTransactions.map { $0.toTransaction() }
-        }
-    }
-
-    /// Indicates if the wallet is properly configured with at least one mint
-    var isWalletConfigured: Bool {
-        get async {
-            guard let wallet = wallet else { return false }
-            let mints = await wallet.mints.getMintURLs()
-            return !mints.isEmpty
-        }
-    }
+    
+    /// Current balance that updates in real-time from wallet events
+    private(set) var currentBalance: Int64 = 0
+    
+    /// Task for observing wallet events
+    private var walletEventsTask: Task<Void, Never>?
+    
+    /// Recent transactions that update in real-time
+    private(set) var transactions: [Transaction] = []
+    
+    /// Whether wallet is properly configured with mints
+    private(set) var isWalletConfigured: Bool = false
+    
+    /// Total pending amount (negative for outgoing, positive for incoming)
+    private(set) var pendingAmount: Int64 = 0
 
     // Guard against duplicate initialization
     private var isInitializingWallet = false
+    
+    // Mint failure handling
+    var pendingMintFailure: PendingMintOperation?
+    var showMintFailureAlert = false
 
     private let nostrManager: NostrManager
     private let appState: AppState
@@ -45,13 +39,19 @@ class WalletManager {
         self.nostrManager = nostrManager
         self.appState = appState
     }
+    
+    // Clean up in a method that can be called when needed
+    func cleanup() {
+        walletEventsTask?.cancel()
+        walletEventsTask = nil
+    }
 
     // MARK: - Wallet Operations
 
     /// Load wallet for currently authenticated user
     func loadWalletForCurrentUser() async throws {
         print("📖 WalletManager.loadWalletForCurrentUser() called")
-        guard NDKAuthManager.shared.hasActiveSession else {
+        guard nostrManager.isAuthenticated else {
             print("📖 Not authenticated, throwing error")
             throw WalletError.notAuthenticated
         }
@@ -68,10 +68,7 @@ class WalletManager {
             return
         }
 
-        guard let ndk = nostrManager.ndk else {
-            print("📘 NDK not initialized")
-            throw WalletError.ndkNotInitialized
-        }
+        let ndk = nostrManager.ndk
 
         // Wait for signer to be available before creating wallet
         guard let signer = ndk.signer else {
@@ -92,38 +89,48 @@ class WalletManager {
         // Set the wallet
         self.wallet = ndkWallet
         print("📘 Wallet set")
+        
+        // Start observing wallet events
+        startObservingWalletEvents()
 
-        // Register the wallet with the zap manager
-        if let zapManager = nostrManager.zapManager {
-            await zapManager.register(provider: ndkWallet)
-        }
+        // Register the wallet with the zap manager if available
+        // TODO: Add zap manager support
 
         // Load wallet - this will fetch initial config and subscribe to wallet events
         print("📘 Calling ndkWallet.load()")
         try await ndkWallet.load()
         print("📘 ndkWallet.load() completed")
 
-        // The wallet's load() method will emit a balanceChanged event
-        // Balance is now accessed directly from the wallet via computed property
-        print("📘 Wallet loaded, balance will be fetched on demand")
+        // Get initial balance
+        if let balance = try? await ndkWallet.getBalance() {
+            self.currentBalance = balance
+            print("💰 WalletManager: Initial balance: \(balance) sats")
+        }
+        
+        // Get initial transactions
+        await updateTransactions()
+        print("📝 WalletManager: Loaded \(transactions.count) transactions, pending amount: \(pendingAmount) sats")
+        
+        print("📘 Wallet loaded with balance tracking")
 
         // Check if wallet has mints configured
         let fetchedMintURLs = await ndkWallet.mints.getMintURLs()
+        self.isWalletConfigured = !fetchedMintURLs.isEmpty
         print("📘 Current mint URLs: \(fetchedMintURLs)")
         if fetchedMintURLs.isEmpty {
             print("⚠️ WalletManager - No mints configured. User needs to add mints in wallet settings.")
+            print("⚠️ WalletManager - Wallet exists but is not usable without mints")
         } else {
             print("✅ WalletManager - Wallet loaded with \(fetchedMintURLs.count) mints")
+            // Log balance for debugging
+            let balance = try? await ndkWallet.getBalance() ?? 0
+            print("💰 WalletManager - Current balance: \(balance ?? 0) sats")
         }
     }
 
     /// Load wallet from NIP-60 events
     func loadWallet() async throws {
         print("📗 WalletManager.loadWallet() called")
-        guard nostrManager.ndk != nil else {
-            print("📗 NDK not initialized, throwing error")
-            throw WalletError.ndkNotInitialized
-        }
 
         isLoading = true
         defer { isLoading = false }
@@ -147,8 +154,8 @@ class WalletManager {
     /// Get relays for wallet configuration
     private func getRelaysForWallet() async -> [String] {
         print("🌐 getRelaysForWallet called")
-        guard let ndk = nostrManager.ndk,
-              let signer = ndk.signer,
+        let ndk = nostrManager.ndk
+        guard let signer = ndk.signer,
               let userPubkey = try? await signer.pubkey else {
             print("🌐 getRelaysForWallet - returning default relays (guard failed)")
             // Return default relays if we can't get user's relays
@@ -311,9 +318,9 @@ class WalletManager {
 
             // Create history event for sending ecash
             do {
-                guard let ndk = nostrManager.ndk,
-                      let signer = ndk.signer else {
-                    print("Failed to create history event: NDK or signer not available")
+                let ndk = nostrManager.ndk
+                guard let signer = ndk.signer else {
+                    print("Failed to create history event: signer not available")
                     return tokenString
                 }
 
@@ -321,7 +328,8 @@ class WalletManager {
                     direction: .out,
                     amount: amount,
                     memo: memo ?? "Sent ecash",
-                    signer: signer
+                    signer: signer,
+                    relays: wallet.resolvedWalletRelays
                 )
             } catch {
                 print("Failed to create history event for send: \(error)")
@@ -398,9 +406,9 @@ class WalletManager {
             // Create history event for receiving ecash
             if totalReceived > 0 {
                 do {
-                    guard let ndk = nostrManager.ndk,
-                          let signer = ndk.signer else {
-                        print("Failed to create history event: NDK or signer not available")
+                    let ndk = nostrManager.ndk
+                    guard let signer = ndk.signer else {
+                        print("Failed to create history event: signer not available")
                         return totalReceived
                     }
 
@@ -408,7 +416,8 @@ class WalletManager {
                         direction: .in,
                         amount: totalReceived,
                         memo: token.memo ?? "Received ecash",
-                        signer: signer
+                        signer: signer,
+                        relays: wallet.resolvedWalletRelays
                     )
                 } catch {
                     print("Failed to create history event for receive: \(error)")
@@ -547,11 +556,17 @@ class WalletManager {
             throw WalletError.noActiveWallet
         }
 
-        return try await wallet.transferBetweenMints(
-            amount: amount,
-            fromMint: fromMint,
-            toMint: toMint
-        )
+        do {
+            return try await wallet.transferBetweenMints(
+                amount: amount,
+                fromMint: fromMint,
+                toMint: toMint
+            )
+        } catch {
+            // Check if this is a mint failure error that needs user intervention
+            handleMintFailureError(error)
+            throw error
+        }
     }
 
     /// Estimate transfer fees
@@ -589,9 +604,9 @@ class WalletManager {
 
     /// Fetch all wallet events (kind 7375) and their deletion status
     func fetchAllWalletEvents() async throws -> [WalletEventInfo] {
-        guard let ndk = nostrManager.ndk,
-              let signer = ndk.signer else {
-            throw WalletError.ndkNotInitialized
+        let ndk = nostrManager.ndk
+        guard let signer = ndk.signer else {
+            throw WalletError.signerNotAvailable
         }
 
         let userPubkey = try await signer.pubkey
@@ -610,8 +625,8 @@ class WalletManager {
         )
 
         // Fetch events from cache or relays using data sources
-        let tokenDataSource = ndk.observe(filter: tokenFilter, maxAge: 3600)
-        let deletionDataSource = ndk.observe(filter: deletionFilter, maxAge: 3600)
+        let tokenDataSource = ndk.subscribe(filter: tokenFilter, maxAge: 3600)
+        let deletionDataSource = ndk.subscribe(filter: deletionFilter, maxAge: 3600)
 
         // Collect events
         var tokenEvents: [NDKEvent] = []
@@ -782,29 +797,163 @@ class WalletManager {
 
     // wallet property already exposed at the top
 
-    // MARK: - Pending Transactions
-
-    /// Calculate total pending amount (outgoing is negative, incoming is positive)
-    var pendingAmount: Int64 {
-        get async {
-            guard let wallet = wallet else { return 0 }
-            let walletTransactions = await wallet.getRecentTransactions(limit: 50)
-            return walletTransactions
-                .filter { $0.status == .pending || $0.status == .processing }
-                .reduce(0) { sum, transaction in
-                    switch transaction.direction {
-                    case .incoming:
-                        return sum + transaction.amount
-                    case .outgoing:
-                        return sum - transaction.amount
-                    case .neutral:
-                        return sum
-                    }
-                }
-        }
-    }
 
     // MARK: - Private Methods
+    
+    /// Start observing wallet events for real-time updates
+    private func startObservingWalletEvents() {
+        // Cancel any existing observation
+        walletEventsTask?.cancel()
+        
+        guard let wallet = wallet else { return }
+        
+        walletEventsTask = Task {
+            print("👀 WalletManager: Starting wallet event observation")
+            
+            for await event in await wallet.events {
+                if Task.isCancelled { break }
+                
+                switch event.type {
+                case .balanceChanged(let newBalance):
+                    print("💰 WalletManager: Balance changed to \(newBalance) sats")
+                    self.currentBalance = newBalance
+                    
+                case .mintsAdded(let mints):
+                    print("🏦 WalletManager: Mints added: \(mints)")
+                    // Update wallet configuration status
+                    let allMints = await wallet.mints.getMintURLs()
+                    self.isWalletConfigured = !allMints.isEmpty
+                    
+                    // Balance might change when new mints are added
+                    if let balance = try? await wallet.getBalance() {
+                        self.currentBalance = balance
+                    }
+                    
+                case .mintsRemoved(let mints):
+                    print("🏦 WalletManager: Mints removed: \(mints)")
+                    // Update wallet configuration status
+                    let allMints = await wallet.mints.getMintURLs()
+                    self.isWalletConfigured = !allMints.isEmpty
+                    
+                    // Balance might change when mints are removed
+                    if let balance = try? await wallet.getBalance() {
+                        self.currentBalance = balance
+                    }
+                    
+                case .transactionAdded(let transaction):
+                    print("📝 WalletManager: Transaction added")
+                    // Refresh transactions list
+                    await updateTransactions()
+                    
+                case .transactionUpdated(let transaction):
+                    print("📝 WalletManager: Transaction updated")
+                    // Refresh transactions list
+                    await updateTransactions()
+                    
+                case .configurationUpdated(let mints):
+                    print("⚙️ WalletManager: Configuration updated with \(mints.count) mints")
+                    self.isWalletConfigured = !mints.isEmpty
+                    
+                default:
+                    // Ignore other events for now
+                    break
+                }
+            }
+            
+            print("👀 WalletManager: Stopped observing wallet events")
+        }
+    }
+    
+    /// Stop observing wallet events
+    private func stopObservingWalletEvents() {
+        walletEventsTask?.cancel()
+        walletEventsTask = nil
+    }
+    
+    /// Update transactions and pending amount from wallet
+    private func updateTransactions() async {
+        guard let wallet = wallet else { return }
+        
+        let walletTransactions = await wallet.getRecentTransactions(limit: 50)
+        self.transactions = walletTransactions.map { $0.toTransaction() }
+        
+        // Calculate pending amount
+        self.pendingAmount = walletTransactions
+            .filter { $0.status == .pending || $0.status == .processing }
+            .reduce(0) { sum, transaction in
+                switch transaction.direction {
+                case .incoming:
+                    return sum + transaction.amount
+                case .outgoing:
+                    return sum - transaction.amount
+                case .neutral:
+                    return sum
+                }
+            }
+    }
+    
+    // MARK: - Mint Failure Handling
+    
+    /// Handle mint failure errors from payment operations
+    func handleMintFailureError(_ error: Error) {
+        // Check if this is a mint failure that requires user intervention
+        if case MintFailureError.requiresUserIntervention(let operation, _, _, _, _) = error {
+            self.pendingMintFailure = operation
+            self.showMintFailureAlert = true
+        } else if case DepositMintError.requiresUserIntervention(let operation, _) = error {
+            self.pendingMintFailure = operation
+            self.showMintFailureAlert = true
+        }
+    }
+    
+    /// Retry the pending mint operation
+    func retryPendingMintOperation() async throws {
+        guard let wallet = wallet,
+              let operation = pendingMintFailure else {
+            throw WalletError.noActiveWallet
+        }
+        
+        // Get the mint
+        guard let mint = await wallet.mints.getMint(url: operation.mintURL) else {
+            throw WalletError.mintNotFound
+        }
+        
+        // Use the retry handler
+        let retryHandler = MintRetryHandler()
+        let proofs = try await retryHandler.retryPendingMint(operation, mint: mint)
+        
+        if !proofs.isEmpty {
+            print("✅ Successfully recovered \(proofs.count) proofs after user retry")
+            // Update wallet state with recovered proofs
+            for proof in proofs {
+                await wallet.proofStateManager.addProof(proof, mint: operation.mintURL)
+            }
+            
+            let stateChange = WalletStateChange(
+                store: proofs,
+                destroy: [],
+                mint: operation.mintURL,
+                memo: "Recovered tokens from failed mint"
+            )
+            _ = try await wallet.update(stateChange: stateChange)
+            
+            // Clear the pending failure
+            self.pendingMintFailure = nil
+        }
+    }
+    
+    /// Blacklist the mint from the pending operation
+    func blacklistPendingMint() async throws {
+        guard let wallet = wallet,
+              let operation = pendingMintFailure else {
+            throw WalletError.noActiveWallet
+        }
+        
+        try await wallet.blacklistMint(operation.mintURL)
+        
+        // Clear the pending failure
+        self.pendingMintFailure = nil
+    }
 }
 
 // MARK: - Errors

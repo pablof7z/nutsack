@@ -31,6 +31,11 @@ class AppState: ObservableObject {
     private static let lastRNackHashKey = "LastReleaseNotesAcknoledgedHash"
     private static let firstLaunchFlag = "HasLaunchedBefore"
     private static let blacklistedMintsKey = "BlacklistedMints"
+    
+    // Debug mode for testing
+    #if DEBUG
+    @Published var debugSimulateMintFailure = false
+    #endif
 
     struct ExchangeRateResponse: Decodable {
         let bitcoin: ExchangeRate

@@ -20,8 +20,6 @@ struct BalanceCard: View {
     @State private var isLoadingMints = false
     @State private var isExpanded = false
     @State private var pulseAnimation = false
-    @State private var currentBalance: Int64 = 0
-    @State private var pendingAmount: Int64 = 0
 
     private let mintColors: [Color] = [
         Color(red: 0.98, green: 0.54, blue: 0.13), // Orange
@@ -38,7 +36,7 @@ struct BalanceCard: View {
             // Balance display - centered
             VStack(spacing: 4) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(formatBalance(Int(currentBalance)))
+                    Text(formatBalance(Int(walletManager.currentBalance)))
                         .font(.system(size: isExpanded ? 48 : 56, weight: .semibold, design: .rounded))
                         .foregroundStyle(.primary)
 
@@ -49,8 +47,8 @@ struct BalanceCard: View {
                 .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isExpanded)
 
                 // Show pending amount if any
-                if pendingAmount != 0 {
-                    Text("\(pendingAmount > 0 ? "+" : "")\(abs(pendingAmount)) pending")
+                if walletManager.pendingAmount != 0 {
+                    Text("\(walletManager.pendingAmount > 0 ? "+" : "")\(abs(walletManager.pendingAmount)) pending")
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                         .foregroundStyle(.orange)
                         .opacity(0.8)
@@ -163,12 +161,11 @@ struct BalanceCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
-        .task(id: currentBalance) {
+        .task(id: walletManager.currentBalance) {
             await convert()
             await loadMintBalances()
         }
         .task {
-            await loadBalances()
             await convert()
             await loadMintBalances()
         }
@@ -229,7 +226,7 @@ struct BalanceCard: View {
         case .usd: bitcoinPrice = prices.usd
         case .eur: bitcoinPrice = prices.eur
         case .btc:
-            let btcAmount = Double(currentBalance) / 100_000_000.0
+            let btcAmount = Double(walletManager.currentBalance) / 100_000_000.0
             convertedBalance = String(format: "%.8f BTC", btcAmount)
             return
         case .sat:
@@ -238,7 +235,7 @@ struct BalanceCard: View {
             return
         }
 
-        let bitcoinAmount = Double(currentBalance) / 100_000_000.0
+        let bitcoinAmount = Double(walletManager.currentBalance) / 100_000_000.0
         let fiatValue = bitcoinAmount * Double(bitcoinPrice)
 
         let formatter = NumberFormatter()
@@ -246,7 +243,7 @@ struct BalanceCard: View {
         formatter.currencyCode = appState.preferredConversionUnit.rawValue.uppercased()
 
         convertedBalance = formatter.string(from: NSNumber(value: fiatValue)) ?? ""
-        print("✅ BalanceCard: Converted \(currentBalance) sats to \(convertedBalance) (\(appState.preferredConversionUnit.rawValue))")
+        print("✅ BalanceCard: Converted \(walletManager.currentBalance) sats to \(convertedBalance) (\(appState.preferredConversionUnit.rawValue))")
     }
 
     private func loadMintBalances() async {
@@ -276,11 +273,6 @@ struct BalanceCard: View {
         await MainActor.run {
             self.mintBalances = balances
         }
-    }
-
-    private func loadBalances() async {
-        self.currentBalance = await walletManager.currentBalance
-        self.pendingAmount = await walletManager.pendingAmount
     }
 }
 

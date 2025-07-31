@@ -7,7 +7,7 @@ import NDKSwiftUI
 
 struct UserDisplayName: View {
     let pubkey: String
-    @Environment(NostrManager.self) private var nostrManager
+    @EnvironmentObject private var nostrManager: NostrManager
 
     init(user: NDKUser) {
         self.pubkey = user.pubkey
@@ -18,15 +18,14 @@ struct UserDisplayName: View {
     }
 
     var body: some View {
-        NDKUIDisplayName(pubkey: pubkey)
-            .environment(\.ndk, nostrManager.ndk)
+        NDKUIDisplayName(ndk: nostrManager.ndk, pubkey: pubkey)
     }
 }
 
 struct UserProfilePicture: View {
     let pubkey: String
     let size: CGFloat
-    @Environment(NostrManager.self) private var nostrManager
+    @EnvironmentObject private var nostrManager: NostrManager
 
     init(user: NDKUser, size: CGFloat = 40) {
         self.pubkey = user.pubkey
@@ -39,15 +38,13 @@ struct UserProfilePicture: View {
     }
 
     var body: some View {
-        NDKUIProfilePicture(pubkey: pubkey)
-            .frame(width: size, height: size)
-            .environment(\.ndk, nostrManager.ndk)
+        NDKUIProfilePicture(ndk: nostrManager.ndk, pubkey: pubkey, size: size)
     }
 }
 
 struct UserNIP05: View {
     let pubkey: String
-    @Environment(NostrManager.self) private var nostrManager
+    @EnvironmentObject private var nostrManager: NostrManager
 
     init(user: NDKUser) {
         self.pubkey = user.pubkey
@@ -58,7 +55,6 @@ struct UserNIP05: View {
     }
 
     var body: some View {
-        NDKUIUsername(pubkey: pubkey)
-            .environment(\.ndk, nostrManager.ndk)
+        NDKUIUsername(ndk: nostrManager.ndk, pubkey: pubkey)
     }
 }

@@ -3,7 +3,7 @@ import NDKSwift
 
 struct NutzapSettingsView: View {
     @Environment(WalletManager.self) private var walletManager
-    @Environment(NostrManager.self) private var nostrManager
+    @EnvironmentObject private var nostrManager: NostrManager
 
     @State private var p2pkPubkey: String = ""
     @State private var showError = false

@@ -4,6 +4,7 @@ import NDKSwift
 struct SwapView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(WalletManager.self) private var walletManager
+    @EnvironmentObject private var appState: AppState
 
     @State private var sourceMint: MintBalance?
     @State private var destinationMint: MintBalance?
@@ -280,6 +281,34 @@ struct SwapView: View {
 
         Task {
             do {
+                #if DEBUG
+                // Check if we should simulate mint failure
+                if appState.debugSimulateMintFailure {
+                    // Wait a bit to simulate the payment being processed
+                    try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+                    
+                    // Create a fake pending operation
+                    let pendingOp = PendingMintOperation(
+                        quoteId: "debug_quote_\(UUID().uuidString)",
+                        mintURL: actualDestination.url.absoluteString,
+                        amount: actualTransferAmount,
+                        invoice: "lnbc\(actualTransferAmount)...",
+                        paymentProof: "debug_payment_proof_\(UUID().uuidString)",
+                        createdAt: Date(),
+                        lastAttemptAt: Date()
+                    )
+                    
+                    // Throw the mint failure error
+                    throw MintFailureError.requiresUserIntervention(
+                        pendingOperation: pendingOp,
+                        sourceMint: actualSource.url.absoluteString,
+                        destinationMint: actualDestination.url.absoluteString,
+                        amount: actualTransferAmount,
+                        paymentProof: "debug_payment_proof_\(UUID().uuidString)"
+                    )
+                }
+                #endif
+                
                 let result = try await walletManager.transferBetweenMints(
                     amount: actualTransferAmount,
                     fromMint: actualSource.url,
@@ -293,6 +322,10 @@ struct SwapView: View {
                 }
             } catch {
                 await MainActor.run {
+                    // Check if this is a mint failure error that needs user intervention
+                    walletManager.handleMintFailureError(error)
+                    
+                    // Still show the regular error
                     errorMessage = error.localizedDescription
                     showError = true
                     isSwapping = false

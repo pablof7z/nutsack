@@ -26,9 +26,9 @@ struct TokenConfirmationView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 20) {
                     // QR Code with copy button inside
-                    VStack(spacing: 0) {
+                    VStack(spacing: 16) {
                         ZStack {
                             RoundedRectangle(cornerRadius: 16)
                                 .fill(Color(.secondarySystemBackground))
@@ -52,18 +52,11 @@ struct TokenConfirmationView: View {
                                 }
 
                             if let token = token, !token.isEmpty {
-                                VStack {
+                                VStack(spacing: 20) {
                                     QRCodeView(content: token)
-                                        .padding(20)
-                                        .padding(.bottom, 44) // Space for copy button
-
-                                    Spacer()
-                                }
-
-                                // Copy button overlaid at bottom
-                                VStack {
-                                    Spacer()
-
+                                        .padding(24)
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                    
                                     Button(action: copyToken) {
                                         HStack(spacing: 8) {
                                             Image(systemName: copied ? "checkmark.circle.fill" : "doc.on.doc")
@@ -80,56 +73,52 @@ struct TokenConfirmationView: View {
                                         .clipShape(Capsule())
                                     }
                                     .buttonStyle(.plain)
-                                    .padding(.bottom, 20)
+                                    .padding(.bottom, 16)
                                 }
                             } else {
                                 // Loading state
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle())
                                     .scaleEffect(1.5)
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                             }
                         }
-                        .frame(width: 280, height: 280)
+                        .frame(width: 320, height: 400)
                     }
-                    .padding(.top, 8)
+                    .padding(.horizontal)
 
-                    // Checkmark on left, amount + mint on right
-                    HStack(alignment: .center, spacing: 16) {
+                    // Amount and checkmark
+                    HStack(alignment: .center, spacing: 12) {
                         // Success checkmark
                         if !isGenerating {
                             ZStack {
                                 Circle()
                                     .fill(Color.green.opacity(colorScheme == .dark ? 0.2 : 0.1))
-                                    .frame(width: 40, height: 40)
+                                    .frame(width: 32, height: 32)
 
                                 Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 24))
+                                    .font(.system(size: 20))
                                     .foregroundStyle(.green)
                             }
                         }
 
-                        // Amount and mint
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack(alignment: .lastTextBaseline, spacing: 6) {
-                                Text(formatAmount(amount))
-                                    .font(.system(size: 42, weight: .semibold, design: .rounded))
-                                Text("sats")
-                                    .font(.system(size: 20, weight: .regular, design: .rounded))
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            // Mint below amount
-                            if let mint = mintURL?.host {
-                                Label(mint, systemImage: "building.columns.fill")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary.opacity(0.8))
-                            }
+                        // Amount text
+                        HStack(alignment: .lastTextBaseline, spacing: 4) {
+                            Text(formatAmount(amount))
+                                .font(.system(size: 36, weight: .semibold, design: .rounded))
+                            Text("sats")
+                                .font(.system(size: 18, weight: .regular, design: .rounded))
+                                .foregroundStyle(.secondary)
                         }
-
-                        Spacer()
                     }
-                    .padding(.horizontal, 40)
-                    .padding(.top, 8)
+                    .padding(.horizontal)
+                    
+                    // Mint info below
+                    if let mint = mintURL?.host {
+                        Label(mint, systemImage: "building.columns.fill")
+                            .font(.caption)
+                            .foregroundStyle(.secondary.opacity(0.8))
+                    }
 
                     // Status text
                     if isGenerating {
@@ -158,7 +147,7 @@ struct TokenConfirmationView: View {
                         .controlSize(.large)
                         .tint(.orange)
                         .padding(.horizontal)
-                        .padding(.top, 24)
+                        .padding(.top, 8)
                     }
 
                     Spacer(minLength: 40)

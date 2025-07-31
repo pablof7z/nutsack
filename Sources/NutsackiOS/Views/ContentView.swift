@@ -3,7 +3,7 @@ import NDKSwift
 
 struct ContentView: View {
     @EnvironmentObject private var appState: AppState
-    @Environment(NostrManager.self) private var nostrManager
+    @EnvironmentObject private var nostrManager: NostrManager
     @Environment(WalletManager.self) private var walletManager
 
     @State private var urlState: URLState?
@@ -20,7 +20,7 @@ struct ContentView: View {
                 ProgressView("Initializing...")
                     .progressViewStyle(CircularProgressViewStyle())
                     .foregroundColor(.orange)
-            } else if NDKAuthManager.shared.hasActiveSession {
+            } else if nostrManager.isAuthenticated {
                 // Main app interface - shown when authenticated
                 WalletView(urlState: $urlState, showScanner: $showScanner)
             } else {
@@ -29,16 +29,32 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            print("🔍 [ContentView] onAppear")
+            print("\n=== 🏁 [ContentView] NAVIGATION STATE CHECK ===")
+            print("🔍 [ContentView] onAppear at \(Date())")
             print("🔍 [ContentView] NostrManager.isInitialized: \(nostrManager.isInitialized)")
-            print("🔍 [ContentView] NDKAuthManager.hasActiveSession: \(NDKAuthManager.shared.hasActiveSession)")
-            print("🔍 [ContentView] NostrManager has signer: \(nostrManager.ndk?.signer != nil)")
-            print("🔍 [ContentView] NostrManager.ndk: \(nostrManager.ndk != nil ? "exists" : "nil")")
+            print("🔍 [ContentView] NostrManager.isAuthenticated: \(nostrManager.isAuthenticated)")
+            print("🔍 [ContentView] NostrManager has signer: \(nostrManager.ndk.signer != nil)")
+            print("🔍 [ContentView] NostrManager.ndk: exists")
 
             Task {
-                let isConfigured = await walletManager.isWalletConfigured
+                let isConfigured = walletManager.isWalletConfigured
+                let wallet = walletManager.wallet
+                let mintUrls = await wallet?.mints.getMintURLs() ?? []
+                
                 print("🔍 [ContentView] WalletManager.isWalletConfigured: \(isConfigured)")
-                print("🔍 [ContentView] WalletManager.wallet: \(walletManager.wallet != nil ? "exists" : "nil")")
+                print("🔍 [ContentView] WalletManager.wallet: \(wallet != nil ? "exists" : "nil")")
+                print("🔍 [ContentView] Wallet mint count: \(mintUrls.count)")
+                print("🔍 [ContentView] Wallet mints: \(mintUrls)")
+                
+                // Decision logic
+                if !nostrManager.isInitialized {
+                    print("🚦 [ContentView] NAVIGATION DECISION: Show loading (NostrManager not initialized)")
+                } else if nostrManager.isAuthenticated {
+                    print("🚦 [ContentView] NAVIGATION DECISION: Show WalletView (authenticated)")
+                } else {
+                    print("🚦 [ContentView] NAVIGATION DECISION: Show SplashView (not authenticated)")
+                }
+                print("=== [ContentView] END NAVIGATION STATE CHECK ===\n")
             }
         }
         .ignoresSafeArea()

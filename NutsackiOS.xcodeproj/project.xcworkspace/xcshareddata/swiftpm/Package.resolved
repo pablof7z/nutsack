@@ -1,5 +1,4 @@
 {
-  "originHash" : "4bbea0d3b72726fa4bd0f2e2af7ec8b45cdc1d533cb0a1a8a6dfdc1e577aac17",
   "pins" : [
     {
       "identity" : "base58",
@@ -49,10 +48,10 @@
     {
       "identity" : "cashuswift",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/zeugmaster/CashuSwift.git",
+      "location" : "https://github.com/pablof7z/CashuSwift.git",
       "state" : {
         "branch" : "main",
-        "revision" : "d703a9b2035d1240e4476d3c37d2cd967f0c3d75"
+        "revision" : "0e1b39ba4cafa41a83a415c79dda27ee1f38e4c7"
       }
     },
     {
@@ -71,15 +70,6 @@
       "state" : {
         "revision" : "2cf6c756e1e5ef6901ebae16576a7e4e4b834622",
         "version" : "6.29.3"
-      }
-    },
-    {
-      "identity" : "ndkswift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/pablof7z/NDKSwift",
-      "state" : {
-        "branch" : "master",
-        "revision" : "f59641e523a8e4377a97ae37e47b9a7e302df3df"
       }
     },
     {
@@ -119,5 +109,5 @@
       }
     }
   ],
-  "version" : 3
+  "version" : 2
 }

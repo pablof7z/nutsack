@@ -77,7 +77,6 @@ struct WalletView: View {
                     // Action buttons
                     ActionButtonsView(navigationDestination: $navigationDestination, showScanner: $showScanner)
                         .padding()
-                }
             }
             .background(
                 RadialGradient(
@@ -124,37 +123,6 @@ struct WalletView: View {
                     .environmentObject(nostrManager)
                     .environment(walletManager)
             }
-            .sheet(isPresented: Binding(
-                get: { walletManager.showMintFailureAlert },
-                set: { walletManager.showMintFailureAlert = $0 }
-            )) {
-                if let operation = walletManager.pendingMintFailure {
-                    MintFailureAlert(
-                        operation: operation,
-                        onRetry: {
-                            Task {
-                                do {
-                                    try await walletManager.retryPendingMintOperation()
-                                } catch {
-                                    print("Failed to retry mint operation: \(error)")
-                                }
-                            }
-                        },
-                        onBlacklist: {
-                            Task {
-                                do {
-                                    try await walletManager.blacklistPendingMint()
-                                } catch {
-                                    print("Failed to blacklist mint: \(error)")
-                                }
-                            }
-                        },
-                        onCancel: {
-                            walletManager.pendingMintFailure = nil
-                        }
-                    )
-                }
-            }
             .navigationDestination(item: $navigationDestination) { destination in
                 switch destination {
                 case .mint:
@@ -184,7 +152,7 @@ struct WalletView: View {
                 print("🟢 [WalletView] onAppear called at \(Date())")
                 print("🟢 [WalletView] activeWallet exists: \(walletManager.wallet != nil)")
                 print("🟢 [WalletView] isAuthenticated: \(nostrManager.isAuthenticated)")
-                print("🟢 [WalletView] signer available: \(nostrManager.ndk.signer != nil)")
+                print("🟢 [WalletView] signer available: \(nostrManager.ndk?.signer != nil)")
                 loadWalletIfNeeded()
 
                 // Check wallet status for logging purposes
@@ -234,7 +202,7 @@ struct WalletView: View {
                 while nostrManager.isAuthenticated && walletManager.wallet == nil {
                     attempts += 1
                     print("🔵 WalletView - Task checking signer (attempt \(attempts))")
-                    if nostrManager.ndk.signer != nil {
+                    if nostrManager.ndk?.signer != nil {
                         print("🔵 WalletView - Task found signer, calling loadWalletIfNeeded")
                         loadWalletIfNeeded()
                         break
@@ -342,11 +310,11 @@ struct EmptyWalletView: View {
         .onAppear {
             print("\n=== 🚀 [EmptyWalletView] VIEW DISPLAYED ===")
             print("🔍 [EmptyWalletView] Detected authenticated user with no configured wallet")
-            print("🔍 [EmptyWalletView] NostrManager has signer: \(nostrManager.ndk.signer != nil)")
+            print("🔍 [EmptyWalletView] NostrManager has signer: \(nostrManager.ndk?.signer != nil)")
             print("🔍 [EmptyWalletView] NostrManager.isAuthenticated: \(nostrManager.isAuthenticated)")
 
             // If we have auth state but no signer, clear the lingering auth state
-            if nostrManager.ndk.signer == nil && nostrManager.isAuthenticated {
+            if nostrManager.ndk?.signer == nil && nostrManager.isAuthenticated {
                 print("🔍 [EmptyWalletView] DECISION: Clear lingering auth state (no signer found)")
                 Task {
                     await nostrManager.logout()
@@ -543,7 +511,7 @@ struct ContactsScrollView: View {
 
     @MainActor
     private func loadContacts() async {
-        let ndk = nostrManager.ndk
+        guard let ndk = nostrManager.ndk else { return }
 
         do {
             // Get user's contact list
@@ -556,7 +524,7 @@ struct ContactsScrollView: View {
             )
 
             // Use declarative data source to fetch contact list
-            let contactDataSource = ndk.subscribe(
+            let contactDataSource = ndk.observe(
                 filter: filter,
                 maxAge: 3600,
                 cachePolicy: .cacheWithNetwork
@@ -592,19 +560,19 @@ struct ContactsScrollView: View {
 struct ContactAvatarView: View {
     let user: NDKUser
     let onTap: () -> Void
-    @State private var metadata: NDKUserMetadata?
+    @State private var profile: NDKUserProfile?
     @State private var profileTask: Task<Void, Never>?
     @EnvironmentObject private var nostrManager: NostrManager
 
     var displayName: String {
-        metadata?.displayName ?? metadata?.name ?? String(user.pubkey.prefix(8))
+        profile?.displayName ?? profile?.name ?? String(user.pubkey.prefix(8))
     }
 
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 4) {
                 Group {
-                    if let imageUrl = metadata?.picture, let url = URL(string: imageUrl) {
+                    if let imageUrl = profile?.picture, let url = URL(string: imageUrl) {
                         AsyncImage(url: url) { image in
                             image
                                 .resizable()
@@ -646,15 +614,26 @@ struct ContactAvatarView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .task {
-            let ndk = nostrManager.ndk
+            guard let ndk = nostrManager.ndk else { return }
 
             profileTask = Task {
-                // Use profile manager to load metadata
-                for await metadata in await ndk.profileManager.subscribe(for: user.pubkey, maxAge: 3600) {
-                    await MainActor.run {
-                        self.metadata = metadata
+                // Use declarative data source for profile
+                let profileDataSource = ndk.observe(
+                    filter: NDKFilter(
+                        authors: [user.pubkey],
+                        kinds: [0]
+                    ),
+                    maxAge: 3600,
+                    cachePolicy: .cacheWithNetwork
+                )
+
+                for await event in profileDataSource.events {
+                    if let profile = JSONCoding.safeDecode(NDKUserProfile.self, from: event.content) {
+                        await MainActor.run {
+                            self.profile = profile
+                        }
+                        break
                     }
-                    break // Take first result
                 }
             }
         }

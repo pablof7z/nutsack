@@ -8,10 +8,10 @@ import UIKit
 struct TransactionDetailDrawer: View {
     let transaction: Transaction
     @Environment(\.dismiss) private var dismiss
-    @Environment(NostrManager.self) private var nostrManager
+    @EnvironmentObject private var nostrManager: NostrManager
     @Environment(WalletManager.self) private var walletManager
-    @State private var senderProfile: NDKUserProfile?
-    @State private var recipientProfile: NDKUserProfile?
+    @State private var senderMetadata: NDKUserMetadata?
+    @State private var recipientMetadata: NDKUserMetadata?
     @State private var showTokenDetail = false
     @State private var showShareSheet = false
     @State private var copiedToClipboard = false
@@ -51,7 +51,7 @@ struct TransactionDetailDrawer: View {
         VStack(spacing: 16) {
             // For Nutzaps, show the user avatar prominently
             if transaction.type == .nutzap {
-                let profile = transaction.direction == .incoming ? senderProfile : recipientProfile
+                let metadata = transaction.direction == .incoming ? senderMetadata : recipientMetadata
                 let pubkey = transaction.direction == .incoming ? transaction.senderPubkey : transaction.recipientPubkey
 
                 if let pubkey = pubkey {
@@ -73,8 +73,8 @@ struct TransactionDetailDrawer: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
 
-                            if let profile = profile {
-                                Text(profile.name ?? profile.displayName ?? "Anonymous")
+                            if let metadata = metadata {
+                                Text(metadata.name ?? metadata.displayName ?? "Anonymous")
                                     .font(.title3)
                                     .fontWeight(.semibold)
                             } else {
@@ -333,11 +333,12 @@ struct TransactionDetailDrawer: View {
     }
 
     private func loadProfiles() async {
-        guard let ndk = nostrManager.ndk else { return }
+        let ndk = nostrManager.ndk
+        guard let profileManager = nostrManager.profileManager else { return }
 
         // Load Nostr event if we have an event ID
         if let eventID = transaction.nostrEventID {
-            let eventDataSource = ndk.observe(
+            let eventDataSource = ndk.subscribe(
                 filter: NDKFilter(
                     ids: [eventID]
                 ),
@@ -351,43 +352,19 @@ struct TransactionDetailDrawer: View {
             }
         }
 
-        // Load sender profile
+        // Load sender metadata
         if let senderPubkey = transaction.senderPubkey {
-            let profileDataSource = ndk.observe(
-                filter: NDKFilter(
-                    authors: [senderPubkey],
-                    kinds: [0]
-                ),
-                maxAge: 3600,
-                cachePolicy: .cacheWithNetwork
-            )
-
-            for await event in profileDataSource.events {
-                if let profileData = event.content.data(using: .utf8),
-                   let profile = JSONCoding.safeDecode(NDKUserProfile.self, from: profileData) {
-                    senderProfile = profile
-                    break
-                }
+            for await metadata in await profileManager.subscribe(for: senderPubkey, maxAge: TimeConstants.hour) {
+                senderMetadata = metadata
+                break
             }
         }
 
-        // Load recipient profile
+        // Load recipient metadata
         if let recipientPubkey = transaction.recipientPubkey {
-            let profileDataSource = ndk.observe(
-                filter: NDKFilter(
-                    authors: [recipientPubkey],
-                    kinds: [0]
-                ),
-                maxAge: 3600,
-                cachePolicy: .cacheWithNetwork
-            )
-
-            for await event in profileDataSource.events {
-                if let profileData = event.content.data(using: .utf8),
-                   let profile = JSONCoding.safeDecode(NDKUserProfile.self, from: profileData) {
-                    recipientProfile = profile
-                    break
-                }
+            for await metadata in await profileManager.subscribe(for: recipientPubkey, maxAge: TimeConstants.hour) {
+                recipientMetadata = metadata
+                break
             }
         }
 
@@ -471,11 +448,11 @@ struct TransactionInfoRow: View {
 struct ProfileDetailRow: View {
     let label: String
     let pubkey: String
-    let profile: NDKUserProfile?
+    let metadata: NDKUserMetadata?
 
     private var displayName: String {
-        if let profile = profile {
-            return profile.name ?? profile.displayName ?? pubkey.prefix(16) + "..."
+        if let metadata = metadata {
+            return metadata.name ?? metadata.displayName ?? pubkey.prefix(16) + "..."
         }
         return pubkey.prefix(16) + "..."
     }

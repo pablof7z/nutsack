@@ -2,7 +2,7 @@ import SwiftUI
 import NDKSwift
 
 struct ContactsView: View {
-    @Environment(NostrManager.self) private var nostrManager
+    @EnvironmentObject private var nostrManager: NostrManager
     @Environment(WalletManager.self) private var walletManager
     @Binding var navigationDestination: WalletView.WalletDestination?
     @State private var searchText = ""
@@ -14,11 +14,11 @@ struct ContactsView: View {
 
     // Default users to show when no contacts
     private let defaultUsers = [
-        // Pablo Fernandez
-        "fcb220c3af11b08325c8ad74c37b2ab5b9e665e3c39076c20c8d36c5b5c3de78",
-        // Jack Dorsey
+        // PABLOf7z
+        "fa984bd7dbb282f07e16e7ae87b26a2a7b9b90b7246a44771f0cf5ae58018f52",
+        // jacj
         "82341f882b6eabcd2ba7f1ef90aad961cf074af15b9ef44a09f9d2a8fbfbe6a2",
-        // Calle (Cashu creator)
+        // calle
         "50d94fc2d8580c682b071a542f8b1e31a200b0508bab95a33bef0855df281d63"
     ]
 
@@ -144,7 +144,7 @@ struct ContactsView: View {
             }
             .sheet(isPresented: $showSettings) {
                 SettingsView()
-                    .environment(nostrManager)
+                    .environmentObject(nostrManager)
                     .environment(walletManager)
             }
             .refreshable {
@@ -168,7 +168,7 @@ struct ContactsView: View {
             #endif
         .navigationDestination(for: String.self) { pubkey in
             NutzapView(recipientPubkey: pubkey)
-                .environment(nostrManager)
+                .environmentObject(nostrManager)
                 .environment(walletManager)
         }
         .task {
@@ -195,9 +195,7 @@ struct ContactsView: View {
 
         Task {
             do {
-                guard let ndk = nostrManager.ndk else {
-                    throw NDKError.notConfigured("NDK not initialized")
-                }
+                let ndk = nostrManager.ndk
 
                 var pubkey: String?
 
@@ -239,7 +237,7 @@ struct ContactsView: View {
 
     @MainActor
     private func loadContacts() async {
-        guard let ndk = nostrManager.ndk else { return }
+        let ndk = nostrManager.ndk
 
         do {
             // Get user's contact list
@@ -248,12 +246,11 @@ struct ContactsView: View {
 
             let filter = NDKFilter(
                 authors: [pubkey],
-                kinds: [3],
-                limit: 1
+                kinds: [3]
             )
 
             // Use declarative data source to fetch contact list
-            let contactDataSource = ndk.observe(
+            let contactDataSource = ndk.subscribe(
                 filter: filter,
                 maxAge: 3600,
                 cachePolicy: .cacheWithNetwork
@@ -285,7 +282,7 @@ struct ContactsView: View {
 
 struct ContactRow: View {
     let pubkey: String
-    @Environment(NostrManager.self) private var nostrManager
+    @EnvironmentObject private var nostrManager: NostrManager
 
     private var user: NDKUser {
         NDKUser(pubkey: pubkey)

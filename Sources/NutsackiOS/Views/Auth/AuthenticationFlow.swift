@@ -3,7 +3,7 @@ import NDKSwift
 
 struct AuthenticationFlow: View {
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(NostrManager.self) private var nostrManager
+    @EnvironmentObject private var nostrManager: NostrManager
     @Environment(WalletManager.self) private var walletManager
     @Environment(\.dismiss) private var dismiss
 
@@ -29,8 +29,7 @@ struct AuthenticationFlow: View {
     @State private var electricityOffset: CGFloat = -100
 
     // Wallet onboarding sheet
-    @State private var showWalletOnboarding = false
-    @State private var walletOnboardingAuthMode: WalletOnboardingView.AuthMode = .none
+    @State private var walletOnboardingAuthMode: WalletOnboardingView.AuthMode? = nil
     @State private var checkingExistingUser = true
 
     var body: some View {
@@ -73,14 +72,14 @@ struct AuthenticationFlow: View {
             startSplashAnimation()
             checkForExistingUser()
         }
-        .fullScreenCover(isPresented: $showWalletOnboarding) {
-            WalletOnboardingView(authMode: walletOnboardingAuthMode)
-                .environment(nostrManager)
+        .fullScreenCover(item: $walletOnboardingAuthMode) { authMode in
+            WalletOnboardingView(authMode: authMode)
+                .environmentObject(nostrManager)
                 .environment(walletManager)
                 .onDisappear {
                     // If wallet onboarding completes, dismiss the whole auth flow
                     Task {
-                        if await walletManager.isWalletConfigured {
+                        if walletManager.isWalletConfigured {
                             dismiss()
                         }
                     }
@@ -93,11 +92,10 @@ struct AuthenticationFlow: View {
         VStack(spacing: 16) {
             Button(action: {
                 print("🔍 [AuthFlow] New Account clicked")
-                print("🔍 [AuthFlow] NDKAuthManager.hasActiveSession: \(NDKAuthManager.shared.hasActiveSession)")
-                print("🔍 [AuthFlow] NostrManager has signer: \(nostrManager.ndk?.signer != nil)")
-                walletOnboardingAuthMode = .create
+                print("🔍 [AuthFlow] NostrManager.isAuthenticated: \(nostrManager.isAuthenticated)")
+                print("🔍 [AuthFlow] NostrManager has signer: \(nostrManager.ndk.signer != nil)")
                 print("🔍 [AuthFlow] Setting authMode to: .create")
-                showWalletOnboarding = true
+                walletOnboardingAuthMode = .create
             }) {
                 HStack {
                     Image(systemName: "bolt.fill")
@@ -124,11 +122,10 @@ struct AuthenticationFlow: View {
 
             Button(action: {
                 print("🔍 [AuthFlow] Login clicked")
-                print("🔍 [AuthFlow] NDKAuthManager.hasActiveSession: \(NDKAuthManager.shared.hasActiveSession)")
-                print("🔍 [AuthFlow] NostrManager has signer: \(nostrManager.ndk?.signer != nil)")
-                walletOnboardingAuthMode = .import
+                print("🔍 [AuthFlow] NostrManager.isAuthenticated: \(nostrManager.isAuthenticated)")
+                print("🔍 [AuthFlow] NostrManager has signer: \(nostrManager.ndk.signer != nil)")
                 print("🔍 [AuthFlow] Setting authMode to: .import")
-                showWalletOnboarding = true
+                walletOnboardingAuthMode = .import
             }) {
                 HStack {
                     Image(systemName: "key.fill")
@@ -153,9 +150,11 @@ struct AuthenticationFlow: View {
                 .padding(.top, 8)
 
             // Show logout option if authenticated
-            if NDKAuthManager.shared.hasActiveSession {
+            if nostrManager.isAuthenticated {
                 Button(action: {
-                    nostrManager.logout()
+                    Task {
+                        await nostrManager.logout()
+                    }
                 }) {
                     Text("Logout from current account")
                         .font(.system(size: 14, weight: .medium))
