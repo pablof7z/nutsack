@@ -6,7 +6,6 @@ struct WalletSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var nostrManager: NostrManager
     @Environment(WalletManager.self) private var walletManager
-    @EnvironmentObject private var appState: AppState
 
     @State private var mints: [MintInfo] = []
     @State private var relays: [String] = []
@@ -211,7 +210,7 @@ struct WalletSettingsView: View {
                 DiscoveredMintsSheet(discoveryTask: discoveryTask) { selectedMints in
                     for mint in selectedMints {
                         // Skip if blacklisted
-                        if appState.isMintBlacklisted(mint.url) {
+                        if walletManager.blacklistedMints.contains(mint.url) {
                             continue
                         }
 
@@ -261,7 +260,7 @@ struct WalletSettingsView: View {
             print("DEBUG: Loaded mint URLs from wallet: \(mintURLs)")
 
             let mintURLObjects = mintURLs
-                .filter { !appState.isMintBlacklisted($0) }
+                .filter { !walletManager.blacklistedMints.contains($0) }
                 .compactMap { URL(string: $0) }
             mints = mintURLObjects.map { MintInfo(url: $0, name: $0.host ?? "Unknown Mint") }
 
@@ -340,7 +339,7 @@ struct WalletSettingsView: View {
             let mintURLs = mints
                 .map { $0.url.absoluteString }
                 .filter { url in
-                    let isBlacklisted = appState.isMintBlacklisted(url)
+                    let isBlacklisted = walletManager.blacklistedMints.contains(url)
                     print("DEBUG: Mint \(url) blacklisted: \(isBlacklisted)")
                     return !isBlacklisted
                 }

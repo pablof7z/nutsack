@@ -4,7 +4,6 @@ import CashuSwift
 
 struct MintsView: View {
     @Environment(WalletManager.self) private var walletManager
-    @EnvironmentObject private var appState: AppState
 
     @State private var availableMints: [MintInfo] = []
     @State private var showAddMint = false
@@ -179,7 +178,6 @@ struct MintInfoDetailView: View {
     let mintInfo: MintInfo
     @Environment(WalletManager.self) private var walletManager
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var appState: AppState
 
     @State private var showInfo = false
     @State private var isSyncing = false
@@ -187,7 +185,6 @@ struct MintInfoDetailView: View {
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var balance: Int64 = 0
-    @State private var isBlacklisted = false
     @State private var showBlacklistAlert = false
 
     var body: some View {
@@ -314,8 +311,19 @@ struct MintInfoDetailView: View {
     }
 
     private func performBlacklistMint() {
-        appState.blacklistMint(mintInfo.url.absoluteString)
-        dismiss()
+        Task {
+            do {
+                try await walletManager.blacklistMint(mintInfo.url.absoluteString)
+                await MainActor.run {
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = "Failed to blacklist mint: \(error.localizedDescription)"
+                    showError = true
+                }
+            }
+        }
     }
 }
 

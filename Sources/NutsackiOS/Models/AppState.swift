@@ -30,7 +30,6 @@ class AppState: ObservableObject {
     private static let themeKey = "PreferredTheme"
     private static let lastRNackHashKey = "LastReleaseNotesAcknoledgedHash"
     private static let firstLaunchFlag = "HasLaunchedBefore"
-    private static let blacklistedMintsKey = "BlacklistedMints"
     
     // Debug mode for testing
     #if DEBUG
@@ -58,11 +57,6 @@ class AppState: ObservableObject {
         }
     }
 
-    @Published var blacklistedMints: Set<String> {
-        didSet {
-            UserDefaults.standard.set(Array(blacklistedMints), forKey: AppState.blacklistedMintsKey)
-        }
-    }
 
     @Published var exchangeRates: ExchangeRate?
 
@@ -87,11 +81,6 @@ class AppState: ObservableObject {
             themeMode = .system
         }
 
-        if let savedMints = UserDefaults.standard.array(forKey: AppState.blacklistedMintsKey) as? [String] {
-            blacklistedMints = Set(savedMints)
-        } else {
-            blacklistedMints = []
-        }
 
         loadExchangeRates()
     }
@@ -121,19 +110,6 @@ class AppState: ObservableObject {
         }
     }
 
-    // MARK: - Blacklist Management
-
-    func blacklistMint(_ mintURL: String) {
-        blacklistedMints.insert(mintURL)
-    }
-
-    func unblacklistMint(_ mintURL: String) {
-        blacklistedMints.remove(mintURL)
-    }
-
-    func isMintBlacklisted(_ mintURL: String) -> Bool {
-        blacklistedMints.contains(mintURL)
-    }
 }
 
 enum CurrencyUnit: String, CaseIterable {

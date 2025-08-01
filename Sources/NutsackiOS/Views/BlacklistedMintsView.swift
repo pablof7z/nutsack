@@ -10,14 +10,13 @@ import CashuSwift
 
 // MARK: - Blacklisted Mints View
 struct BlacklistedMintsView: View {
-    @EnvironmentObject private var appState: AppState
     @Environment(WalletManager.self) private var walletManager
     @State private var showAddMintSheet = false
     @State private var availableMints: [String] = []
 
     var body: some View {
         List {
-            if appState.blacklistedMints.isEmpty {
+            if walletManager.blacklistedMints.isEmpty {
                 ContentUnavailableView(
                     "No Blacklisted Mints",
                     systemImage: "xmark.shield",
@@ -25,9 +24,15 @@ struct BlacklistedMintsView: View {
                 )
             } else {
                 Section {
-                    ForEach(Array(appState.blacklistedMints).sorted(), id: \.self) { mintURL in
+                    ForEach(Array(walletManager.blacklistedMints).sorted(), id: \.self) { mintURL in
                         BlacklistedMintRowSettings(mintURL: mintURL) {
-                            appState.unblacklistMint(mintURL)
+                            Task {
+                                do {
+                                    try await walletManager.unblacklistMint(mintURL)
+                                } catch {
+                                    print("Failed to unblacklist mint: \(error)")
+                                }
+                            }
                         }
                     }
                 } header: {
@@ -50,9 +55,15 @@ struct BlacklistedMintsView: View {
         .sheet(isPresented: $showAddMintSheet) {
             AddToBlacklistSheet(
                 currentMints: availableMints,
-                blacklistedMints: appState.blacklistedMints
+                blacklistedMints: walletManager.blacklistedMints
             ) { mintURL in
-                appState.blacklistMint(mintURL)
+                Task {
+                    do {
+                        try await walletManager.blacklistMint(mintURL)
+                    } catch {
+                        print("Failed to blacklist mint: \(error)")
+                    }
+                }
             }
         }
         .task {

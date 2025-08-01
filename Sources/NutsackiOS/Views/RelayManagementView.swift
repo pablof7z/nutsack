@@ -6,7 +6,6 @@ struct RelayManagementView: View {
     @EnvironmentObject var nostrManager: NostrManager
 
     var body: some View {
-        NDKUIRelayManagementWrapper()
-            .environment(\.ndk, nostrManager.ndk)
+        NDKUIRelayManagementView(ndk: nostrManager.ndk)
     }
 }

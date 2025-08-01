@@ -24,6 +24,9 @@ class WalletManager {
     
     /// Total pending amount (negative for outgoing, positive for incoming)
     private(set) var pendingAmount: Int64 = 0
+    
+    /// Currently blacklisted mints (reactive from wallet)
+    private(set) var blacklistedMints: Set<String> = []
 
     // Guard against duplicate initialization
     private var isInitializingWallet = false
@@ -112,6 +115,9 @@ class WalletManager {
         print("📝 WalletManager: Loaded \(transactions.count) transactions, pending amount: \(pendingAmount) sats")
         
         print("📘 Wallet loaded with balance tracking")
+        
+        // Get initial blacklisted mints
+        self.blacklistedMints = await ndkWallet.getBlacklistedMints()
 
         // Check if wallet has mints configured
         let fetchedMintURLs = await ndkWallet.mints.getMintURLs()
@@ -536,12 +542,12 @@ class WalletManager {
     func getActiveMintsURLs() async -> [String] {
         guard let wallet = wallet else { return [] }
         let allMints = await wallet.mints.getMintURLs()
-        return allMints.filter { !appState.isMintBlacklisted($0) }
+        return allMints.filter { !blacklistedMints.contains($0) }
     }
 
     /// Check if mint operations should be allowed for a URL
     func shouldAllowMintOperations(for mintURL: String) -> Bool {
-        return !appState.isMintBlacklisted(mintURL)
+        return !blacklistedMints.contains(mintURL)
     }
 
     // MARK: - Cross-mint Operations
@@ -854,6 +860,10 @@ class WalletManager {
                     print("⚙️ WalletManager: Configuration updated with \(mints.count) mints")
                     self.isWalletConfigured = !mints.isEmpty
                     
+                case .blacklistUpdated(let blacklist):
+                    print("🚫 WalletManager: Blacklist updated with \(blacklist.count) mints")
+                    self.blacklistedMints = blacklist
+                    
                 default:
                     // Ignore other events for now
                     break
@@ -953,6 +963,24 @@ class WalletManager {
         
         // Clear the pending failure
         self.pendingMintFailure = nil
+    }
+    
+    /// Blacklist a mint - this should be the primary way to blacklist mints
+    func blacklistMint(_ mintURL: String) async throws {
+        guard let wallet = wallet else {
+            throw WalletError.noActiveWallet
+        }
+        
+        try await wallet.blacklistMint(mintURL)
+    }
+    
+    /// Unblacklist a mint - this should be the primary way to unblacklist mints
+    func unblacklistMint(_ mintURL: String) async throws {
+        guard let wallet = wallet else {
+            throw WalletError.noActiveWallet
+        }
+        
+        try await wallet.unblacklistMint(mintURL)
     }
 }
 

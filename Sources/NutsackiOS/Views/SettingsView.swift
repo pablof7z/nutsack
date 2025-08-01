@@ -92,8 +92,8 @@ struct SettingsView: View {
                         HStack {
                             Label("Blacklisted Mints", systemImage: "xmark.shield")
                             Spacer()
-                            if !appState.blacklistedMints.isEmpty {
-                                Text("\(appState.blacklistedMints.count)")
+                            if !walletManager.blacklistedMints.isEmpty {
+                                Text("\(walletManager.blacklistedMints.count)")
                                     .font(.caption)
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 8)
