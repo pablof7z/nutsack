@@ -25,64 +25,68 @@ struct BalanceCard: View {
         Color(red: 0.98, green: 0.54, blue: 0.13), // Orange
         Color(red: 0.13, green: 0.59, blue: 0.95), // Blue
         Color(red: 0.96, green: 0.26, blue: 0.21), // Red
-        Color(red: 0.30, green: 0.69, blue: 0.31) // Green
+        Color(red: 0.30, green: 0.69, blue: 0.31), // Green
+        Color(red: 0.61, green: 0.15, blue: 0.69), // Purple
+        Color(red: 0.95, green: 0.77, blue: 0.06), // Yellow
+        Color(red: 0.00, green: 0.74, blue: 0.83), // Cyan
+        Color(red: 0.90, green: 0.49, blue: 0.13)  // Dark Orange
     ]
 
-    private let compactChartSize: CGFloat = 20
+    private let compactChartSize: CGFloat = 32
     private let expandedChartSize: CGFloat = 160
 
     var body: some View {
         VStack(spacing: 12) {
-            // Balance display - centered
-            VStack(spacing: 4) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(formatBalance(Int(walletManager.currentBalance)))
-                        .font(.system(size: isExpanded ? 48 : 56, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.primary)
+            // Balance display with pie chart on the left
+            HStack(alignment: .center, spacing: 16) {
+                // Compact pie chart on the left - show if there are any mints at all
+                if !mintBalances.isEmpty && !isExpanded {
+                    ZStack {
+                        ExpandablePieChart(
+                            mintBalances: mintBalances,
+                            mintColors: mintColors,
+                            size: compactChartSize,
+                            useGrayscale: true
+                        )
 
-                    Text("sats")
-                        .font(.system(size: isExpanded ? 20 : 24, weight: .medium, design: .rounded))
-                        .foregroundStyle(.secondary)
-                }
-                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isExpanded)
-
-                // Show pending amount if any
-                if walletManager.pendingAmount != 0 {
-                    Text("\(walletManager.pendingAmount > 0 ? "+" : "")\(abs(walletManager.pendingAmount)) pending")
-                        .font(.system(size: 14, weight: .medium, design: .rounded))
-                        .foregroundStyle(.orange)
-                        .opacity(0.8)
-                }
-
-                // Fiat conversion and/or mini pie chart
-                HStack(spacing: 12) {
-                    // Compact pie chart on the left - show if there are any mints at all
-                    if !mintBalances.isEmpty && !isExpanded {
-                        ZStack {
-                            ExpandablePieChart(
-                                mintBalances: mintBalances,
-                                mintColors: mintColors,
-                                size: compactChartSize,
-                                useGrayscale: true
+                        // Subtle pulsing ring hint
+                        Circle()
+                            .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                            .frame(width: compactChartSize + 8, height: compactChartSize + 8)
+                            .scaleEffect(pulseAnimation ? 1.3 : 1.0)
+                            .opacity(pulseAnimation ? 0.2 : 0.6)
+                            .animation(
+                                Animation.easeInOut(duration: 2)
+                                    .repeatForever(autoreverses: true),
+                                value: pulseAnimation
                             )
+                    }
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                            isExpanded.toggle()
+                        }
+                    }
+                }
+                
+                // Balance and fiat conversion
+                VStack(spacing: 4) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(formatBalance(Int(walletManager.currentBalance)))
+                            .font(.system(size: isExpanded ? 48 : 56, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.primary)
 
-                            // Subtle pulsing ring hint
-                            Circle()
-                                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
-                                .frame(width: compactChartSize + 8, height: compactChartSize + 8)
-                                .scaleEffect(pulseAnimation ? 1.3 : 1.0)
-                                .opacity(pulseAnimation ? 0.2 : 0.6)
-                                .animation(
-                                    Animation.easeInOut(duration: 2)
-                                        .repeatForever(autoreverses: true),
-                                    value: pulseAnimation
-                                )
-                        }
-                        .onTapGesture {
-                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                                isExpanded.toggle()
-                            }
-                        }
+                        Text("sats")
+                            .font(.system(size: isExpanded ? 20 : 24, weight: .medium, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
+                    .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isExpanded)
+
+                    // Show pending amount if any
+                    if walletManager.pendingAmount != 0 {
+                        Text("\(walletManager.pendingAmount > 0 ? "+" : "")\(abs(walletManager.pendingAmount)) pending")
+                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                            .foregroundStyle(.orange)
+                            .opacity(0.8)
                     }
 
                     // Show fiat conversion if available
@@ -98,39 +102,37 @@ struct BalanceCard: View {
 
             // Expanded pie chart with legend
             if !mintBalances.isEmpty && isExpanded {
-                VStack(spacing: 16) {
-                    // Large pie chart
+                VStack(spacing: 24) {
+                    // Large pie chart with more vertical spacing
                     ExpandablePieChart(
                         mintBalances: mintBalances,
                         mintColors: mintColors,
                         size: expandedChartSize,
                         useGrayscale: false
                     )
+                    .padding(.vertical, 8)
                     .onTapGesture {
                         withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                             isExpanded.toggle()
                         }
                     }
 
-                    // Legend
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(Array(mintBalances.enumerated()), id: \.element.id) { index, item in
-                            HStack(spacing: 10) {
-                                Circle()
-                                    .fill(mintColors[index % mintColors.count])
-                                    .frame(width: 14, height: 14)
-
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text(formatMintURL(item.mint))
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundStyle(.primary)
-
-                                    Text("\(formatBalance(Int(item.balance))) sats (\(String(format: "%.1f", item.percentage))%)")
-                                        .font(.system(size: 12))
-                                        .foregroundStyle(.secondary)
+                    // Legend with ScrollView if needed
+                    Group {
+                        if mintBalances.count > 5 {
+                            ScrollView {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    ForEach(Array(mintBalances.enumerated()), id: \.element.id) { index, item in
+                                        mintLegendRow(index: index, item: item)
+                                    }
                                 }
-
-                                Spacer()
+                            }
+                            .frame(maxHeight: 200)
+                        } else {
+                            VStack(alignment: .leading, spacing: 8) {
+                                ForEach(Array(mintBalances.enumerated()), id: \.element.id) { index, item in
+                                    mintLegendRow(index: index, item: item)
+                                }
                             }
                         }
                     }
@@ -189,6 +191,27 @@ struct BalanceCard: View {
         formatter.numberStyle = .decimal
         formatter.groupingSeparator = ","
         return formatter.string(from: NSNumber(value: sats)) ?? String(sats)
+    }
+    
+    @ViewBuilder
+    private func mintLegendRow(index: Int, item: BalanceCardMint) -> some View {
+        HStack(spacing: 10) {
+            Circle()
+                .fill(mintColors[index % mintColors.count])
+                .frame(width: 14, height: 14)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(formatMintURL(item.mint))
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.primary)
+
+                Text("\(formatBalance(Int(item.balance))) sats (\(String(format: "%.1f", item.percentage))%)")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+        }
     }
 
     private func formatMintURL(_ urlString: String) -> String {
@@ -250,25 +273,44 @@ struct BalanceCard: View {
         isLoadingMints = true
         defer { isLoadingMints = false }
 
-        guard let wallet = walletManager.wallet else { return }
+        guard let wallet = walletManager.wallet else { 
+            print("⚠️ BalanceCard: No wallet available")
+            return 
+        }
 
         // Use the efficient getBalancesByMint method instead of looping
         let balancesByMint = await wallet.getBalancesByMint()
+        
+        print("🔍 BalanceCard: Raw balances by mint:")
+        for (mint, balance) in balancesByMint {
+            print("  - \(mint): \(balance) sats")
+        }
 
         var balances: [BalanceCardMint] = []
         let totalBalance = balancesByMint.values.reduce(0, +)
+        
+        print("💰 BalanceCard: Total balance across all mints: \(totalBalance) sats")
+        print("💰 BalanceCard: WalletManager currentBalance: \(walletManager.currentBalance) sats")
 
         // Convert to BalanceCardMint array with percentages
         for (mint, balance) in balancesByMint where balance > 0 {
             let percentage = totalBalance > 0 ? (Double(balance) / Double(totalBalance)) * 100 : 0
             balances.append(BalanceCardMint(mint: mint, balance: balance, percentage: percentage))
+            print("  📊 Mint: \(mint) - Balance: \(balance) sats (\(String(format: "%.2f", percentage))%)")
         }
 
-        // Sort by balance (largest first) and take top 4
+        // Sort by balance (largest first) for consistent display order
         balances.sort { $0.balance > $1.balance }
-        if balances.count > 4 {
-            balances = Array(balances.prefix(4))
+        print("📊 BalanceCard: Found \(balances.count) mints with positive balances")
+        
+        // Log final balances and verify percentages add up
+        print("📊 BalanceCard: Final mint balances for pie chart:")
+        var totalPercentage = 0.0
+        for (index, balance) in balances.enumerated() {
+            print("  \(index + 1). \(balance.mint): \(balance.balance) sats (\(String(format: "%.2f", balance.percentage))%)")
+            totalPercentage += balance.percentage
         }
+        print("✅ BalanceCard: Total percentage: \(String(format: "%.2f", totalPercentage))%")
 
         await MainActor.run {
             self.mintBalances = balances
@@ -288,12 +330,16 @@ struct ExpandablePieChart: View {
         Color(white: 0.7),
         Color(white: 0.5),
         Color(white: 0.3),
-        Color(white: 0.4)
+        Color(white: 0.4),
+        Color(white: 0.6),
+        Color(white: 0.8),
+        Color(white: 0.35),
+        Color(white: 0.45)
     ]
 
     var body: some View {
         ZStack {
-            ForEach(Array(mintBalances.enumerated()), id: \.element.id) { index, _ in
+            ForEach(Array(mintBalances.enumerated()), id: \.element.id) { index, item in
                 Circle()
                     .trim(from: startAngle(for: index), to: endAngle(for: index))
                     .stroke(
@@ -311,6 +357,14 @@ struct ExpandablePieChart: View {
                         .delay(Double(index) * 0.05),
                         value: showChart
                     )
+                    .onAppear {
+                        if index == 0 {
+                            print("🎨 PieChart: Drawing with \(mintBalances.count) segments")
+                            for (i, balance) in mintBalances.enumerated() {
+                                print("  Segment \(i): \(balance.percentage)%")
+                            }
+                        }
+                    }
             }
 
             // Subtle inner shadow for depth (only for larger sizes)
@@ -346,11 +400,16 @@ struct ExpandablePieChart: View {
     }
 
     private func startAngle(for index: Int) -> CGFloat {
-        guard index > 0 else { return 0 }
+        guard index > 0 else { 
+            print("🥧 PieChart: Segment \(index) starts at 0°")
+            return 0 
+        }
 
         let previousAngles = mintBalances[0..<index].reduce(0) { sum, item in
             sum + (item.percentage / 100.0)
         }
+        
+        print("🥧 PieChart: Segment \(index) starts at \(String(format: "%.2f", previousAngles * 360))° (fraction: \(String(format: "%.4f", previousAngles)))")
 
         return previousAngles
     }
@@ -359,7 +418,9 @@ struct ExpandablePieChart: View {
         let cumulativeAngle = mintBalances[0...index].reduce(0) { sum, item in
             sum + (item.percentage / 100.0)
         }
-
+        
+        print("🥧 PieChart: Segment \(index) ends at \(String(format: "%.2f", cumulativeAngle * 360))° (fraction: \(String(format: "%.4f", cumulativeAngle)))")
+        
         return cumulativeAngle
     }
 }
